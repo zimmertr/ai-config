@@ -1,0 +1,133 @@
+{
+  "cleanupPeriodDays": 365,
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
+    "CLAUDE_CODE_TMPDIR": "/Users/tj/.claude/tmp"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(cat *)",
+      "Bash(docker build*)",
+      "Bash(docker ps*)",
+      "Bash(docker tag*)",
+      "Bash(find . *)",
+      "Bash(gh pr checks*)",
+      "Bash(gh run view*)",
+      "Bash(git add*)",
+      "Bash(git diff*)",
+      "Bash(git list*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git status*)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "WebFetch",
+      "WebSearch",
+      "mcp__voicemode__converse",
+      "mcp__voicemode__service",
+      "Edit(/private/tmp/bluebird*/**)",
+      "Read(/private/tmp/bluebird*/**)",
+      "Edit(/tmp/bluebird*/**)",
+      "Read(/tmp/bluebird*/**)"
+    ],
+    "deny": [
+      "Bash(brew install*)",
+      "Bash(brew uninstall*)",
+      "Bash(dd if=*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(pip install*)",
+      "Bash(pip uninstall*)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -r -f *)",
+      "Bash(rm -f -r *)",
+      "Bash(npm install -g*)",
+      "Bash(npm i -g*)",
+      "Bash(pipx install*)"
+    ],
+    "ask": [
+      "Bash(git push*main*)",
+      "Bash(git push*HEAD:main*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "opus",
+  "attribution": false,
+  "enableWorkflows": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh",
+    "padding": 0,
+    "refreshInterval": 10
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "voicemode@voicemode": true
+  },
+  "extraKnownMarketplaces": {
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    },
+    "voicemode": {
+      "source": {
+        "source": "github",
+        "repo": "mbailey/voicemode"
+      }
+    }
+  },
+  "outputStyle": "concise",
+  "feedbackDrafts": "off",
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "medium"
+    },
+    "claude-opus-4-8": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    },
+    "claude-haiku-5-5": {
+      "effortLevel": "low"
+    }
+  },
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "autoMemoryEnabled": true,
+  "autoDreamEnabled": true,
+  "showThinkingSummaries": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "auto",
+  "editorMode": "normal",
+  "verbose": true,
+  "switchModelsOnFlag": false,
+  "showTurnDuration": true,
+  "terminalProgressBarEnabled": true,
+  "teammateMode": "iterm2",
+  "remoteControlAtStartup": false,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": true,
+  "autoSummaryEnabled": true
+}
