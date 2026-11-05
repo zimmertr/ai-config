@@ -16,8 +16,7 @@ Each line ends in one of three marks, and the report carries all three:
 
 1. The files from [repo.md](repo.md) exist: `LICENSE`, `.gitignore`,
    `.dockerignore`, `README.md`, `SECURITY.md`, `CONTRIBUTING.md`,
-   `NOTICES.md` (when needed), `.github/ISSUE_TEMPLATE/`, `CLAUDE.md`, and
-   `.claude/settings.json` with `"attribution": false`.
+   `NOTICES.md` (when needed), `.github/ISSUE_TEMPLATE/` and `CLAUDE.md`.
 2. Merge settings: `gh api repos/O/R` shows squash only, `PR_TITLE` and
    `PR_BODY`, auto-merge, branch deletion and "Update branch" on, and the
    wiki off.
