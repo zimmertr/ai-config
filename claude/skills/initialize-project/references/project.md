@@ -30,9 +30,9 @@
 6. **Attribution.** Claude and other AI agents never add attribution to
    commits or PRs, or appear on GitHub as a contributor. All design and
    direction comes from the maintainer and is attributed to the maintainer, unless
-   Anthropic's or another agent's licensing requires otherwise. Set
-   `"attribution": false` in the repo's `.claude/settings.json` too, so it
-   holds for any collaborator's session.
+   Anthropic's or another agent's licensing requires otherwise. The
+   maintainer's global settings set `"attribution": false`; a repo doesn't
+   repeat it in its own `.claude/settings.json`.
 7. **Health and logs.** A long-running service exposes a health check that
    its orchestrator uses, and reports its version and commit (baked into the
    image at build time) at an endpoint. Logs are structured, go to stdout,

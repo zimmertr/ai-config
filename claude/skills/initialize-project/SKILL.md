@@ -29,6 +29,7 @@ Read each file when its step needs it, not all at once:
 | [references/repo.md](references/repo.md) | Repo files, settings, issues, branching |
 | [references/docs.md](references/docs.md) | The `docs/` set, CLAUDE.md, ADRs, the SBOM |
 | [references/ui.md](references/ui.md) | User interfaces, when there is one |
+| [references/done.md](references/done.md) | The checklist the foundation must pass, and the report it ends in |
 | [templates/](templates/) | The ADR template and the ADR index to copy in |
 
 A standard marked **conditional** applies only when the interview switches it
@@ -65,5 +66,13 @@ on. Everything else applies to every project.
    The first tasks set up the repo, CI/CD and docs, before any feature work.
 5. **File the plan as GitHub issues** with the `create-issue` skill: one
    issue per task, under an epic issue that tracks them as sub-issues.
-6. **Create the repo and start building**, task by task, to the standards
-   above. Every change follows the global rules: a PR that has passed CI.
+6. **Build the foundation**: the first tasks, which create the repo and set
+   up its CI/CD, security and docs to the standards above. Every change
+   follows the global rules: a PR that has passed CI.
+7. **Check the foundation, and report.** Run every line of
+   [references/done.md](references/done.md) against the live repo and its
+   runs, and send the maintainer its outputs: the links, and each line's mark
+   and evidence. Fix what fails before reporting. Stop here until the
+   maintainer has seen the report.
+8. **Build the features**, task by task, in the order of the dependency
+   graph.
