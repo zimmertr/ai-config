@@ -77,7 +77,7 @@ Each line ends in one of three marks, and the report carries all three:
 21. **Kubernetes:** the release's bump merged in Kubernetes-Manifests, and
     Argo CD shows the app Synced and Healthy on the new version
     (`kubectl` reads are allowed; changes are not).
-22. **Helm chart:** the chart is on ArtifactHub with its docs, the release
+22. **Helm chart:** the chart is on Docker Hub with its README, the release
     bumped its `appVersion`, and a Rollout promoted the new version through
     its gate.
 23. **Database:** the database tests ran in their own CI job, against a

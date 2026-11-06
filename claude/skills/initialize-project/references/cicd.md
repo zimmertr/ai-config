@@ -105,7 +105,7 @@ Copy it from them rather than writing it fresh, and read their
     2. Argo CD finds it through an ApplicationSet with a Git generator.
     3. The ApplicationSets and AppProjects are managed by the app-of-apps
        pattern from the root Application.
-    4. The chart is published to ArtifactHub with full documentation.
+    4. The chart is published to Docker Hub as an OCI artifact, with a README for its values.
     5. The service deploys through Argo Rollouts with a canary or blue-green
        strategy, and a gate that checks the new version before it takes the
        traffic. The gate exercises only the service and what it deploys with,
