@@ -38,12 +38,13 @@
     stops the GitHub release and the deploy; production stays on the
     previous release. The image runs `apt-get upgrade` (or `apk upgrade`)
     at build time, because base images lag their distribution's security
-    fixes. When builds share a cache, BuildKit reuses that layer and a fixed
-    CVE never arrives, so the upgrade goes after a build argument that
-    changes on every build (the commit, the build time): BuildKit keys a
-    `RUN` on every argument in scope. Only `USER`, `EXPOSE`, `HEALTHCHECK`
-    and `CMD` follow it, so the rerun repeats no build work. Bluebird:
-    record 0197.
+    fixes. Put the upgrade after a build argument that changes on every
+    build (the commit, the build time), whether or not the build uses a
+    cache today. A builder with no cache reruns the layer anyway. Once a
+    cache is added (`cache-from: type=gha`, as Bluebird's release uses),
+    BuildKit reuses the layer, because it keys a `RUN` on every argument in
+    scope, and a fixed CVE never arrives. Only `USER`, `EXPOSE`,
+    `HEALTHCHECK` and `CMD` follow it. Bluebird: record 0197.
 11. **Choose the base image by measured findings.** Scan the candidates with
     Trivy, pick the one with the fewest findings that have no fix, and record
     why. A multi-platform image is scanned per platform, by digest. Bluebird:
@@ -61,7 +62,11 @@
     reads a lock generated from it: `pip-compile --generate-hashes` then
     `pip install --require-hashes`, or `npm ci` from `package-lock.json`. A
     `make` target regenerates the lock, and a pin change ships with its
-    regenerated lock in the same PR. Bluebird: record 0099.
+    regenerated lock in the same PR. A test holds the lock to the pins:
+    every direct pin locked at its version, every locked package hashed,
+    the image installing the lock with hashes required, and every language
+    ecosystem's Dependabot entry carrying its cooldown. Bluebird: record
+    0099 and `backend/tests/test_dependency_lock.py`.
 16. **No install scripts.** Every `npm ci` passes `--ignore-scripts`, and a
     test fails one that doesn't.
 17. **Pin what you import.** A convenience extra that pulls in packages the

@@ -39,9 +39,9 @@ Each line ends in one of three marks, and the report carries all three:
    minor PR armed auto-merge and merged itself. Until Dependabot opens one,
    this line is blocked on Dependabot, and the report says so.
 
-9. Every `npm ci` passes `--ignore-scripts`, and the image's `pip install`
-   passes `--require-hashes` (grep the Dockerfile, the Makefile and the
-   workflows).
+9. The dependency-lock test exists and passed on a PR, and a grep of the
+   Dockerfile, the Makefile and the workflows confirms `--ignore-scripts` on
+   every `npm ci` and `--require-hashes` on the image's `pip install`.
 
 ## CI/CD
 
