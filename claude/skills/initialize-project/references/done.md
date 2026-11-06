@@ -88,8 +88,9 @@ Each line ends in one of three marks, and the report carries all three:
     `Retry-After`, a client-IP header sent from outside the proxy doesn't
     change the bucket, and every response, a `404` included, carries the
     security headers (`curl` against the project's own host).
-26. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
-    preview all ran on a PR.
+26. **Web UI:** Lighthouse budgets, the browser smoke test with axe in every
+    theme, and a PR preview all ran on a PR. A colour literal written outside
+    its owning module, tried on a draft PR, fails the linter.
 27. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs

@@ -27,7 +27,7 @@ Open-Meteo is the working example.
    fair-use terms and limits, dated. `docs/TRAFFIC.md` lists every call
    with its weight, timeout and retries.
 7. **A costly action is an explicit commit.** Conditional (UI) too: see
-   [ui.md](ui.md).
+   [ui.md](ui.md), Behaviour.
 
 ## Logic spelled in two languages
 

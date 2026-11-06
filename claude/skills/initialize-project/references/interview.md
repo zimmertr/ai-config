@@ -7,6 +7,8 @@ answer switches standards on or off, and the PRD records every one.
 |---|---|
 | Who uses it, and how: people in a browser, a CLI, a job, other services? | A browser UI switches on [ui.md](ui.md), `docs/STYLES.md` and Lighthouse CI. An API switches on `docs/API.md` and the API contract, errors and limits sections of [service.md](service.md) |
 | Will people the maintainer doesn't know reach it from the internet? | The public-service section of [service.md](service.md): per-client rate limits, client identity only from the proxy that sets it, and, with a browser client, the security headers |
+| With a UI: which themes, and which is the default? | The tokens per theme, each measured for contrast (see [ui.md](ui.md)) |
+| With a UI: does a link carry what the user is looking at? | Conditional (shareable state) in [ui.md](ui.md) |
 | Will it grow into several services, or stay one? | Several: 12-factor microservices, each its own deployable (see [project.md](project.md)). One: a monolith, still 12-factor |
 | One repo or several? | Several repos, or a project expected to become large: a GitHub organization of its own instead of the personal account |
 | Where does it run: the Kubernetes cluster, a cloud (AWS, Cloudflare), or nowhere? | Kubernetes: GitOps through Argo CD and Kubernetes-Manifests. A cloud: Terraform for every resource |
