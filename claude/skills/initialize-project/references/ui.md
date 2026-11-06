@@ -91,8 +91,8 @@ linter checks in `frontend/tools/eslint/` are the working example.
     width. No em dashes. No on-screen prose explaining a control; fix the
     control instead. Name things in the words the UI already shows, and
     don't coin labels. Bluebird: `docs/STYLES.md`, Copy rules and Copy
-    length budget; no em dashes and no coined labels are the maintainer's
-    standing rules.
+    length budget. No em dashes and no coined labels come from the
+    maintainer's global rules (26 and 27 in `~/.claude/CLAUDE.md`).
 
 ## Mockups
 
