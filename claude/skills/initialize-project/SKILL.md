@@ -29,6 +29,7 @@ Read each file when its step needs it, not all at once:
 | [references/repo.md](references/repo.md) | Repo files, settings, issues, branching |
 | [references/docs.md](references/docs.md) | The `docs/` set, CLAUDE.md, ADRs, the SBOM |
 | [references/service.md](references/service.md) | The API contract, errors, limits, logs and public-service guards, when they apply |
+| [references/upstreams.md](references/upstreams.md) | Metered upstreams, and logic spelled in two languages, when they apply |
 | [references/ui.md](references/ui.md) | User interfaces, when there is one |
 | [references/done.md](references/done.md) | The checklist the foundation must pass, and the report it ends in |
 | [templates/](templates/) | The ADR template and the ADR index to copy in |

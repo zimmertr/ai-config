@@ -82,9 +82,11 @@ Each line ends in one of three marks, and the report carries all three:
 23. **API:** a draft PR that changes a model without regenerating the
     OpenAPI document fails its check, and an oversized request body gets a
     `413`.
-24. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
+24. **Mirrored logic:** every pair in the code is a row in the mirror table,
+    and changing one side of a shared fixture fails the other suite.
+25. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
     preview all ran on a PR.
-25. **A cloud:** `terraform plan` on main shows no changes.
+26. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs
 

@@ -16,6 +16,8 @@ answer switches standards on or off, and the PRD records every one.
 | Which license? Noncommercial/source-available, copyleft, or permissive | The `LICENSE` file, and a `NOTICES.md` when third parties need credit |
 | Public or private? | Public: GitHub's free security features (see [security.md](security.md)) |
 | Which upstream data or services does it depend on? | `docs/DATA.md`, with each provider's licensing terms |
+| Are those upstreams free and donated, rate-limited, or paid? | Any of the three: the metered-upstream section of [upstreams.md](upstreams.md) |
+| Will a client reimplement server logic, to work offline or to compute in the browser? | The mirrored-logic section of [upstreams.md](upstreams.md): the mirror table and the shared fixtures |
 
 When an answer is "not yet" (a UI later, a second service later), record it in
 the PRD. Build what serves today, so it can be switched on later.
