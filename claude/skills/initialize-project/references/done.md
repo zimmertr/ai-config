@@ -82,9 +82,13 @@ Each line ends in one of three marks, and the report carries all three:
 23. **API:** a draft PR that changes a model without regenerating the
     OpenAPI document fails its check, and an oversized request body gets a
     `413`.
-24. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
+24. **Public service:** a burst past one client's bucket gets a `429` with
+    `Retry-After`, a client-IP header sent from outside the proxy doesn't
+    change the bucket, and every response, a `404` included, carries the
+    security headers (`curl` against the project's own host).
+25. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
     preview all ran on a PR.
-25. **A cloud:** `terraform plan` on main shows no changes.
+26. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs
 
