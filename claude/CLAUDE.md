@@ -35,3 +35,8 @@ These apply in every repo and every session. A repo's own CLAUDE.md can narrow o
 23. For UI changes or features, start with mockups and ask for feedback early and often: ASCII mockups for simple changes, Artifacts with detailed mockups for large ones. Use Claude in Chrome when it helps, especially for UI.
 24. Invoke the `frontend-design` skill before building any new UI surface or reworking an existing one visually. Follow its process: plan the palette, type, and layout, critique that plan against the brief, then build and screenshot-critique as you go. Its writing guidance applies to all UI copy. On a project that already has a design system (bluebird's `styles.ts`, for example), derive the visual choices from that system rather than inventing a palette or typeface. The skill's process and copy guidance still apply there.
 25. Use Fable for planning and Opus for your own work. When I ask for subagents, you may run up to three at a time on cheaper models (Sonnet or Haiku). Review what each one produces; when there are gaps, mistakes or room to improve, send it back and iterate until you are satisfied. Only then send the PR to me.
+
+## Writing
+
+26. Never write an em dash in anything I'll read or ship: UI strings, docs, READMEs, issue and PR titles and bodies, and commit messages. Use a period, a comma, a colon or parentheses instead, and search for U+2014 before posting. Code comments follow the style of the file they're in.
+27. Never coin a name for a mechanism or a bug and then use it as if I know it. Say what happens in plain words, every time, and name only real identifiers: files, functions, issue numbers. In a UI, name things in the words the UI already shows.

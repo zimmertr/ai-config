@@ -1,8 +1,7 @@
 # CI/CD
 
-Bluebird (`zimmertr/bluebird`) and hevy-trainer-sync (`zimmertr/hevy-trainer-sync`)
-run all of this today. Copy from them rather than writing it fresh, and read
-their `docs/CICD.md` for the reasons behind each piece.
+The pipeline already runs in the projects named in [SKILL.md](../SKILL.md).
+Copy it from them rather than writing it fresh.
 
 ## Versioning
 
@@ -15,8 +14,6 @@ their `docs/CICD.md` for the reasons behind each piece.
      `build`, each with an optional `(scope)`
 
    The body never counts, so a `BREAKING CHANGE:` footer is not a major.
-   Bluebird's three patterns in `GitVersion.yml` are the reference (its
-   record 0080).
 2. **Seed the first version.** Use `next-version` with the `ConfiguredNextVersion`
    strategy beside `Mainline`. Mainline alone ignores it. Write it with the
    tag prefix (`'v0.1.0'`), because GitVersion 6.8.2 refuses a bare `0.1.0`.
@@ -73,8 +70,11 @@ their `docs/CICD.md` for the reasons behind each piece.
 ## Pull request checks
 
 12. Every PR runs:
-    - the tests with the coverage gate
-    - a linter (for example ruff, ESLint)
+    - the tests, with the coverage report
+    - a linter (for example ruff, ESLint) that also fails a broad `except`
+      that swallows its error: it re-raises, logs its traceback, or carries
+      a suppression with the reason beside it
+    - a type checker for every typed language (`tsc --noEmit`, mypy)
     - hadolint on every Dockerfile
     - the `PR Title` check
     - when the project ships an image: an image build, a Trivy scan of that
@@ -83,16 +83,22 @@ their `docs/CICD.md` for the reasons behind each piece.
     - **conditional (web UI):** Lighthouse CI budgets and a browser smoke
       test with axe
 13. **Conditional (web UI):** a preview environment per PR, and a cache
-    cleanup workflow when caches pile up.
+    cleanup workflow when caches pile up. A preview lives for as long as its
+    PR carries a label, and ends when the label comes off or the PR closes;
+    there's no age limit. Previews share one namespace, apart from
+    production's, with Pod Security `restricted`.
 14. Every CI check is also a `make` target that runs in Docker.
+15. **Unused code is found on demand.** A `make check-unused` target (Knip,
+    Vulture) runs before a refactor lands, and every allowlisted exception
+    sits beside its reason.
 
 ## Delivery
 
-15. **Conditional (Kubernetes):** GitOps through Argo CD and the
+16. **Conditional (Kubernetes):** GitOps through Argo CD and the
     Kubernetes-Manifests repo. Argo CD auto-syncs and reverts changes made
     outside git. The version is pinned in git, and the release is the only
     thing that bumps it.
-16. **Conditional (long-running, user-facing service on Kubernetes):**
+17. **Conditional (long-running, user-facing service on Kubernetes):**
     1. A Helm chart instead of hand-written manifests, inflated through
        Kustomize's `helmCharts` generator.
     2. Argo CD finds it through an ApplicationSet with a Git generator.
@@ -101,6 +107,8 @@ their `docs/CICD.md` for the reasons behind each piece.
     4. The chart is published to ArtifactHub with full documentation.
     5. The service deploys through Argo Rollouts with a canary or blue-green
        strategy, and a gate that checks the new version before it takes the
-       traffic.
-17. **Conditional (a cloud: AWS, Cloudflare and so on):** Terraform for
+       traffic. The gate exercises only the service and what it deploys with,
+       never a third party, so an outside outage can't fail or block a good
+       release.
+18. **Conditional (a cloud: AWS, Cloudflare and so on):** Terraform for
     every resource. No ClickOps, and no one-off API calls.

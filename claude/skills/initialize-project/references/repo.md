@@ -8,12 +8,15 @@
 3. `README.md`. The maintainer owns it: it is written in the maintainer's
    voice, kept true in every PR, and never restructured, rewritten or given
    badges, banners or AI-flavoured prose. Detail lives in `docs/`, and the
-   README points to it.
+   README points to it. It starts from these sections, with the words left
+   to the maintainer: Summary, How It Works, Quick Start, the docs table,
+   Support and License. Anything longer than a paragraph goes in `docs/`.
 4. `SECURITY.md` (see [security.md](security.md)).
 5. `CONTRIBUTING.md`: how to send a change. The `make` targets, tests with
    every behaviour change, and the docs page that owns the topic.
 6. `NOTICES.md`, when third parties need credit: the data providers, and the
-   software bundled in the shipped image, each with its license.
+   software bundled in the shipped image, each with its license. A test
+   holds it to the manifests (see [docs.md](docs.md), License notices).
 7. `.github/ISSUE_TEMPLATE/`: a bug and a proposal template, with blank
    issues off.
 8. `CLAUDE.md` (see [docs.md](docs.md)).
