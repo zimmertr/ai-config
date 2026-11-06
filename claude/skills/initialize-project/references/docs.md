@@ -18,9 +18,11 @@
    line in the same PR. Each nested file sits at the tightest directory that
    contains every path it names, so it loads only for its own tree. The
    root's docs table lists every nested file, and adding or removing one
-   updates it in the same PR. A file that grows too large splits along a
-   family of modules; Bluebird splits at 150,000 characters (records 0047,
-   0231).
+   updates it in the same PR. A file that grows large splits along a
+   family of modules, long before it nears the size Claude Code reads a
+   `CLAUDE.md` under. Bluebird split its root at 165k characters (record
+   0047) and its utils guide past 150k (record 0231); those were ceilings
+   it hit, not targets.
 
 ## The docs/ set
 
@@ -80,9 +82,9 @@
 ## License notices
 
 15. **The image's license file is built, not kept by hand.** Each build stage
-   writes the license text of what it actually ships into one file the
-   service serves, and a package with no license text fails the build.
-   Bluebird: record 0086, `third-party-licenses.txt`.
+    writes the license text of what it actually ships into one file the
+    service serves, and a package with no license text fails the build.
+    Bluebird: record 0086, `third-party-licenses.txt`.
 16. **`NOTICES.md` is held to the manifests.** A test fails when the tables
-   in `NOTICES.md` and the direct dependencies in `package.json` or
-   `requirements.in` disagree. Bluebird: `backend/tests/test_notices.py`.
+    in `NOTICES.md` and the direct dependencies in `package.json` or
+    `requirements.in` disagree. Bluebird: `backend/tests/test_notices.py`.

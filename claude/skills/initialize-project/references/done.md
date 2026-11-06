@@ -69,7 +69,8 @@ Each line ends in one of three marks, and the report carries all three:
 19. Every rule in `CLAUDE.md` that states a decision links its ADR, and the
     ADR index lists every record.
 20. Every `CLAUDE.md` in the tree is listed in the root's docs table, and
-    the release's image serves its license file.
+    the release's image ships its license file (and serves it, when it
+    serves HTTP).
 
 ## Conditional
 
