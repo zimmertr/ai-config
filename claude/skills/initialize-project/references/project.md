@@ -84,8 +84,7 @@
       `make test-backend-db`, against `backend/tests/db/Dockerfile`.
 15. **Fakes come from one place.** Each suite has one fixtures module that
     builds every fake: a row, an HTTP answer, an upstream stub. Tests compose
-    it and never spell a fake inline. A fake HTTP answer must be able to fail
-    `raise_for_status`. Bluebird: `frontend/src/testSupport/fixtures.ts`
+    it and never spell a fake inline. Bluebird: `frontend/src/testSupport/fixtures.ts`
     and `backend/tests/conftest.py`, after #389 and #439 unwound eleven
     copies of one result row.
 16. **A check can't pass by finding nothing.** A test that reads files fails

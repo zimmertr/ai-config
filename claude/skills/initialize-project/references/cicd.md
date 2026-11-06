@@ -89,10 +89,8 @@ their `docs/CICD.md` for the reasons behind each piece.
     cleanup workflow when caches pile up. A preview lives for as long as its
     PR carries a label, and ends when the label comes off or the PR closes;
     there's no age limit. Previews share one namespace, apart from
-    production's, with Pod Security `restricted`. A preview may read
-    production's database only through a read-only login, and only while
-    that data is public and can be rebuilt. Bluebird: records 0110 (which
-    reversed 0108's age-out) and 0183.
+    production's, with Pod Security `restricted`. Bluebird: record 0110,
+    which reversed 0108's age-out.
 14. Every CI check is also a `make` target that runs in Docker.
 15. **Unused code is found on demand.** A `make check-unused` target (Knip,
     Vulture) runs before a refactor lands, and every allowlisted exception
@@ -113,8 +111,6 @@ their `docs/CICD.md` for the reasons behind each piece.
     4. The chart is published to ArtifactHub with full documentation.
     5. The service deploys through Argo Rollouts with a canary or blue-green
        strategy, and a gate that checks the new version before it takes the
-       traffic. The gate exercises the service's own stack and calls no
-       third-party or metered upstream; correctness against upstreams
-       belongs to CI. Bluebird: record 0230.
+       traffic.
 18. **Conditional (a cloud: AWS, Cloudflare and so on):** Terraform for
     every resource. No ClickOps, and no one-off API calls.

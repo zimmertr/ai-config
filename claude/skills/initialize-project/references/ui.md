@@ -27,11 +27,9 @@ linter checks in `frontend/tools/eslint/` are the working example.
    wrong font, a one-off button, or a color that misses its contrast ratio.
    Lint rules fail a value spelled outside the module that owns it.
 6. **Every colour value has one owner**, in every channel it reaches. No
-   component names a hue. Map paint, canvas drawing and chart props each
-   get an owning module, because CSS never reaches them and that's where
-   drift hides. HTML built outside the framework, such as a map popup,
-   holds no colours of its own: it names the app's tokens and wears the
-   app's classes. The linter fails a colour literal anywhere else.
+   component names a hue. Channels CSS never reaches, such as canvas
+   drawing and chart options, get an owning module too, because that's
+   where drift hides. The linter fails a colour literal anywhere else.
    Bluebird: records 0009, 0112 and 0215.
 7. **The type ramp has a floor, and shadows have a scale**, both enforced:
    a smallest size for text a reader reads, a larger one for anything
@@ -51,40 +49,33 @@ linter checks in `frontend/tools/eslint/` are the working example.
 
 ## Behaviour
 
-11. **A costly action is an explicit commit.** An action that spends
-    upstream quota or real work waits for an explicit button. A change that
-    only re-presents data already held applies live. A run that fails or is
-    cancelled leaves the previous state exactly as it was. Where the cost
-    can be known before the press, it's counted first, and a run over
-    budget is blocked before it spends. Bluebird: records 0003, 0093 and
-    0235.
-12. **A disabled control says every reason it's disabled**, never only the
+11. **A disabled control says every reason it's disabled**, never only the
     first, so a button never goes dead without a word. Status messages live
     in one place, not beside each control. Bluebird: records 0062, 0210, and
     0028 as amended by 0208.
-13. **Accessibility is measured, beyond axe.** WCAG AA, pinned in tests:
+12. **Accessibility is measured, beyond axe.** WCAG AA, pinned in tests:
     4.5:1 for text, 3:1 for UI. A control's accessible name is the words it
     shows. Focus moves to whatever replaced the focused element. One live
     region announces messages. axe runs in every theme. Bluebird: records
     0089, 0090 and 0208.
-14. **Conditional (shareable state):** URL parameters are readable by a
+13. **Conditional (shareable state):** URL parameters are readable by a
     person, the parser is tolerant so old links keep opening, and a link
     restores what it can and says what it couldn't. A link carries the
     subject, never the viewer's preferences, which stay in local storage.
     Bluebird: record 0237 for restoring what it can; record 0158 for the
     theme kept in the browser and never in a link; #864 for moving every
     other habit out of links.
-15. **Conditional (single-page app):** a tab left open across a release
+14. **Conditional (single-page app):** a tab left open across a release
     reloads once, silently, when it asks for a chunk the new build doesn't
     have, and client-side caches carry the build that wrote them. Bluebird:
     records 0087 and 0095.
 
 ## Copy
 
-16. **Every user-facing string is approved** by the maintainer before it
+15. **Every user-facing string is approved** by the maintainer before it
     ships, and no tooltip is added without asking, because a tooltip doesn't
     exist on touch.
-17. **The copy rules.** Sentence case everywhere, buttons included. An error
+16. **The copy rules.** Sentence case everywhere, buttons included. An error
     says what's wrong, and gives a remedy only where the remedy works; "Try
     again later." ends a transient error. Never show an exception type or an
     HTTP status. Each message fits one line at the narrowest supported
@@ -96,8 +87,8 @@ linter checks in `frontend/tools/eslint/` are the working example.
 
 ## Mockups
 
-18. **Mockups first.** ASCII for a small change, an Artifact for a large one,
+17. **Mockups first.** ASCII for a small change, an Artifact for a large one,
     and screenshots in every theme before review. Mockups run on fake,
-    fuzzed data, never real quota. A design choice with knobs gets an
+    fuzzed data. A design choice with knobs gets an
     interactive lab, not a gallery of screenshots, and every lab has an
     Export JSON button so the maintainer can paste the chosen settings back.

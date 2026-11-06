@@ -85,18 +85,14 @@ Each line ends in one of three marks, and the report carries all three:
 24. **API:** a draft PR that changes a model without regenerating the
     OpenAPI document fails its check, and an oversized request body gets a
     `413`.
-25. **Mirrored logic:** every pair in the code is a row in the mirror table.
-    On a draft PR, changing one side's logic alone fails its suite against
-    the shared fixture, and editing the manifest by hand fails the
-    staleness test.
-26. **Public service:** a burst past one client's bucket gets a `429` with
+25. **Public service:** a burst past one client's bucket gets a `429` with
     `Retry-After`, a client-IP header sent from outside the proxy doesn't
     change the bucket, and every response, a `404` included, carries the
     security headers (`curl` against the project's own host).
-27. **Web UI:** Lighthouse budgets, the browser smoke test with axe in every
+26. **Web UI:** Lighthouse budgets, the browser smoke test with axe in every
     theme, and a PR preview all ran on a PR. A colour literal written outside
     its owning module, tried on a draft PR, fails the linter.
-28. **A cloud:** `terraform plan` on main shows no changes.
+27. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs
 
