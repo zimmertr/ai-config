@@ -42,37 +42,42 @@ Each line ends in one of three marks, and the report carries all three:
 ## CI/CD
 
 9. A PR ran every check in [cicd.md](cicd.md), each one required, and all
-   passed. Coverage is 100% of lines and branches.
-10. The PR Title check refused a title no pattern reads. Try one on a draft
+   passed. The coverage report is on the PR, and every gap below 100% has
+   a test or a written reason.
+10. Deleting one lint fixture on a draft PR fails the lint self-test, and
+    hiding a file a policy test reads fails that test instead of skipping it.
+11. The PR Title check refused a title no pattern reads. Try one on a draft
     PR, then fix it.
-11. The first merge to main cut the first version end to end: the tag, the
+12. The first merge to main cut the first version end to end: the tag, the
     image under that version with its revision label, the Trivy scan of its
     digest, and the immutable GitHub release with its SBOM attached.
-12. Re-running that release changed nothing: every piece was skipped as
+13. Re-running that release changed nothing: every piece was skipped as
     already there.
-13. The weekly image scan ran once on `workflow_dispatch` and its SARIF is in
+14. The weekly image scan ran once on `workflow_dispatch` and its SARIF is in
     the Security tab.
-14. Every CI check runs from its `make` target in Docker.
+15. Every CI check runs from its `make` target in Docker.
 
 ## Docs
 
-15. Every page from [docs.md](docs.md) that applies exists, and says
+16. Every page from [docs.md](docs.md) that applies exists, and says
     something true about the project today.
-16. Every relative link in every Markdown file resolves.
-17. Every rule in `CLAUDE.md` that states a decision links its ADR, and the
+17. Every relative link in every Markdown file resolves.
+18. Every rule in `CLAUDE.md` that states a decision links its ADR, and the
     ADR index lists every record.
 
 ## Conditional
 
-18. **Kubernetes:** the release's bump merged in Kubernetes-Manifests, and
+19. **Kubernetes:** the release's bump merged in Kubernetes-Manifests, and
     Argo CD shows the app Synced and Healthy on the new version
     (`kubectl` reads are allowed; changes are not).
-19. **Helm chart:** the chart is on ArtifactHub with its docs, the release
+20. **Helm chart:** the chart is on ArtifactHub with its docs, the release
     bumped its `appVersion`, and a Rollout promoted the new version through
     its gate.
-20. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
+21. **Database:** the database tests ran in their own CI job, against a
+    throwaway database built in the job.
+22. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
     preview all ran on a PR.
-21. **A cloud:** `terraform plan` on main shows no changes.
+23. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs
 

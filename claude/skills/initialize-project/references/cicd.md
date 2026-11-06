@@ -73,7 +73,7 @@ their `docs/CICD.md` for the reasons behind each piece.
 ## Pull request checks
 
 12. Every PR runs:
-    - the tests with the coverage gate
+    - the tests, with the coverage report
     - a linter (for example ruff, ESLint)
     - hadolint on every Dockerfile
     - the `PR Title` check
