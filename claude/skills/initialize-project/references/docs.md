@@ -15,7 +15,12 @@
    mirror table (see [upstreams.md](upstreams.md)).
 6. A large codebase adds a nested `CLAUDE.md` per source directory, listing
    each module, what it owns, and why it's separate. A new module gets its
-   line in the same PR.
+   line in the same PR. Each nested file sits at the tightest directory that
+   contains every path it names, so it loads only for its own tree. The
+   root's docs table lists every nested file, and adding or removing one
+   updates it in the same PR. A file that grows too large splits along a
+   family of modules; Bluebird splits at 150,000 characters (records 0047,
+   0231).
 
 ## The docs/ set
 
@@ -71,3 +76,13 @@
 14. `docs/SBOM.md` says where to find the SBOM (the latest release's asset,
     and `docker buildx imagetools inspect --format '{{ json .SBOM }}'` on the
     image), how CI makes it, and which licenses need attention.
+
+## License notices
+
+15. **The image's license file is built, not kept by hand.** Each build stage
+   writes the license text of what it actually ships into one file the
+   service serves, and a package with no license text fails the build.
+   Bluebird: record 0086, `third-party-licenses.txt`.
+16. **`NOTICES.md` is held to the manifests.** A test fails when the tables
+   in `NOTICES.md` and the direct dependencies in `package.json` or
+   `requirements.in` disagree. Bluebird: `backend/tests/test_notices.py`.
