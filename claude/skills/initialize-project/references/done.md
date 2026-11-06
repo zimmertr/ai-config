@@ -79,9 +79,12 @@ Each line ends in one of three marks, and the report carries all three:
     its gate.
 22. **Database:** the database tests ran in their own CI job, against a
     throwaway database built in the job.
-23. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
+23. **API:** a draft PR that changes a model without regenerating the
+    OpenAPI document fails its check, and an oversized request body gets a
+    `413`.
+24. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
     preview all ran on a PR.
-24. **A cloud:** `terraform plan` on main shows no changes.
+25. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs
 

@@ -28,10 +28,10 @@
 | `CONFIGURATION.md` | Every CLI flag, environment variable and setting, and where each is set |
 | `DATA.md` | Each upstream data provider, what it returns, its quirks (dated), and its licensing terms |
 | `DEVELOPMENT.md` | The CI-first loop, the Docker commands, how to write tests, fake data |
-| `LIMITS.md` | Every cap, timeout and size bound, and why |
+| `LIMITS.md` | Every cap, timeout and size bound, and why. A number the service publishes is described and pointed at, never restated (see [service.md](service.md)) |
 | `SBOM.md` | Where the software bill of materials is and how it's made (see below) |
 | `STYLES.md` | UI patterns, framework, design tokens and copy rules. **Conditional (UI)** |
-| `TRAFFIC.md` | How traffic flows into and through the project, and every outbound call with its timeout and retries |
+| `TRAFFIC.md` | How traffic flows into and through the project, every outbound call with its timeout and retries, and, for a public service, the rate limits and where client identity comes from |
 | `USAGE.md` | What the user sees, and what to do when it breaks |
 
 ## Architectural decision records
