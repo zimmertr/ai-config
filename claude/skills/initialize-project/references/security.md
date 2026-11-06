@@ -38,28 +38,51 @@
     stops the GitHub release and the deploy; production stays on the
     previous release. The image runs `apt-get upgrade` (or `apk upgrade`)
     at build time, because base images lag their distribution's security
-    fixes.
-11. **A weekly scan** of the latest release's image uploads SARIF to the
+    fixes. When builds share a cache, BuildKit reuses that layer and a fixed
+    CVE never arrives, so the upgrade goes after a build argument that
+    changes on every build (the commit, the build time): BuildKit keys a
+    `RUN` on every argument in scope. Only `USER`, `EXPOSE`, `HEALTHCHECK`
+    and `CMD` follow it, so the rerun repeats no build work. Bluebird:
+    record 0197.
+11. **Choose the base image by measured findings.** Scan the candidates with
+    Trivy, pick the one with the fewest findings that have no fix, and record
+    why. A multi-platform image is scanned per platform, by digest. Bluebird:
+    records 0001 (Alpine over Debian slim) and 0105.
+12. **A weekly scan** of the latest release's image uploads SARIF to the
     Security tab and fails only on a fixable Critical or High.
-12. **CodeQL default setup** for every language in the repo, `actions`
+13. **CodeQL default setup** for every language in the repo, `actions`
     included.
-13. **Secret scanning with push protection** is on.
+14. **Secret scanning with push protection** is on.
+
+## Dependencies
+
+15. **Direct pins in one file, installs from a hashed lock.** A person edits
+    one file of direct pins (`requirements.in`, `package.json`). The install
+    reads a lock generated from it: `pip-compile --generate-hashes` then
+    `pip install --require-hashes`, or `npm ci` from `package-lock.json`. A
+    `make` target regenerates the lock, and a pin change ships with its
+    regenerated lock in the same PR. Bluebird: record 0099.
+16. **No install scripts.** Every `npm ci` passes `--ignore-scripts`, and a
+    test fails one that doesn't.
+17. **Pin what you import.** A convenience extra that pulls in packages the
+    code never uses is replaced by direct pins of the packages it does use.
+    Bluebird: record 0200.
 
 ## Releases and images
 
-14. GitHub releases are immutable, and so are image tags on the registry
+18. GitHub releases are immutable, and so are image tags on the registry
     (Docker Hub's immutable tags, with the rule `.*`).
 
 ## Secrets
 
-15. Secrets live in GitHub Actions secrets, Dependabot secrets, or the
+19. Secrets live in GitHub Actions secrets, Dependabot secrets, or the
     cluster's Secrets, and nowhere else. Never in the repo, fixtures, logs,
     image layers or build arguments. The maintainer's tokens are in
     `~/.claude/secrets.json`.
-16. Each repo's `docs/CICD.md` lists every secret, where it lives, and which
+20. Each repo's `docs/CICD.md` lists every secret, where it lives, and which
     job uses it.
 
 ## Reporting
 
-17. Private vulnerability reporting is on, and `SECURITY.md` says what's
+21. Private vulnerability reporting is on, and `SECURITY.md` says what's
     supported, how to report privately, what to expect, and what's in scope.
