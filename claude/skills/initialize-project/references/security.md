@@ -9,9 +9,9 @@
    (`strict: false`).
 3. Every conversation must be resolved before merging.
 4. No force-push and no deletion of main.
-5. A ruleset asks Copilot to review every PR, drafts included. On 2026-11-05
-   it had produced no reviews on Bluebird or hevy-trainer-sync; check whether
-   Copilot code review is available on the account.
+5. No Copilot review ruleset. Bluebird and hevy-trainer-sync both had one,
+   and neither produced a review; the maintainer had both removed on
+   2026-11-05.
 
 ## Dependabot
 
