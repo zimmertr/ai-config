@@ -5,6 +5,11 @@
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
     "CLAUDE_CODE_TMPDIR": "/Users/tj/.claude/tmp"
   },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "permissions": {
     "allow": [
       "Bash(cat *)",
@@ -57,7 +62,6 @@
     "defaultMode": "auto"
   },
   "model": "opus",
-  "attribution": false,
   "enableWorkflows": true,
   "statusLine": {
     "type": "command",
@@ -104,7 +108,8 @@
       "effortLevel": "high"
     },
     "claude-opus-5-5": {
-      "effortLevel": "high"
+      "effortLevel": "high",
+      "autoCompactWindow": "auto"
     },
     "claude-haiku-5-5": {
       "effortLevel": "low"
