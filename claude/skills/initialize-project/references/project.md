@@ -36,7 +36,8 @@
    size, a timeout) is measured, written down with its date, and asserted in
    a test, so a change forces a re-measurement. A measured constant with a
    comment beats code that computes the number at run time. Bluebird: record
-   0008, where a stale "4.6:1" comment shipped as 4.02:1.
+   0008 and #167, where a comment claiming 4.6:1 shipped over a measured
+   4.02:1.
 8. **Attribution.** Claude and other AI agents never add attribution to
    commits or PRs, or appear on GitHub as a contributor. All design and
    direction comes from the maintainer and is attributed to the maintainer,
@@ -72,7 +73,7 @@
     without its reason beside the exclusion. Bluebird reads coverage as an
     on-demand report with no floor (record 0187), after an audit found tests
     that ran lines without asserting anything; hevy-trainer-sync gates at
-    100% (its record 0018). Both meet this rule.
+    100% (its record 0018). The rule allows either.
 14. **No test touches the network, a production system, or a shared
     database.**
     - **Conditional (database):** code that speaks SQL is tested against a
@@ -83,13 +84,14 @@
 15. **Fakes come from one place.** Each suite has one fixtures module that
     builds every fake: a row, an HTTP answer, an upstream stub. Tests compose
     it and never spell a fake inline. A fake HTTP answer must be able to fail
-    `raise_for_status`. Bluebird: `fixtures.ts` and `conftest.py`, after
-    eleven copies of one row had to be unwound.
+    `raise_for_status`. Bluebird: `frontend/src/testSupport/fixtures.ts`
+    and `backend/tests/conftest.py`, after #389 and #439 unwound eleven
+    copies of one result row.
 16. **A check can't pass by finding nothing.** A test that reads files fails
     when it can't find them, instead of skipping. Every custom lint rule has
     a fixture proving it fires, and a self-test fails when one doesn't: a
     rule that matches nothing reports nothing, which looks exactly like a
-    clean tree. Bluebird: record 0196, and `tools/eslint/selftest.js`.
+    clean tree. Bluebird: record 0196, and `frontend/tools/eslint/selftest.js`.
 17. **Time is fixed.** Tests pin the time zone and the clock. No test spells
     a calendar date that will pass; dates come from one helper, relative to
     the fixed start. Bluebird: record 0195.
