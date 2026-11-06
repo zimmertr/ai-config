@@ -1,7 +1,8 @@
 # APIs and services
 
-**Conditional:** each section applies when the interview switches it on.
-Bluebird's backend (`backend/app/`) is the working example for all of them.
+Every section but Logs is conditional, and applies when the interview
+switches it on. Bluebird's backend (`backend/app/`) is the working example
+for all of them.
 
 ## The API contract
 
@@ -38,15 +39,16 @@ Bluebird's backend (`backend/app/`) is the working example for all of them.
 
 ## Limits
 
-**Conditional (long-running service).**
+**Conditional (API).**
 
 6. **Limits are published, never restated.** The service publishes the
    limits a client acts on at an endpoint (Bluebird:
    `GET /api/capabilities`). Clients read them at run time and keep
    compiled values only as a fallback for before the fetch answers. No doc
    restates a published number: it describes the shape and the reason, and
-   points at the endpoint. Bluebird: records 0005 and 0006, after three
-   copies of one number had drifted apart.
+   points at the endpoint. Bluebird: records 0005 and 0006; splitting the
+   README found three prose copies of published limits (the polygon cap,
+   max results, the CAMS grid) that had already drifted from the code.
 7. **Requests are bounded before they're read.** A body over the cap gets a
    `413` without the server reading it: a declared `Content-Length` is
    refused at once, and a chunked body at the byte that passes the cap.
@@ -54,7 +56,8 @@ Bluebird's backend (`backend/app/`) is the working example for all of them.
 
 ## Logs
 
-**Conditional (long-running service).**
+Every program that logs: a scheduled job holds tokens as surely as a
+service does.
 
 8. **Redaction is a mechanism, not a habit.** One formatter on the root
    log handler masks secrets and escapes control characters in the whole
@@ -76,3 +79,12 @@ the maintainer doesn't know.
     request from the proxy that sets it. The gateway strips it from every
     other peer, so a caller can't pick its own bucket. Bluebird: record
     0109.
+11. **Every response carries the security headers**, errors included.
+    **Conditional (browser client)** as well: a Content-Security-Policy
+    lists exactly the hosts the client reaches, beside the standard headers
+    (`nosniff`, `frame-ancestors`, a referrer policy). A test reads the
+    client's source and fails on a host the policy hasn't classified, so a
+    new upstream can't ship unlisted. HSTS goes wherever TLS ends.
+    Bluebird: `backend/app/security_headers.py` (#132), record 0107 for why
+    the headers survive a `500`, and record 0084 for HSTS at the Cloudflare
+    edge.

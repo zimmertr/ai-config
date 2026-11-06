@@ -47,7 +47,8 @@
 9. **Health and logs.** A long-running service exposes a health check that
    its orchestrator uses, and reports its version and commit (baked into the
    image at build time) at an endpoint. Logs are structured, go to stdout,
-   and never carry a token, an id or personal data.
+   and never carry a token, an id or personal data; one redacting
+   formatter holds that (see [service.md](service.md), Logs).
 10. **Local development in Docker.** The project builds from a `Dockerfile`,
     and a `docker-compose.yml` runs it with its backing services. Every CI
     check is also a `make` target that runs in Docker, so a check that fails

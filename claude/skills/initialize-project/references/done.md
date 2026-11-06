@@ -84,9 +84,13 @@ Each line ends in one of three marks, and the report carries all three:
     `413`.
 24. **Mirrored logic:** every pair in the code is a row in the mirror table,
     and changing one side of a shared fixture fails the other suite.
-25. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
+25. **Public service:** a burst past one client's bucket gets a `429` with
+    `Retry-After`, a client-IP header sent from outside the proxy doesn't
+    change the bucket, and every response, a `404` included, carries the
+    security headers (`curl` against the project's own host).
+26. **Web UI:** Lighthouse budgets, the browser smoke test with axe, and a PR
     preview all ran on a PR.
-26. **A cloud:** `terraform plan` on main shows no changes.
+27. **A cloud:** `terraform plan` on main shows no changes.
 
 ## The outputs
 
