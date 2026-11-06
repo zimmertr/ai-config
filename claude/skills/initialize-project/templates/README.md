@@ -12,6 +12,10 @@ One file for each design decision: what was decided, when, who decided, and the 
 - Link the record from its `CLAUDE.md` rule as ` Record: [NNNN](docs/architectural-decision-records/NNNN-slug.md)`, right after the sentence that states the decision.
 - A decision ships in the same PR as its record. A PR that makes a decision without one is not done.
 
+## Cite a record
+
+A record is evidence, not authority. Cite it for its measurements and its reasons, never as a rule that forbids a change. When today's facts call for a different answer, the new judgement is a superseding record. The maintainer, 2026-10-21: "We only make decisions based on technical problems and UX. Not old ADRs."
+
 ## Supersede a record
 
 A new record that reverses an old one says `Supersedes NNNN` in its status line. The old record changes its status line to `Superseded by NNNN` and nothing else. The `CLAUDE.md` link moves to the new record in the same PR.

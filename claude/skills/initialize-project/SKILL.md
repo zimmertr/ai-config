@@ -16,6 +16,11 @@ CI-first, attribution, subagents) is in the global `~/.claude/CLAUDE.md` and
 is not repeated here. This skill adds the process and the standards a new
 project starts with.
 
+These standards were worked out on Bluebird (`zimmertr/bluebird`) and
+hevy-trainer-sync (`zimmertr/hevy-trainer-sync`). When an example would help,
+read how those repos do it, but write the new project's own rules for its own
+domain.
+
 ## The standards
 
 Read each file when its step needs it, not all at once:
@@ -28,6 +33,7 @@ Read each file when its step needs it, not all at once:
 | [references/security.md](references/security.md) | Branch protection, Dependabot, scanning, secrets, reporting |
 | [references/repo.md](references/repo.md) | Repo files, settings, issues, branching |
 | [references/docs.md](references/docs.md) | The `docs/` set, CLAUDE.md, ADRs, the SBOM |
+| [references/service.md](references/service.md) | The API contract, errors, limits, logs and public-service guards, when they apply |
 | [references/ui.md](references/ui.md) | User interfaces, when there is one |
 | [references/done.md](references/done.md) | The checklist the foundation must pass, and the report it ends in |
 | [templates/](templates/) | The ADR template and the ADR index to copy in |
