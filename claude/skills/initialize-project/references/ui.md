@@ -27,10 +27,12 @@ linter checks in `frontend/tools/eslint/` are the working example.
    wrong font, a one-off button, or a color that misses its contrast ratio.
    Lint rules fail a value spelled outside the module that owns it.
 6. **Every colour value has one owner**, in every channel it reaches. No
-   component names a hue. Map paint, canvas drawing, generated popup HTML
-   and chart props each get an owning module too, because CSS never reaches
-   them and that's where drift hides. The linter fails a colour literal
-   anywhere else. Bluebird: records 0009 and 0112.
+   component names a hue. Map paint, canvas drawing and chart props each
+   get an owning module, because CSS never reaches them and that's where
+   drift hides. HTML built outside the framework, such as a map popup,
+   holds no colours of its own: it names the app's tokens and wears the
+   app's classes. The linter fails a colour literal anywhere else.
+   Bluebird: records 0009, 0112 and 0215.
 7. **The type ramp has a floor, and shadows have a scale**, both enforced:
    a smallest size for text a reader reads, a larger one for anything
    pressed, and a few elevation steps. Bluebird: record 0131 (11px, 12px,
@@ -52,22 +54,26 @@ linter checks in `frontend/tools/eslint/` are the working example.
 11. **A costly action is an explicit commit.** An action that spends
     upstream quota or real work waits for an explicit button. A change that
     only re-presents data already held applies live. A run that fails or is
-    cancelled leaves the previous state exactly as it was. Bluebird: records
-    0003 and 0093.
+    cancelled leaves the previous state exactly as it was. Where the cost
+    can be known before the press, it's counted first, and a run over
+    budget is blocked before it spends. Bluebird: records 0003, 0093 and
+    0235.
 12. **A disabled control says every reason it's disabled**, never only the
     first, so a button never goes dead without a word. Status messages live
-    in one place, not beside each control. Bluebird: records 0062, 0210 and
-    0028.
+    in one place, not beside each control. Bluebird: records 0062, 0210, and
+    0028 as amended by 0208.
 13. **Accessibility is measured, beyond axe.** WCAG AA, pinned in tests:
     4.5:1 for text, 3:1 for UI. A control's accessible name is the words it
     shows. Focus moves to whatever replaced the focused element. One live
     region announces messages. axe runs in every theme. Bluebird: records
-    0089 and 0090.
+    0089, 0090 and 0208.
 14. **Conditional (shareable state):** URL parameters are readable by a
     person, the parser is tolerant so old links keep opening, and a link
     restores what it can and says what it couldn't. A link carries the
     subject, never the viewer's preferences, which stay in local storage.
-    Bluebird: record 0237.
+    Bluebird: record 0237 for restoring what it can; record 0158 for the
+    theme kept in the browser and never in a link; #864 for moving every
+    other habit out of links.
 15. **Conditional (single-page app):** a tab left open across a release
     reloads once, silently, when it asks for a chunk the new build doesn't
     have, and client-side caches carry the build that wrote them. Bluebird:
@@ -84,7 +90,9 @@ linter checks in `frontend/tools/eslint/` are the working example.
     HTTP status. Each message fits one line at the narrowest supported
     width. No em dashes. No on-screen prose explaining a control; fix the
     control instead. Name things in the words the UI already shows, and
-    don't coin labels. Bluebird: `docs/STYLES.md`, Copy rules.
+    don't coin labels. Bluebird: `docs/STYLES.md`, Copy rules and Copy
+    length budget; no em dashes and no coined labels are the maintainer's
+    standing rules.
 
 ## Mockups
 
