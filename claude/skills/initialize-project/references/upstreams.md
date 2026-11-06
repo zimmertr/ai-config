@@ -13,7 +13,10 @@ Open-Meteo is the working example.
    Open-Meteo's rate limit (#180).
 2. **Measure the sizes, don't choose them.** Batch size, concurrency per
    host and pacing are measured against the upstream, recorded with their
-   date, and pinned (see [project.md](project.md)). Bluebird: record 0203.
+   date, and pinned (see [project.md](project.md)). Bluebird: #182 for the
+   batch of 50 at four in flight, and record 0203, where Open-Meteo's own
+   cap on open requests per address was read from its source after a run
+   failed on 2026-10-20 although the pacers believed it was under budget.
 3. **Refuse up front rather than half-spend.** Before spending, run the
    plan through the pacer; a request it would have to shed is refused with
    the number that applies, and nothing is spent. Bluebird: record 0074.
@@ -43,7 +46,8 @@ TypeScript mirrors are the working example.
    on its own (#380).
 9. **One fixture, read by both suites.** A formula is pinned by shared test
    vectors, and a bare number or a shared sentence by a shared manifest.
-   Each is one file that both suites read, never a copy per side, and a
-   script regenerates the manifest from the source of truth. Bluebird:
-   record 0042, `backend/tests/data/weather_vectors.json` and
-   `mirrored_constants.json`.
+   Each is one file that both suites read, never a copy per side. A script
+   regenerates the manifest from the source of truth, and a test fails a
+   committed manifest that differs from what the script writes. Bluebird:
+   record 0042, `backend/tests/data/weather_vectors.json`,
+   `mirrored_constants.json` and `backend/tests/test_mirrored_constants.py`.

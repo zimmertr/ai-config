@@ -82,8 +82,10 @@ Each line ends in one of three marks, and the report carries all three:
 23. **API:** a draft PR that changes a model without regenerating the
     OpenAPI document fails its check, and an oversized request body gets a
     `413`.
-24. **Mirrored logic:** every pair in the code is a row in the mirror table,
-    and changing one side of a shared fixture fails the other suite.
+24. **Mirrored logic:** every pair in the code is a row in the mirror table.
+    On a draft PR, changing one side's logic alone fails its suite against
+    the shared fixture, and editing the manifest by hand fails the
+    staleness test.
 25. **Public service:** a burst past one client's bucket gets a `429` with
     `Retry-After`, a client-IP header sent from outside the proxy doesn't
     change the bucket, and every response, a `404` included, carries the
