@@ -70,24 +70,27 @@ linter checks in `frontend/tools/eslint/` are the working example.
     have, and client-side caches carry the build that wrote them. Bluebird:
     records 0087 and 0095.
 
+15. **An action that fails or is cancelled changes nothing.** The screen
+    returns to exactly the state before it, and partial results are
+    discarded. Bluebird: record 0093.
+
 ## Copy
 
-15. **Every user-facing string is approved** by the maintainer before it
+16. **Every user-facing string is approved** by the maintainer before it
     ships, and no tooltip is added without asking, because a tooltip doesn't
     exist on touch.
-16. **The copy rules.** Sentence case everywhere, buttons included. An error
+17. **The copy rules.** Sentence case everywhere, buttons included. An error
     says what's wrong, and gives a remedy only where the remedy works; "Try
     again later." ends a transient error. Never show an exception type or an
     HTTP status. Each message fits one line at the narrowest supported
-    width. No em dashes. No on-screen prose explaining a control; fix the
-    control instead. Name things in the words the UI already shows, and
-    don't coin labels. Bluebird: `docs/STYLES.md`, Copy rules and Copy
-    length budget. No em dashes and no coined labels come from the
-    maintainer's global rules (26 and 27 in `~/.claude/CLAUDE.md`).
+    width. No on-screen prose explaining a control; fix the control
+    instead. Name things in the words the UI already shows. The global
+    writing rules apply too. Bluebird: `docs/STYLES.md`, Copy rules and
+    Copy length budget.
 
 ## Mockups
 
-17. **Mockups first.** ASCII for a small change, an Artifact for a large one,
+18. **Mockups first.** ASCII for a small change, an Artifact for a large one,
     and screenshots in every theme before review. Mockups run on fake,
     fuzzed data. A design choice with knobs gets an
     interactive lab, not a gallery of screenshots, and every lab has an

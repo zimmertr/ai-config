@@ -31,10 +31,10 @@ for all of them.
 
 5. **One error shape.** Every failure answers one body, with a stable code
    a caller can branch on and a flag saying whether a retry can help. An
-   unhandled exception
-   is caught by the innermost middleware, logged with its traceback, and
-   answered as `internal`, so it leaves with every security and CORS header
-   and its text never reaches the caller. Bluebird: record 0107.
+   unhandled exception is caught by the innermost middleware, logged with
+   its traceback, and answered as `internal`, so it leaves with every
+   security and CORS header and its text never reaches the caller.
+   Bluebird: record 0107.
 
 ## Limits
 

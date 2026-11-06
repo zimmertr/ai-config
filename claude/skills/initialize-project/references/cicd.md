@@ -111,6 +111,8 @@ their `docs/CICD.md` for the reasons behind each piece.
     4. The chart is published to ArtifactHub with full documentation.
     5. The service deploys through Argo Rollouts with a canary or blue-green
        strategy, and a gate that checks the new version before it takes the
-       traffic.
+       traffic. The gate exercises only the service and what it deploys
+       with, never a third party, so an outside outage can't fail or block a
+       good release. Bluebird: record 0230.
 18. **Conditional (a cloud: AWS, Cloudflare and so on):** Terraform for
     every resource. No ClickOps, and no one-off API calls.
