@@ -1,7 +1,8 @@
 # CI/CD
 
 The pipeline already runs in the projects named in [SKILL.md](../SKILL.md).
-Copy it from them rather than writing it fresh.
+Copy it from them rather than writing it fresh, and read their
+`docs/CICD.md` for why each piece is there.
 
 ## Versioning
 

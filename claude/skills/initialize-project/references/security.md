@@ -9,7 +9,8 @@
    (`strict: false`).
 3. Every conversation must be resolved before merging.
 4. No force-push and no deletion of main.
-5. No Copilot review ruleset.
+5. No Copilot review ruleset: on both reference projects it produced no
+   reviews.
 
 ## Dependabot
 
