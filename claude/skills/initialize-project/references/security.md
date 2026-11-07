@@ -84,5 +84,6 @@
 
 ## Reporting
 
-21. Private vulnerability reporting is on, and `SECURITY.md` says what's
-    supported, how to report privately, what to expect, and what's in scope.
+21. Private vulnerability reporting is on. The owner's shared `SECURITY.md`
+    (see [repo.md](repo.md)) says what's supported, how to report
+    privately, what to expect, and what's in scope.
