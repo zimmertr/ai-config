@@ -41,3 +41,4 @@ These apply in every repo and every session. A repo's own CLAUDE.md can narrow o
 
 27. Never write an em dash in anything I'll read or ship: UI strings, docs, READMEs, issue and PR titles and bodies, and commit messages. Use a period, a comma, a colon or parentheses instead, and search for U+2014 before posting. Code comments follow the style of the file they're in.
 28. Never coin a name for a mechanism or a bug and then use it as if I know it. Say what happens in plain words, every time, and name only real identifiers: files, functions, issue numbers. In a UI, name things in the words the UI already shows.
+29. Every PR, issue or other GitHub item you name to me is a full link (`https://github.com/<owner>/<repo>/pull/N`), never a bare `repo#N`. Above all when you ask me to review, merge or act on it: give each its link and one line on what it is.
