@@ -15,12 +15,8 @@
    every repo, from the single copy in zimmertr/yggdrasil's
    `community-health-files/` (its record 0041). See
    [security.md](security.md).
-5. `CONTRIBUTING.md` only for the steps the owner's shared one lacks: the
-   `make` targets, tests with every behaviour change, and the docs page
-   that owns the topic. The shared one covers branching, the PR title and
-   CI, and so does the shared PR template. A repo's own file hides the
-   shared one, so it opens with a link to the owner's `.github` repo
-   `CONTRIBUTING.md` instead of repeating it.
+5. `CONTRIBUTING.md`: how to send a change. The `make` targets, tests with
+   every behaviour change, and the docs page that owns the topic.
 6. `NOTICES.md`, when third parties need credit: the data providers, and the
    software bundled in the shipped image, each with its license. A test
    holds it to the manifests (see [docs.md](docs.md), License notices).
