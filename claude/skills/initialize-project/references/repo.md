@@ -11,14 +11,19 @@
    README points to it. It starts from these sections, with the words left
    to the maintainer: Summary, How It Works, Quick Start, the docs table,
    Support and License. Anything longer than a paragraph goes in `docs/`.
-4. `SECURITY.md` (see [security.md](security.md)).
+4. No `SECURITY.md` of its own. The owner's `.github` repo serves one to
+   every repo, from the single copy in zimmertr/yggdrasil's
+   `community-health-files/` (its record 0041). See
+   [security.md](security.md).
 5. `CONTRIBUTING.md`: how to send a change. The `make` targets, tests with
    every behaviour change, and the docs page that owns the topic.
 6. `NOTICES.md`, when third parties need credit: the data providers, and the
    software bundled in the shipped image, each with its license. A test
    holds it to the manifests (see [docs.md](docs.md), License notices).
-7. `.github/ISSUE_TEMPLATE/`: a bug and a proposal template, with blank
-   issues off.
+7. No `.github/ISSUE_TEMPLATE/` of its own: the bug and proposal templates
+   come from the owner's `.github` repo too. Any template in the repo hides
+   all of the shared ones. The repo's area labels go in its `CLAUDE.md`
+   Issues section.
 8. `CLAUDE.md` (see [docs.md](docs.md)).
 
 ## Settings
