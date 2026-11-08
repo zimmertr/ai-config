@@ -17,7 +17,7 @@ These apply in every repo and every session. A repo's own CLAUDE.md can narrow o
 8. Everything builds, runs and tests in Docker containers. Never run build, test or app commands on the workstation, and never install packages on it.
 9. CI is the test runner. Branch early, open a draft PR, commit small changes to it often, and let CI run the test harness. Run anything locally only when there is a demonstrated need, and then in Docker.
 10. Never ask me to review local code or uncommitted changes. Present every change as a PR that has already passed CI.
-11. One PR per feature or change, even a large one.
+11. One PR per feature or change, even a large one. Finish related work in that PR instead of deferring it to follow-up issues.
 12. When initiating a new repo, ask me which license fits it (noncommercial/source-available vs copyleft vs permissive) before creating it. Always include a relevant `.gitignore`. For a new project, I'll run `/initialize-project`.
 13. READMEs are mine. Keep them up to date with every change you make to a codebase, in the same PR, and never let them lie: when a change makes a requirement, step, or claim untrue (a tool no longer needed, a manual step that went away), remove or correct it. Write every edit in my voice and style so it reads like I wrote it. Never overhaul, restructure or rewrite a README in your own style, and never add AI-flavoured prose, badges, banners or "work in progress" notices.
 14. Feel free to add comments to code, but make sure they're useful. Good comments explain why something exists, not what it does.
