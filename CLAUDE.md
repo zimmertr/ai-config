@@ -1,6 +1,6 @@
 # ai-config
 
-TJ's Claude Code configuration. `claude/` mirrors `~/.claude`: `~/.claude/CLAUDE.md`, `~/.claude/settings.json` and each folder in `~/.claude/skills/` that came from here are symlinks into TJ's checkout at `~/git/personal/ai-config`, so whatever is on that checkout's main is live.
+TJ's Claude Code configuration. `claude/` mirrors `~/.claude`: `~/.claude/CLAUDE.md`, `~/.claude/settings.json`, `~/.claude/statusline.sh` and each folder in `~/.claude/skills/` that came from here are symlinks into TJ's checkout at `~/git/personal/ai-config`, so whatever is on that checkout's main is live.
 
 ## Rules
 
