@@ -3,6 +3,8 @@
 ## Files
 
 1. `LICENSE`, from the interview's choice. Ask before creating the repo.
+   The repo itself starts from `zimmertr/yggdrasil-repo-template`, which holds
+   the `pr-title` and `lint` callers and `dependabot.yml` (see Settings).
 2. `.gitignore` for the language and tooling, and `.dockerignore` beside the
    `Dockerfile`.
 3. `README.md`. The maintainer owns it: it is written in the maintainer's
@@ -27,6 +29,13 @@
 8. `CLAUDE.md` (see [docs.md](docs.md)).
 
 ## Settings
+
+The repo is created by one yggdrasil PR that adds `repos/<owner>/<name>.yml`
+(yggdrasil's [`docs/USAGE.md`](https://github.com/zimmertr/yggdrasil/blob/main/docs/USAGE.md),
+"A new repo"). The file holds only what differs from the defaults: the
+description, and `required_checks`. The merge creates the repo from the
+template, with every setting below, the rulesets and the security settings.
+Change a setting there, never by hand.
 
 9. Squash merge only, with the PR title as the commit title and the PR body
    as the message. No merge commits, no rebase merges.
