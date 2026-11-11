@@ -8,11 +8,16 @@ Each line ends in one of three marks, and the report carries all three:
 
 - **done**, with the evidence: a command's output, a run, a link
 - **n/a**, with the interview answer that switched it off
-- **blocked**, with what's missing and who can unblock it. Docker Hub's
-  immutable tags are set in its web UI, so that line is often blocked on the
-  maintainer.
+- **blocked**, with what's missing and who can unblock it. Only the
+  maintainer can make the `AUTO_MERGE_PAT` secret, so that line is often
+  blocked on them.
 
 ## Repo and settings
+
+The settings lines check what yggdrasil's apply set: the repo's file is in
+its `repos/<owner>/`, that PR's apply succeeded, and the next plan on
+yggdrasil's main shows no change for the repo. When a line is wrong, fix the
+repo's file in yggdrasil, not the setting.
 
 1. The files from [repo.md](repo.md) exist: `LICENSE`, `.gitignore`,
    `.dockerignore`, `README.md`, `CONTRIBUTING.md`, `NOTICES.md` (when
@@ -21,9 +26,9 @@ Each line ends in one of three marks, and the report carries all three:
 2. Merge settings: `gh api repos/O/R` shows squash only, `PR_TITLE` and
    `PR_BODY`, auto-merge, branch deletion and "Update branch" on, and the
    wiki off.
-3. Branch protection: `gh api repos/O/R/branches/main/protection` shows the
+3. Branch protection: `gh api repos/O/R/rules/branches/main` shows the
    required checks from [security.md](security.md), conversation resolution,
-   admins enforced, and no force-push or deletion.
+   and no force-push or deletion, with no bypass actors.
 
 ## Security
 
@@ -33,8 +38,8 @@ Each line ends in one of three marks, and the report carries all three:
    security updates, and private vulnerability reporting are on.
 6. CodeQL default setup is configured for every language, `actions`
    included (`gh api repos/O/R/code-scanning/default-setup`).
-7. Immutable releases are on (`gh api repos/O/R/immutable-releases`), and so
-   are immutable tags on the image registry.
+7. Immutable releases are on (`gh api repos/O/R/immutable-releases`), and
+   every deploy pins its image by digest.
 8. The `AUTO_MERGE_PAT` Dependabot secret exists
    (`gh api repos/O/R/dependabot/secrets`), and Dependabot's first patch or
    minor PR armed auto-merge and merged itself. Until Dependabot opens one,
@@ -47,17 +52,20 @@ Each line ends in one of three marks, and the report carries all three:
 ## CI/CD
 
 10. A PR ran every check in [cicd.md](cicd.md), each one required, and all
-   passed. The coverage report is on the PR, and every gap below 100% has
+   passed. Every workflow calls yggdrasil's modules pinned by SHA, and none
+   copies one. The coverage report is on the PR, and every gap below 100% has
    a test or a written reason.
-11. Deleting one lint fixture on a draft PR fails the lint self-test, and
-    hiding a file a policy test reads fails that test instead of skipping it.
+11. The release caller grants `packages: write`, and its first run on main
+    started: a run GitHub refused to start shows `startup_failure` in the
+    Actions tab while the PR looks green.
 12. The PR Title check refused a title no pattern reads. Try one on a draft
     PR, then fix it.
-13. The first merge to main cut the first version end to end: the tag, the
-    image under that version with its revision label, the Trivy scan of its
-    digest, and the immutable GitHub release with its SBOM attached.
-14. Re-running that release changed nothing: every piece was skipped as
-    already there.
+13. The first merge to main cut the first version end to end: the image on
+    GHCR under that version with its revision label and SBOM attestation, the
+    Trivy scan of each platform, the tag, and the immutable GitHub release.
+    The new package is public.
+14. Re-running that release released nothing, and its `Version` job says
+    why.
 15. The weekly image scan ran once on `workflow_dispatch` and its SARIF is in
     the Security tab.
 16. Every CI check runs from its `make` target in Docker.
@@ -78,7 +86,7 @@ Each line ends in one of three marks, and the report carries all three:
 21. **Kubernetes:** the release's bump merged in Kubernetes-Manifests, and
     Argo CD shows the app Synced and Healthy on the new version
     (`kubectl` reads are allowed; changes are not).
-22. **Helm chart:** the chart is on Docker Hub with its README, the release
+22. **Helm chart:** the chart is on GHCR with its README, the release
     bumped its `appVersion`, and a Rollout promoted the new version through
     its gate.
 23. **Database:** the database tests ran in their own CI job, against a

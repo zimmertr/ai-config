@@ -69,12 +69,12 @@
 ## The SBOM
 
 13. The SBOM is generated, never written by hand. Every release makes one for
-    the image it ships (BuildKit's `sbom: true` attestation, and an SPDX or
-    CycloneDX JSON file attached to the GitHub release). It lists every
+    the image it ships: BuildKit's `sbom: true` attestation, which yggdrasil's
+    release module adds. An SPDX or CycloneDX JSON file attached to the GitHub
+    release waits for zimmertr/ai-config#13. It lists every
     dependency with its version, supplier, license and checksum.
-14. `docs/SBOM.md` says where to find the SBOM (the latest release's asset,
-    and `docker buildx imagetools inspect --format '{{ json .SBOM }}'` on the
-    image), how CI makes it, and which licenses need attention.
+14. `docs/SBOM.md` says where to find the SBOM (`docker buildx imagetools
+    inspect --format '{{ json .SBOM }}'` on the image), how CI makes it, and which licenses need attention.
 
 ## License notices
 

@@ -2,11 +2,16 @@
 
 ## Branch protection on main
 
+yggdrasil's repo module sets everything in this section and the next from the
+repo's file there (see [repo.md](repo.md)). Never set one by hand: the next
+apply puts it back.
+
 1. A pull request is required for every change, admins included, with 0
    approving reviews. Stale reviews are dismissed.
-2. Required checks: the test job and `PR Title`, plus every other PR check
-   that must never be skipped. The branch need not be up to date
-   (`strict: false`).
+2. Required checks: the test job, `PR Title / PR Title` and the three
+   `Lint / ...` checks, plus every other PR check that must never be skipped,
+   listed in the repo file's `required_checks`. The branch need not be up to
+   date (`strict: false`).
 3. Every conversation must be resolved before merging.
 4. No force-push and no deletion of main.
 5. No Copilot review ruleset: on both reference projects it produced no
@@ -15,25 +20,30 @@
 ## Dependabot
 
 6. Dependabot alerts and security updates are on.
-7. Weekly version updates for every ecosystem the repo uses (the language's
-   package files, `github-actions`, `docker`). Each PR title is
+7. Version updates for every ecosystem the repo uses. The template's
+   `dependabot.yml` starts with `github-actions`, daily, each release three
+   days old before it is proposed (`cooldown: default-days: 3`), because
+   every yggdrasil release bakes three days. Add the language's package files
+   and `docker` weekly, with `cooldown: default-days: 7`. Each PR title is
    `build(deps):`, which releases a patch (`commit-message: prefix: build,
-   include: scope`). Language packages wait seven days after a release
-   (`cooldown: default-days: 7`). Security updates skip the wait.
+   include: scope`). Security updates skip the wait.
 8. **Patch and minor updates merge themselves.** A `dependabot-auto-merge.yml`
-   workflow arms squash auto-merge when Dependabot's metadata says
+   workflow calls yggdrasil's `auto-merge` module, which arms squash auto-merge when Dependabot's metadata says
    `version-update:semver-patch` or `version-update:semver-minor`, and
    comments on the PR to say so. GitHub merges once the required checks pass
    and the conversations are resolved. Major updates, and digest-only base
    image updates, wait for the maintainer.
 9. The merge uses an `AUTO_MERGE_PAT` **Dependabot** secret: a run Dependabot
    starts can't read Actions secrets, and a merge made with `GITHUB_TOKEN`
-   would not start the release workflow.
+   would not start the release workflow. Only the maintainer can make it, so
+   the template has no auto-merge caller until zimmertr/yggdrasil#12 gives
+   the merge to the bot.
 
 ## Scanning
 
-10. **The release scans its own image** by digest with Trivy
-    (`ignore-unfixed`, a shared `trivy.yaml`). A fixable Critical or High
+10. **The release scans its own image** with Trivy, each platform
+    (`ignore-unfixed`, yggdrasil's default `trivy.yaml` unless the repo keeps
+    its own). A fixable Critical or High
     stops the GitHub release and the deploy; production stays on the previous
     release. The image runs `apt-get upgrade` (or `apk upgrade`) at build
     time, because base images lag their distribution's security fixes. Put the
@@ -46,8 +56,9 @@
 11. **Choose the base image by measured findings.** Scan the candidates with
     Trivy, pick the one with the fewest findings that have no fix, and record
     why. A multi-platform image is scanned per platform, by digest.
-12. **A weekly scan** of the latest release's image uploads SARIF to the
-    Security tab and fails only on a fixable Critical or High.
+12. **A weekly scan** of the latest release's image, through yggdrasil's
+    `image-scan` module, uploads SARIF to the Security tab and fails only on a
+    fixable Critical or High.
 13. **CodeQL default setup** for every language in the repo, `actions`
     included.
 14. **Secret scanning with push protection** is on.
@@ -70,8 +81,10 @@
 
 ## Releases and images
 
-18. GitHub releases are immutable, and so are image tags on the registry
-    (Docker Hub's immutable tags, with the rule `.*`).
+18. GitHub releases are immutable. Images and charts go to GHCR, pushed
+    with the job's own `GITHUB_TOKEN`: never to Docker Hub, and never with a
+    stored registry secret. GHCR has no immutable tags, so every deploy pins
+    the image's digest beside its tag (yggdrasil's record 0052).
 
 ## Secrets
 

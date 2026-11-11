@@ -17,9 +17,11 @@ is not repeated here. This skill adds the process and the standards a new
 project starts with.
 
 These standards were worked out on Bluebird (`zimmertr/bluebird`) and
-hevy-trainer-sync (`zimmertr/hevy-trainer-sync`). When an example would help,
-read how those repos do it, but write the new project's own rules for its own
-domain.
+hevy-garmin-sync (`zimmertr/hevy-garmin-sync`), and zimmertr/yggdrasil builds
+them: its reusable workflows are the pipeline, and its Terraform creates the
+repo with its settings. A new project calls the one and adds a file to the
+other; it copies neither. When an example would help, read how those repos do
+it, but write the new project's own rules for its own domain.
 
 ## The standards
 
@@ -73,7 +75,10 @@ on. Everything else applies to every project.
 5. **File the plan as GitHub issues** with the `create-issue` skill: one
    issue per task, under an epic issue that tracks them as sub-issues.
 6. **Build the foundation**: the first tasks, which create the repo and set
-   up its CI/CD, security and docs to the standards above. Every change
+   up its CI/CD, security and docs to the standards above. The repo comes
+   from one PR in zimmertr/yggdrasil (see [references/repo.md](references/repo.md)),
+   and its workflows call yggdrasil's modules (see
+   [references/cicd.md](references/cicd.md)). Every change
    follows the global rules: a PR that has passed CI.
 7. **Check the foundation, and report.** Run every line of
    [references/done.md](references/done.md) against the live repo and its
