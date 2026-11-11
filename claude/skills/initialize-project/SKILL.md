@@ -32,7 +32,7 @@ Read each file when its step needs it, not all at once:
 | [references/project.md](references/project.md) | Project principles: tests, API-first, 12-factor, attribution |
 | [references/interview.md](references/interview.md) | The choices to ask about, and what each choice switches on |
 | [references/cicd.md](references/cicd.md) | Release pipeline, PR checks, GitOps, Kubernetes, Terraform |
-| [references/security.md](references/security.md) | Branch protection, Dependabot, scanning, secrets, reporting |
+| [references/security.md](references/security.md) | Branch protection, dependency updates, scanning, secrets, reporting |
 | [references/repo.md](references/repo.md) | Repo files, settings, issues, branching |
 | [references/docs.md](references/docs.md) | The `docs/` set, CLAUDE.md, ADRs, the SBOM |
 | [references/service.md](references/service.md) | The API contract, errors, limits, logs and public-service guards, when they apply |

@@ -9,7 +9,7 @@ and its "An example caller" names the repo to copy the callers from.
 ## Calling the modules
 
 1. **Pin every module to a release's commit SHA**, with the version in a
-   comment (`@<sha> # v1.0.1`), so Dependabot moves it.
+   comment (`@<sha> # v1.0.1`), so Renovate moves it.
 2. **Grant each caller only what its module asks for**, with
    `permissions: {}` at the top of the workflow. The release caller grants
    `contents: write` and `packages: write`, even with no image: GitHub
@@ -69,7 +69,7 @@ and its "An example caller" names the repo to copy the callers from.
 ## Workflow hygiene
 
 11. Pin every action to a full commit SHA, with its version in a comment,
-    and every base image as `tag@digest`. Dependabot moves both, and the
+    and every base image as `tag@digest`. Renovate moves both, and the
     repo's "require actions to be pinned" setting refuses anything else.
 12. Least privilege, as in step 2, and the only checkout that keeps its token
     is the one that pushes. Pass titles and other user input through `env:`,

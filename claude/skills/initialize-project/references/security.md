@@ -17,27 +17,24 @@ apply puts it back.
 5. No Copilot review ruleset: on both reference projects it produced no
    reviews.
 
-## Dependabot
+## Dependency updates
 
 6. Dependabot alerts and security updates are on.
-7. Version updates for every ecosystem the repo uses. The template's
-   `dependabot.yml` starts with `github-actions`, daily, each release three
-   days old before it is proposed (`cooldown: default-days: 3`), because
-   every yggdrasil release bakes three days. Add the language's package files
-   and `docker` weekly, with `cooldown: default-days: 7`. Each PR title is
-   `build(deps):`, which releases a patch (`commit-message: prefix: build,
-   include: scope`). Security updates skip the wait.
-8. **Patch and minor updates merge themselves.** A `dependabot-auto-merge.yml`
-   workflow calls yggdrasil's `auto-merge` module, which arms squash auto-merge when Dependabot's metadata says
-   `version-update:semver-patch` or `version-update:semver-minor`, and
-   comments on the PR to say so. GitHub merges once the required checks pass
-   and the conversations are resolved. Major updates, and digest-only base
-   image updates, wait for the maintainer.
-9. The merge uses an `AUTO_MERGE_PAT` **Dependabot** secret: a run Dependabot
-   starts can't read Actions secrets, and a merge made with `GITHUB_TOKEN`
-   would not start the release workflow. Only the maintainer can make it, so
-   the template has no auto-merge caller until zimmertr/yggdrasil#12 gives
-   the merge to the bot.
+7. Renovate proposes version updates. The template's `.github/renovate.json`
+   extends yggdrasil's shared preset,
+   `github>zimmertr/yggdrasil//defaults/renovate` (its record 0056), and the
+   maintainer's Renovate installation covers every repo of the account, so a
+   new repo needs no setup. Every release waits seven days before it is
+   proposed, except yggdrasil's own modules and an image whose registry
+   gives no publish date. Each PR title is `chore(deps):` or `fix(deps):`,
+   which releases a patch. Security updates skip the wait.
+8. **Everything below a major merges itself.** Renovate arms squash
+   auto-merge on its own PRs, and GitHub merges once the required checks
+   pass and the conversations are resolved. A major waits for the
+   maintainer.
+9. A repo adds a rule to its own `renovate.json` only where it differs from
+   the preset. A private repo has no required checks, so it turns
+   auto-merge off.
 
 ## Scanning
 
@@ -71,9 +68,8 @@ apply puts it back.
     install --require-hashes`, or `npm ci` from `package-lock.json`. A `make`
     target regenerates the lock, and a pin change ships with its regenerated
     lock in the same PR. A test holds the lock to the pins: every direct pin
-    locked at its version, every locked package hashed, the image installing
-    the lock with hashes required, and every language ecosystem's Dependabot
-    entry carrying its cooldown.
+    locked at its version, every locked package hashed, and the image
+    installing the lock with hashes required.
 16. **No install scripts.** Every `npm ci` passes `--ignore-scripts`, and a
     test fails one that doesn't.
 17. **Pin what you import.** A convenience extra that pulls in packages the

@@ -8,7 +8,7 @@ TJ's Claude Code configuration. `claude/` mirrors `~/.claude`: `~/.claude/CLAUDE
 - Work in a scratchpad clone, never in `~/git/personal/ai-config`, which is the live copy.
 - Never commit a secret. `settings.json` holds settings, not tokens; tokens stay in `~/.claude/secrets.json`, which is not in this repo.
 - A skill is a folder under `claude/skills/` with a `SKILL.md` (frontmatter `name` and `description`, under 500 lines) and any files it links to. A new skill needs its symlink, which the README's setup loop makes.
-- CI is zimmertr/yggdrasil's `pr-title` and `lint` modules, pinned by commit SHA with the version beside it. Dependabot bumps the pin, and a patch or minor merges itself after three days. The PR title is `type(scope): summary`.
+- CI is zimmertr/yggdrasil's `pr-title` and `lint` modules, pinned by commit SHA with the version beside it. Renovate bumps the pin, and a patch or minor merges itself. The PR title is `type(scope): summary`.
 - This repo took a trimmed set of the files a new project starts with (zimmertr/yggdrasil record 0038). When a change here makes a decision, write its record; when it needs `CONTRIBUTING.md` or a `docs/` page, add it in the same PR.
 
 ## Issues
