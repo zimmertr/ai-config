@@ -8,9 +8,7 @@ Each line ends in one of three marks, and the report carries all three:
 
 - **done**, with the evidence: a command's output, a run, a link
 - **n/a**, with the interview answer that switched it off
-- **blocked**, with what's missing and who can unblock it. Only the
-  maintainer can make the `AUTO_MERGE_PAT` secret, so that line is often
-  blocked on them.
+- **blocked**, with what's missing and who can unblock it.
 
 ## Repo and settings
 
@@ -40,10 +38,9 @@ repo's file in yggdrasil, not the setting.
    included (`gh api repos/O/R/code-scanning/default-setup`).
 7. Immutable releases are on (`gh api repos/O/R/immutable-releases`), and
    every deploy pins its image by digest.
-8. The `AUTO_MERGE_PAT` Dependabot secret exists
-   (`gh api repos/O/R/dependabot/secrets`), and Dependabot's first patch or
-   minor PR armed auto-merge and merged itself. Until Dependabot opens one,
-   this line is blocked on Dependabot, and the report says so.
+8. `.github/renovate.json` extends yggdrasil's preset, and Renovate's first
+   PR below a major armed auto-merge and merged itself. Until Renovate opens
+   one, this line is blocked on Renovate, and the report says so.
 
 9. The dependency-lock test exists and passed on a PR, and a grep of the
    Dockerfile, the Makefile and the workflows confirms `--ignore-scripts` on

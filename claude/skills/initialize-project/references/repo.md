@@ -4,7 +4,7 @@
 
 1. `LICENSE`, from the interview's choice. Ask before creating the repo.
    The repo itself starts from `zimmertr/yggdrasil-repo-template`, which holds
-   the `pr-title` and `lint` callers and `dependabot.yml` (see Settings).
+   the `pr-title` and `lint` callers and `.github/renovate.json` (see Settings).
 2. `.gitignore` for the language and tooling, and `.dockerignore` beside the
    `Dockerfile`.
 3. `README.md`. The maintainer owns it: it is written in the maintainer's
@@ -44,7 +44,7 @@ Change a setting there, never by hand.
    as the message. No merge commits, no rebase merges.
 10. Auto-merge allowed, head branches deleted on merge, the "Update branch"
     button on, and the wiki off.
-11. Branch protection, Dependabot and scanning as in
+11. Branch protection, dependency updates and scanning as in
     [security.md](security.md).
 
 ## Branching
