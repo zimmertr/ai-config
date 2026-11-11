@@ -58,10 +58,13 @@ and its "An example caller" names the repo to copy the callers from.
    the only way to deploy: never hand-build, hand-push or hand-edit a
    deployed tag. A release that failed part way is finished with "Re-run
    failed jobs", or by releasing again from main.
-10. **Conditional (Helm chart):** the repo's own job pushes the chart to
-    `oci://ghcr.io/<owner>` after the module tags the release, and opens its
-    deploy bump. Copy it from the example caller until yggdrasil has a chart
-    module (zimmertr/yggdrasil#74).
+10. **Conditional (Helm chart):** the `release` module pushes the chart
+    too. Name it in `charts`, with the image and where its digest goes in
+    the values: the module pushes it to `oci://ghcr.io/<owner>` after the
+    tag, and opens the deploy bump (the chart's version, in `deploys`) only
+    after that. On PRs the `chart` module lints it and renders it with its
+    defaults, then runs the repo's own renders from its `test` input. Its
+    check, `Chart / Chart`, is required.
 
 ## Workflow hygiene
 
