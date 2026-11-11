@@ -17,8 +17,11 @@
    every repo, from the single copy in zimmertr/yggdrasil's
    `community-health-files/` (its record 0041). See
    [security.md](security.md).
-5. `CONTRIBUTING.md`: how to send a change. The `make` targets, tests with
-   every behaviour change, and the docs page that owns the topic.
+5. No `CONTRIBUTING.md` of its own. The owner's `.github` repo serves one
+   too, from the same folder (yggdrasil's record 0055). A repo writes its
+   own only when it has a process the shared one can't describe, and then
+   the file is complete in itself: GitHub shows it in place of the shared
+   one.
 6. `NOTICES.md`, when third parties need credit: the data providers, and the
    software bundled in the shipped image, each with its license. A test
    holds it to the manifests (see [docs.md](docs.md), License notices).
