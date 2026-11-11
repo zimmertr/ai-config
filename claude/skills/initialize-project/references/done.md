@@ -20,8 +20,8 @@ yggdrasil's main shows no change for the repo. When a line is wrong, fix the
 repo's file in yggdrasil, not the setting.
 
 1. The files from [repo.md](repo.md) exist: `LICENSE`, `.gitignore`,
-   `.dockerignore`, `README.md`, `CONTRIBUTING.md`, `NOTICES.md` (when
-   needed) and `CLAUDE.md`. There is no `SECURITY.md` or
+   `.dockerignore`, `README.md`, `NOTICES.md` (when needed) and
+   `CLAUDE.md`. There is no `SECURITY.md`, `CONTRIBUTING.md` or
    `.github/ISSUE_TEMPLATE/`, so the owner's shared ones apply.
 2. Merge settings: `gh api repos/O/R` shows squash only, `PR_TITLE` and
    `PR_BODY`, auto-merge, branch deletion and "Update branch" on, and the
