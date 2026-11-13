@@ -50,7 +50,8 @@ Change a setting there, never by hand.
 ## Branching
 
 12. Trunk-based development: short-lived branches off main, each merged
-    through one PR. One PR per feature or change, even a large one.
+    through one PR. One PR per feature or change, even a large one, and
+    fewer, larger PRs over many small ones.
 13. A PR's title is `type(scope): summary`, because it picks the release
     version (see [cicd.md](cicd.md)).
 

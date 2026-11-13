@@ -63,9 +63,11 @@ on. Everything else applies to every project.
    8. The interview's choices and what each one switches on
 3. **Plan the build, once the PRD is signed off.** Write a detailed
    step-by-step plan to build the project. Break it into tasks that build on
-   one another, then break those into smaller sub-tasks. Each step must be
-   small enough to implement in one go and big enough that together they
-   finish the project.
+   one another, each sized to one substantial PR: the maintainer prefers
+   fewer, larger PRs and issues, because every merge costs a build and a
+   release. Break a task into sub-tasks only as a checklist inside it, never
+   as PRs of their own. Each task must be small enough to implement in one go
+   and big enough that a handful of them finish the project.
 4. **Make the plan a dependency graph.** Use current development practice and
    real project management, with no large jumps in complexity. Wire sub-tasks
    into one another so no task is orphaned. Every task and sub-task is a
@@ -73,7 +75,8 @@ on. Everything else applies to every project.
    each enough context that a developer or an agent can start on it at once.
    The first tasks set up the repo, CI/CD and docs, before any feature work.
 5. **File the plan as GitHub issues** with the `create-issue` skill: one
-   issue per task, under an epic issue that tracks them as sub-issues.
+   issue per task, under an epic issue that tracks them as sub-issues. A
+   task's sub-tasks stay as checkboxes in its issue.
 6. **Build the foundation**: the first tasks, which create the repo and set
    up its CI/CD, security and docs to the standards above. The repo comes
    from one PR in zimmertr/yggdrasil (see [references/repo.md](references/repo.md)),
