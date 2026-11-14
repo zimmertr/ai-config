@@ -273,17 +273,17 @@ bar() {
   done
 }
 # finish_bar TEXT COLOR [PAST_LIMIT] -> BP/BC: the cells with the number in the
-# middle. Every bar cuts the same slot, a box's width plus a space either side,
-# and centers the number in it (an odd space goes after), so 9% and 100% take
+# middle. Every bar cuts the same slot, a box's width, and centers the number
+# in it (an odd space goes after), so 9% and 100% take
 # the same room and a box is always the same size.
 finish_bar() {
   local t=$1 col=$2 x=$3 w=4 span st i lp rp tp tc
   [ ${#t} -gt "$w" ] && w=${#t}
-  span=$(( w + 6 )); lp=$(spaces $(( (w - ${#t}) / 2 ))); rp=$(spaces $(( (w - ${#t} + 1) / 2 )))
+  span=$(( w + 4 )); lp=$(spaces $(( (w - ${#t}) / 2 ))); rp=$(spaces $(( (w - ${#t} + 1) / 2 )))
   if [ -n "$x" ]; then
-    tp=" ▕ ${lp}${t}${rp} ▏ "; tc=" ${BAD}${BOX}▕ ${R}${CRIT}${BOX}${lp}${t}${rp}${R}${BAD}${BOX} ▏${R} "
+    tp="▕ ${lp}${t}${rp} ▏"; tc="${BAD}${BOX}▕ ${R}${CRIT}${BOX}${lp}${t}${rp}${R}${BAD}${BOX} ▏${R}"
   else
-    tp="   ${lp}${t}${rp}   "; tc="   ${lp}${col}${t}${R}${rp}   "
+    tp="  ${lp}${t}${rp}  "; tc="  ${lp}${col}${t}${R}${rp}  "
   fi
   st=$(( (BW - span) / 2 )); [ "$st" -lt 0 ] && st=0
   BP="▕"; BC="${DIM}▕${R}"
