@@ -4,10 +4,10 @@
 # is working with on the right. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   ctx   ▕███▌░░░░┃░░░░░░░░░▏ 191k  AC 39% · Win 19% │ model   Opus 5.5 · High  $3.63
-#   5h    ▕██████▋░░░░░░░░░░░▏ 37%   resets 1h49m     │ git     main ↓7 ✚2       ~/git/personal/bluebird
-#   7d    ▕██████████████▋░░░▏  81%    ├─── 3d4h      │ k8s     admin@stable     default
-#   fable ▕██████████████████▏  100%   └─── 3d4h      │ session claude-80        1feba53f
+#   ctx   ▕███▌░░░░┃░░░░░░░░░ │ 191k  AC 39% · Win 19% │ model   Opus 5.5 · High  $3.63
+#   5h    ▕██████▋░░░░░░░░░░░ │ 37%   resets 1h49m     │ git     main ↓7 ✚2       ~/git/personal/bluebird
+#   7d    ▕██████████████▋░░░ │  81%    ├─── 3d4h      │ k8s     admin@stable     default
+#   fable ▕██████████████████ │  100%   └─── 3d4h      │ session claude-80        1feba53f
 #
 # The ctx bar spans the model's whole window. ┃ marks where auto-compact fires,
 # and the dark red cells before it are the last quarter of the way there. AC is
@@ -205,7 +205,8 @@ bar() {
     else s='░'; BC="${BC}${EMPTY}${s}"; fi
     BP="${BP}${s}"
   done
-  BP="${BP}▏ "; BC="${BC}${R}${DIM}▏${R} "
+  # The divider closes the bar, the same one that sits before the right-hand column.
+  BP="${BP} │ "; BC="${BC}${R}${DIM} │ ${R}"
 }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
