@@ -558,9 +558,10 @@ effort_colored() {
     *) printf '%s%s%s' "$VAL" "$w" "$R" ;;
   esac
 }
-# slashed TEXT COLOR -> TEXT in COLOR with every / in lavender, like the dots.
-slashed() { printf '%s' "$2${1//\//${R}${DOT}/${R}$2}${R}"; }
-BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${DOT}/${R}$(effort_colored "$effort")"
+# slashed TEXT COLOR -> TEXT in COLOR with every / in bold lavender.
+SLASH=$'\033[1;38;5;103m'
+slashed() { printf '%s' "$2${1//\//${R}${SLASH}/${R}$2}${R}"; }
+BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${SLASH}/${R}$(effort_colored "$effort")"
 GRP[0]=""; GRC[0]=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
