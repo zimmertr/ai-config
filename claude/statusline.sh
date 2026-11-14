@@ -328,8 +328,8 @@ BRP=(); BRC=(); GRP=(); GRC=()   # bright and detail parts per right row
 # but the number keeps its limit color so an expired cache still stands out.
 # Effort takes the colors of Claude Code's /effort picker. Its animations tick
 # every 100 ms; a status line only redraws on events and the refresh timer, so
-# here they step once per redraw: xhigh's highlight sweeps a letter at a time
-# and max's rainbow shifts a letter at a time.
+# xhigh's highlight steps a letter per redraw. Max's rainbow holds still, spread
+# end to end across the word, because stepping it popped instead of flowing.
 E=$'\033'; RGB() { printf '%s[38;2;%s;%s;%sm' "$E" "$1" "$2" "$3"; }
 RAINBOW=("$(RGB 235 95 87)" "$(RGB 245 139 87)" "$(RGB 250 195 95)" "$(RGB 145 200 130)" \
          "$(RGB 130 170 220)" "$(RGB 155 130 200)" "$(RGB 200 130 180)")
@@ -349,7 +349,9 @@ effort_colored() {
       done
       printf '%s' "$out" ;;
     max)
-      for (( i = 0; i < n; i++ )); do out="${out}${E}[1m${RAINBOW[$(( (i + now) % 7 ))]}${w:i:1}${R}"; done
+      for (( i = 0; i < n; i++ )); do
+        out="${out}${E}[1m${RAINBOW[$(( n > 1 ? i * 6 / (n - 1) : 0 ))]}${w:i:1}${R}"
+      done
       printf '%s' "$out" ;;
     *) printf '%s%s%s' "$VAL" "$w" "$R" ;;
   esac
