@@ -232,6 +232,16 @@ LP=(); LC=(); RP=(); RC=()
 ap() { LP[$1]="${LP[$1]}$2"; LC[$1]="${LC[$1]}$3"; }
 spaces() { [ "$1" -gt 0 ] && printf '%*s' "$1" ''; }
 
+# graded NUM WARN CRIT TEXT [nobox] -> GP_/GC_: TEXT in the color NUM earns.
+# nobox keeps a value past its limit plain coral, for a value whose width must
+# hold still because the details after it line up.
+graded() {
+  if [ "$1" -ge "$3" ]; then
+    if [ -n "$5" ]; then GP_=$4; GC_="${CRIT}$4${R}"; else boxed "$4"; GP_=$CP_; GC_=$CC_; fi
+  elif [ "$1" -ge "$2" ]; then GP_=$4; GC_="${WARN}$4${R}"
+  else GP_=$4; GC_="${OK}$4${R}"; fi
+}
+
 # val VALUE [WARN=50] [CRIT=80] -> VP/VC.
 val() {
   local w=${2:-50} c=${3:-80}
@@ -539,7 +549,9 @@ BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R
 # what gets shortened when the row runs out of room. GKP/GKC keep the colored
 # part before it, so shortening the name doesn't wash out the cost and turn.
 BRP[3]="$sid8"; BRC[3]="${VAL}${sid8}${R}"
-GKP[3]="\$${sc} · Turn ${turns}"; GKC[3]="${DET}\$${sc}${R}${DOT} · ${R}${DET}Turn ${turns}${R}"
+graded "${sc%.*}" 50 100 "\$${sc}"; CSP=$GP_; CSC=$GC_
+graded "$turns" 150 300 "$turns"; TNP=$GP_; TNC=$GC_
+GKP[3]="${CSP} · Turn ${TNP}"; GKC[3]="${CSC}${DOT} · ${R}${DET}Turn${R} ${TNC}"
 GRP[3]="${GKP[3]}"; GRC[3]="${GKC[3]}"
 if [ -n "$sname" ]; then
   GRP[3]="${GRP[3]} · ${sname}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}${sname}${R}"
@@ -551,7 +563,9 @@ fi
 rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 999.5 && i < 4) { b /= 1000; i++ }
   n = (b < 9.95 && i > 1) ? sprintf("%.1f", b) : sprintf("%d", b + 0.5)
   printf "%3s %-4s", n, u[i] "/s" }'; }
-BRP[4]="↓$(rate "$rx_bps") ↑$(rate "$tx_bps")"; BRC[4]="${VAL}${BRP[4]}${R}"
+graded "$rx_bps" 1000000 10000000 "↓$(rate "$rx_bps")" nobox; NIP=$GP_; NIC=$GC_
+graded "$tx_bps" 1000000 10000000 "↑$(rate "$tx_bps")" nobox; NOP=$GP_; NOC=$GC_
+BRP[4]="${NIP} ${NOP}"; BRC[4]="${NIC} ${NOC}"
 if [ "$have_ismc" = 0 ]; then
   GRP[4]="iSMC not available"; GRC[4]="${DET}iSMC not available${R}"
 else
