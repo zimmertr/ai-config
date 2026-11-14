@@ -214,7 +214,7 @@ LAB=$'\033[38;5;139m'   # mauve: labels
 DIV=$'\033[38;5;153m'   # icy pale blue: the dividers and the compaction mark
 VAL=$'\033[97m'         # white: values
 DET=$'\033[38;5;66m'    # slate teal: the minor detail that ends a row
-DOT=$'\033[38;5;103m'   # lavender: the dots between items
+DOT=$'\033[38;5;103m'   # lavender: dots, colons, arrows and the resets tree
 DIM=$'\033[38;5;243m'   # dim grey: the bar's edges
 OK=$'\033[38;5;151m'; WARN=$'\033[38;5;222m'; BAD=$'\033[38;5;210m'   # mint, gold, coral
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
@@ -597,8 +597,8 @@ fi
 rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 999.5 && i < 4) { b /= 1000; i++ }
   n = (b < 9.95 && i > 1) ? sprintf("%.1f", b) : sprintf("%d", b + 0.5)
   printf "%8s", n " " u[i] "/s" }'; }
-# The arrows are lavender like the dots; only the rate takes its color. Each rate is right-
-# aligned in its 8 columns, so its unit always ends in the same place.
+# The arrows are lavender like the dots; only the rate takes its color. Each
+# rate is right-aligned in its 8 columns, so its unit always ends in one place.
 graded "$rx_bps" 1000000 10000000 "$(rate "$rx_bps")" nobox; NIP=$GP_; NIC=$GC_
 graded "$tx_bps" 1000000 10000000 "$(rate "$tx_bps")" nobox; NOP=$GP_; NOC=$GC_
 BRP[4]="↓${NIP} ↑${NOP}"; BRC[4]="${DOT}↓${R}${NIC} ${DOT}↑${R}${NOC}"
