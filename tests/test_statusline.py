@@ -106,7 +106,8 @@ def test_grids_line_up(name, cols):
 def test_bars_share_a_width(name):
     # A bar's closing edge is the only ▏ drawn in its dim grey.
     edge = sl.DIM + "▏"
-    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, 66, NOW).split("\n")}
+    # Without Fable its row has no bar.
+    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, 66, NOW).split("\n") if edge in r}
     assert len(ends) == 1
 
 

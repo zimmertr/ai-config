@@ -10,6 +10,11 @@ on:
 
 permissions: {}
 
+# A new push makes the run before it moot.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   pytest:
     name: pytest
