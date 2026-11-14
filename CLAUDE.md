@@ -4,8 +4,8 @@ TJ's Claude Code configuration. `claude/` mirrors `~/.claude`: `~/.claude/CLAUDE
 
 ## Rules
 
-- Change anything here only through a PR that TJ approves. A merge changes how every session behaves once TJ pulls.
-- Work in a scratchpad clone, never in `~/git/personal/ai-config`, which is the live copy.
+- Change anything here only through a PR that TJ approves. A merge changes how every session behaves once the live copy pulls it.
+- Work in a scratchpad clone, never in `~/git/personal/ai-config`, which is the live copy. The one exception: right after merging a PR here, fast-forward it with `git -C ~/git/personal/ai-config pull --ff-only` so the change is live at once. Never leave that step to TJ.
 - Never commit a secret. `settings.json` holds settings, not tokens; tokens stay in `~/.claude/secrets.json`, which is not in this repo.
 - A skill is a folder under `claude/skills/` with a `SKILL.md` (frontmatter `name` and `description`, under 500 lines) and any files it links to. A new skill needs its symlink, which the README's setup loop makes.
 - CI is zimmertr/yggdrasil's `pr-title` and `lint` modules, pinned by commit SHA with the version beside it. Renovate bumps the pin, and a patch or minor merges itself. The PR title is `type(scope): summary`.
