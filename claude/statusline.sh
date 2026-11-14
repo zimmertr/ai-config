@@ -59,7 +59,6 @@ EOF
 : "${win_pct:=0}" "${ctx_tok:=0}" "${five_pct:=0}" "${five_reset:=0}" "${seven_pct:=0}" "${seven_reset:=0}" "${cost:=0}" "${win:=0}" "${cwarm:=none}" "${cexp:=0}"
 
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
-tpath=$(echo "$input" | jq -r '.transcript_path // empty')
 dir="${cwd/#$HOME/~}"
 
 # The short session name is not in the stdin payload: Claude Code's messaging
@@ -69,18 +68,6 @@ sname=$(jq -r --arg sid "$sid" 'select(.sessionId == $sid) | .name // empty' \
   "$HOME"/.claude/sessions/*.json 2>/dev/null | head -1)
 lvl=$(printf '%s' "$effort" | tr '[:upper:]' '[:lower:]')
 effort=$(printf '%s' "$effort" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
-
-# Ultracode isn't in the payload, so it's read from the transcript. /effort
-# ultracode [off] logs its reply ("Ultracode on ..." / "Ultracode off ...") the
-# moment it runs. The CLI's own ultra_effort_enter/exit markers cover a session
-# that starts in ultracode, but they're written lazily and can miss an off, so
-# whichever of all four came last wins.
-ultra=0
-if [ -f "$tpath" ]; then
-  case $(grep -oE '"type":"ultra_effort_(enter|exit)"|"content":"<local-command-stdout>Ultracode (on|off)' "$tpath" 2>/dev/null | tail -1) in
-    *enter*|*'Ultracode on') ultra=1 ;;
-  esac
-fi
 
 # One git call gives the branch, ahead/behind and changed files. A plain status
 # takes the index lock to refresh it, and with the status line re-running on a
@@ -346,7 +333,7 @@ BRP=(); BRC=(); GRP=(); GRC=()   # bright and detail parts per right row
 E=$'\033'; RGB() { printf '%s[38;2;%s;%s;%sm' "$E" "$1" "$2" "$3"; }
 RAINBOW=("$(RGB 235 95 87)" "$(RGB 245 139 87)" "$(RGB 250 195 95)" "$(RGB 145 200 130)" \
          "$(RGB 130 170 220)" "$(RGB 155 130 200)" "$(RGB 200 130 180)")
-ULTRA=$(RGB 175 135 255)   # the CLI's effortUltra; xhigh's base color too
+ULTRA=$(RGB 175 135 255)   # xhigh's base purple, the CLI's autoAccept
 effort_colored() {
   local w=$1 n=${#1} i p out=""
   case "$lvl" in
@@ -372,12 +359,6 @@ GRP[0]=""; GRC[0]=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
   GRP[0]="Cache ${VP}"; GRC[0]="${DET}Cache${R} ${VC}"
-fi
-# Ultracode joins the detail, in the CLI's own ultracode purple, so it can't
-# push the detail column out.
-if [ "$ultra" = 1 ]; then
-  if [ -n "${GRP[0]}" ]; then GRP[0]="${GRP[0]} · Ultracode"; GRC[0]="${GRC[0]}${DOT} · ${R}${ULTRA}Ultracode${R}"
-  else GRP[0]="Ultracode"; GRC[0]="${ULTRA}Ultracode${R}"; fi
 fi
 if [ "$in_git" = 1 ]; then
   RL1=Git
