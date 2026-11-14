@@ -70,14 +70,15 @@ sname=$(jq -r --arg sid "$sid" 'select(.sessionId == $sid) | .name // empty' \
 lvl=$(printf '%s' "$effort" | tr '[:upper:]' '[:lower:]')
 effort=$(printf '%s' "$effort" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
 
-# Ultracode isn't in the payload. While it's on, the CLI writes an
-# ultra_effort_enter record into the transcript, and ultra_effort_exit when it
-# goes off, so the latest of the two is the session's state. It shows from the
-# next prompt after a toggle.
+# Ultracode isn't in the payload, so it's read from the transcript. /effort
+# ultracode [off] logs its reply ("Ultracode on ..." / "Ultracode off ...") the
+# moment it runs. The CLI's own ultra_effort_enter/exit markers cover a session
+# that starts in ultracode, but they're written lazily and can miss an off, so
+# whichever of all four came last wins.
 ultra=0
 if [ -f "$tpath" ]; then
-  case $(grep -oE '"type":"ultra_effort_(enter|exit)"' "$tpath" 2>/dev/null | tail -1) in
-    *enter*) ultra=1 ;;
+  case $(grep -oE '"type":"ultra_effort_(enter|exit)"|"content":"<local-command-stdout>Ultracode (on|off)' "$tpath" 2>/dev/null | tail -1) in
+    *enter*|*'Ultracode on') ultra=1 ;;
   esac
 fi
 
