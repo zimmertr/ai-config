@@ -240,23 +240,38 @@ val() {
 # the CPU chart gives every core an equal width. ▰ sits inside its cell, unlike a
 # block, so segments stay apart from each other and from the bar on the next row.
 BW=14
-# bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> BP/BC, in whole segments.
+# Each bar is built as cells, CH (glyph) and FG (color), so its number can then
+# replace the cells in the middle.
+# bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> cells, in whole segments.
 bar() {
-  local num=$1 den=$2 col=$3 mk=${4:--1} zs=${5:--1} i fill s
+  local num=$1 den=$2 col=$3 mk=${4:--1} zs=${5:--1} i fill
   [ "$den" -gt 0 ] || den=1
   fill=$(( (num * BW + den / 2) / den )); [ "$fill" -gt "$BW" ] && fill=$BW
   # A sliver of use still shows one segment.
   [ "$num" -gt 0 ] && [ "$fill" -eq 0 ] && fill=1
+  CH=(); FG=()
+  for (( i = 0; i < BW; i++ )); do
+    if   [ "$i" -lt "$fill" ]; then CH[i]='▰'; FG[i]=$col
+    elif [ "$i" -eq "$mk" ]; then CH[i]='┃'; FG[i]=$DIV
+    elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then CH[i]='▱'; FG[i]=$ZONE
+    else CH[i]='▱'; FG[i]=$EMPTY; fi
+  done
+}
+# finish_bar PLAIN COLORED -> BP/BC: the cells with the number centered in them,
+# a space either side. The number wins over anything under it, the compaction
+# mark included.
+finish_bar() {
+  local tp=$1 tc=$2 span=$(( ${#1} + 2 )) st i
+  st=$(( (BW - span) / 2 )); [ "$st" -lt 0 ] && st=0
   BP="▕"; BC="${DIM}▕${R}"
   for (( i = 0; i < BW; i++ )); do
-    if   [ "$i" -lt "$fill" ]; then s='▰'; BC="${BC}${col}${s}"
-    elif [ "$i" -eq "$mk" ]; then s='┃'; BC="${BC}${DIV}${s}"
-    elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then s='▱'; BC="${BC}${ZONE}${s}"
-    else s='▱'; BC="${BC}${EMPTY}${s}"; fi
-    BP="${BP}${s}"
+    if [ "$i" -lt "$st" ] || [ "$i" -ge $(( st + span )) ]; then
+      BP="${BP}${CH[i]}"; BC="${BC}${FG[i]}${CH[i]}${R}"
+    elif [ "$i" -eq "$st" ]; then
+      BP="${BP} ${tp} "; BC="${BC} ${tc} "
+    fi
   done
-  # Grey edges hold the bar, so it needs no divider before its value.
-  BP="${BP}▏ "; BC="${BC}${R}${DIM}▏${R} "
+  BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
 }
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
@@ -372,64 +387,55 @@ has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 # much room the right side leaves, which is only known once it is built.
 build_left() {
   LP=(); LC=()
-  # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
-  row_label 0 Ctx
-  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
-  row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "$BC"
-  row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
-  [ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
-  # Row 4 is the machine, printed above the others.
-  # With per-core numbers, the CPU's bar becomes a chart: each core a column that
-  # rises with its load, stretched across the bar's width and colored like a bar.
-  SPARK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
-  core_chart() {
-    local -a c=($cores); local n=${#c[@]} j p g col
-    BP="▕"; BC="${DIM}▕${R}"
-    for (( j = 0; j < BW; j++ )); do
-      p=${c[$(( j * n / BW ))]}
-      g=${SPARK[$(( p >= 100 ? 7 : p * 8 / 100 ))]}
-      if [ "$p" -ge 66 ]; then col=$BAR_BAD; elif [ "$p" -ge 33 ]; then col=$BAR_WARN; else col=$BAR_OK; fi
-      BP="${BP}${g}"; BC="${BC}${col}${g}${R}"
-    done
-    BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
-  }
-  row_label 4 CPU
-  if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; fi
-  ap 4 "$BP" "$BC"
-
-  # The first value on each row is padded so the words after them form one column.
+  # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable; 4 is the machine, printed above them.
+  # Each row's number sits in the middle of its bar.
   if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
     TP="${ctxk}kꜝ"; TC="${CRIT}${ctxk}k${R}${BAD}ꜝ${R}"
   else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
-  val "$five_pct";  HP=$VP; HC=$VC
-  val "$seven_pct"; SP=$VP; SC=$VC
-  FP=""; [ "$has_fable" = 1 ] && { val "$fable_pct"; FP=$VP; FC=$VC; }
-  val "$cpu_pct";   CP=$VP; CC=$VC
-  FW=0
-  for v in "$TP" "$HP" "$SP" "$FP" "$CP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
-  FW=$(( FW + 1 ))
-  first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))"; }
+  local mk=$(( ac_thr * BW / win ))
+  row_label 0 Ctx
+  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" "$mk" $(( ac_thr * 3 / 4 * BW / win ))
+  finish_bar "$TP" "$TC"; ap 0 "$BP" "$BC"
+  row_label 1 5h; val "$five_pct"
+  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)"; finish_bar "$VP" "$VC"; ap 1 "$BP" "$BC"
+  row_label 2 7d; val "$seven_pct"
+  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; finish_bar "$VP" "$VC"; ap 2 "$BP" "$BC"
+  if [ "$has_fable" = 1 ]; then
+    row_label 3 Fable; val "$fable_pct"
+    bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; finish_bar "$VP" "$VC"; ap 3 "$BP" "$BC"
+  fi
+  row_label 4 CPU; val "$cpu_pct"
+  if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; fi
+  finish_bar "$VP" "$VC"; ap 4 "$BP" "$BC"
 
   val "$ac_pct" 50 75; ACP=$VP; ACC=$VC
   val "$win_pct";      WNP=$VP; WNC=$VC
-  first 0 "$TP" "$TC"
   ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DOT} · ${R}${LAB}Win${R} ${WNC}"
   # "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
   # the stem dropping from the middle of the word, the times lined up under 1h49m.
-  first 1 "$HP" "$HC"
   ap 1 "Resets ${five_r}" "${LAB}Resets${R} ${VAL}${five_r}${R}"
-  first 2 "$SP" "$SC"
   if [ "$has_fable" = 1 ]; then
     ap 2 "  ├─── ${seven_r}" "  ${LAB}├───${R} ${VAL}${seven_r}${R}"
-    first 3 "$FP" "$FC"
     ap 3 "  └─── ${fable_r}" "  ${LAB}└───${R} ${VAL}${fable_r}${R}"
   else
     ap 2 "  └─── ${seven_r}" "  ${LAB}└───${R} ${VAL}${seven_r}${R}"
     LP[3]=""; LC[3]=""
   fi
-  first 4 "$CP" "$CC"
   val "$mem_pct"
   ap 4 "Mem ${VP}" "${LAB}Mem${R} ${VC}"
+}
+
+# With per-core numbers, the CPU's bar becomes a chart: each core a column that
+# rises with its load, stretched across the bar's width and colored like a bar.
+SPARK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+core_chart() {
+  local -a c=($cores); local n=${#c[@]} j p
+  CH=(); FG=()
+  for (( j = 0; j < BW; j++ )); do
+    p=${c[$(( j * n / BW ))]}
+    CH[j]=${SPARK[$(( p >= 100 ? 7 : p * 8 / 100 ))]}
+    if [ "$p" -ge 66 ]; then FG[j]=$BAR_BAD; elif [ "$p" -ge 33 ]; then FG[j]=$BAR_WARN; else FG[j]=$BAR_OK; fi
+  done
 }
 
 # --- Right rows: a mauve label, a bright part, then a slate teal detail ---
