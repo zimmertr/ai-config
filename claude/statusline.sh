@@ -474,11 +474,14 @@ cell() {
   else CP_="$1$pad"; CC_="$2$1${R}$pad"; fi
 }
 # grid_row ROW LABEL1 LABEL2 TEXT1 COLOR1 PAST1 TEXT2 COLOR2 PAST2, using w1/w2/b1/b2.
+# In a boxed column the box's edge stands in for the space after the label: the
+# edge is drawn at the right of its cell, so a space before it would look doubled.
 grid_row() {
-  local p c
-  p="$(printf '%-4s ' "$2:")"; c="${LAB}$2${R}${DOT}:${R}$(spaces $(( 4 - ${#2} )))"
+  local p c s1=" " s2=" "
+  [ -n "$b1" ] && s1=""; [ -n "$b2" ] && s2=""
+  p="$(printf '%-4s' "$2:")$s1"; c="${LAB}$2${R}${DOT}:${R}$(spaces $(( 3 - ${#2} )))$s1"
   cell "$4" "$5" "$6" "$w1" "$b1"; p="$p$CP_ · "; c="$c$CC_${DOT} · ${R}"
-  p="$p$(printf '%-5s ' "$3:")"; c="$c${LAB}$3${R}${DOT}:${R}$(spaces $(( 5 - ${#3} )))"
+  p="$p$(printf '%-5s' "$3:")$s2"; c="$c${LAB}$3${R}${DOT}:${R}$(spaces $(( 4 - ${#3} )))$s2"
   cell "$7" "$8" "$9" "$w2" "$b2" last; p="$p$CP_"; c="$c$CC_"
   ap "$1" "$p" "$c"
 }
