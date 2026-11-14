@@ -18,7 +18,7 @@
 # repo; ↑/↓ track the branch's own upstream, ✚ counts changed files.
 #
 # One color per job: mauve labels a value, white is a value, dim grey is a minor
-# value or punctuation, and green / yellow / red is a value with a limit: green
+# value or punctuation, deep plum draws the dividers, and green / yellow / red is a value with a limit: green
 # under 50%, yellow under 80%, and a bold white-on-red block at 80% and up (AC
 # from 75%, the token count past 250K).
 #
@@ -168,6 +168,7 @@ fi
 # --- Palette ---
 # Real escape bytes, printed with %s, so a backslash in a branch or path prints as-is.
 LAB=$'\033[38;5;139m'   # mauve: labels
+DIV=$'\033[38;5;96m'    # deep plum: the dividers, a darker shade of the labels' mauve
 VAL=$'\033[97m'         # white: values
 DIM=$'\033[38;5;243m'   # dim grey: minor values and punctuation
 OK=$'\033[92m'; WARN=$'\033[93m'; BAD=$'\033[91m'; CRIT=$'\033[1;97;41m'
@@ -206,7 +207,7 @@ bar() {
     BP="${BP}${s}"
   done
   # The divider closes the bar, the same one that sits before the right-hand column.
-  BP="${BP} │ "; BC="${BC}${R}${DIM} │ ${R}"
+  BP="${BP} │ "; BC="${BC}${R}${DIV} │ ${R}"
 }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
@@ -303,7 +304,7 @@ for i in 0 1 2 3; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
 for i in 0 1 2 3; do
   [ "$i" -gt 0 ] && printf '\n'
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
-  printf '%s' "${DIM} │ ${R}${LAB}$(printf '%-8s' "${RLAB[$i]}")${R}${BRC[$i]}"
+  printf '%s' "${DIV} │ ${R}${LAB}$(printf '%-8s' "${RLAB[$i]}")${R}${BRC[$i]}"
   if [ -n "${GRP[$i]}" ]; then
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
