@@ -265,10 +265,17 @@ row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}";
 # dkorunic/tap && brew install ismc), which reads the sensors without sudo; when
 # it's missing the Temp slot says so rather than failing the whole status line.
 ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
-# Per-core usage comes straight from the kernel's tick counters (host_processor_info),
-# as the change since the last run, which any session may have made. macOS has
-# no command for it, so the system Python reads it through ctypes.
+# One reading of the machine is shared by every session for 10 s, so they all
+# show the same numbers. The first session past that takes the next reading.
+machine="$HOME/.claude/cache/machine"
+mage=999999; [ -f "$machine" ] && mage=$(( now - $(stat -f %m "$machine" 2>/dev/null || echo 0) ))
 cores=""
+if [ "$mage" -lt 10 ]; then
+  IFS=$'\t' read -r cpu_pct mem_pct cores < "$machine"
+else
+# Per-core usage comes straight from the kernel's tick counters (host_processor_info),
+# as the change since the previous reading, about 10 s earlier. macOS has no
+# command for it, so the system Python reads it through ctypes.
 if command -v python3 >/dev/null 2>&1; then
   cores=$(python3 -I - "$HOME/.claude/cache/cpu-ticks" 2>/dev/null <<'PY'
 import ctypes, ctypes.util, sys, os
@@ -305,9 +312,12 @@ else
   # Without Python: ps reports each process's recent share of one core.
   cpu_pct=$(ps -A -o %cpu= | awk -v n="$ncpu" '{ s += $1 } END { v = int(s / n + 0.5); print (v > 100 ? 100 : v) }')
 fi
-mem_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo 0); mem_gb=$(( mem_bytes / 1073741824 ))
 # The kernel's memorystatus level is the share of memory it counts as free.
 mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
+mkdir -p "${machine%/*}"
+printf '%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" > "$machine.$$" && mv -f "$machine.$$" "$machine"
+fi
+: "${cpu_pct:=0}" "${mem_pct:=0}"
 have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
 # iSMC takes about a second to read the temperatures, so it runs in the
 # background every 10 s and leaves its reading in a cache, like the Fable limit.
