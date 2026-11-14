@@ -5,13 +5,13 @@
 # itself to the terminal's width. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   CPU:     ▕ ▄▄▄▄▄▄▄▃▃▃▂▂▂▁▁▁▁▁  14%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 38% · GPU: 12% │ Net:     ↓ 23 KB/s ↑ 37 KB/s  Temp:   48°
-#   Context: ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19% │ Model:   Opus 5.5/High        Cache:▕ 100% ▏
-#   5-hour:  ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   1%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h56m       │ Git:     main ↓7 ✚2           ~/git/personal/bluebird
-#   Week:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h       │ K8s:     docker-desktop       default
-#   Fable:   ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h       │ Session: 1feba53f             $3.63 · Turn: 217 · claude-00
+#   CPU:   ▕ ▃▃▃▃▃▃▃▂▂▂▂▂▂▂▁▁▁▁▁▁  10%   ▁▁▁▁▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 32% · GPU: 0%  │ Net:   ↓5.7 KB/s ↑4.5 KB/s  Temp:   45°
+#   Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19% │ Model: Opus 5.5/High        Cache:▕ 100% ▏
+#   5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m       │ Git:   main ↓7 ✚2           ~/git/personal/bluebird
+#   7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h       │ K8s:   admin@stable         default
+#   Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h       │ ID:    1feba53f             $3.63 · Turn: 220 · claude-00
 #
-# The Context bar spans the model's whole window. AC is the share of the point where
+# The Ctx bar spans the model's whole window. AC is the share of the point where
 # auto-compact fires, Win the share of the whole window. With auto-compact on,
 # Win can never pass the AC point, so it only matters when compaction is off
 # (DISABLE_AUTO_COMPACT=1). The Fable row is hidden until the Fable limit has
@@ -24,7 +24,7 @@
 # and the resets tree, icy blue draws
 # the dividers, and mint / gold / coral is a value with a limit: mint under 50%,
 # gold under 80%, and from 80% bold coral, boxed by coral edges with a line above
-# and below. Context's token count takes AC's color. The bars fill in quieter tones
+# and below. Ctx's token count takes AC's color. The bars fill in quieter tones
 # with the same steps: steel blue, soft violet, orchid.
 #
 # The session's short name (`claude-80`) is what other sessions message it by;
@@ -299,7 +299,7 @@ finish_bar() {
   BP="${BP} ▏ "; BC="${BC} ${DIM}▏${R} "
 }
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
-row_label() { ap "$1" "$(printf '%-9s' "$2:")" "${LAB}$2${R}${DOT}:${R}$(spaces $(( 8 - ${#2} )))"; }
+row_label() { ap "$1" "$(printf '%-7s' "$2:")" "${LAB}$2${R}${DOT}:${R}$(spaces $(( 6 - ${#2} )))"; }
 
 # --- The machine and Claude's activity ---
 # CPU, memory, GPU and network come from macOS itself. Temperature needs iSMC (brew tap
@@ -420,15 +420,15 @@ has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 # much room the right side leaves, which is only known once it is built.
 build_left() {
   LP=(); LC=()
-  # Left rows: 0 Context, 1 5-hour, 2 Week, 3 Fable; 4 is the machine, printed above them.
+  # Left rows: 0 Ctx, 1 5h, 2 7d, 3 Fable; 4 is the machine, printed above them.
   # Each row's number sits in the middle of its bar.
   val "$ac_pct"
-  row_label 0 Context
+  row_label 0 Ctx
   bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 80)"
   finish_bar "${ctxk}k" "$VK" "$VX"; ap 0 "$BP" "$BC"
-  row_label 1 5-hour; val "$five_pct"
+  row_label 1 5h; val "$five_pct"
   bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)"; finish_bar "$VR" "$VK" "$VX"; ap 1 "$BP" "$BC"
-  row_label 2 Week; val "$seven_pct"
+  row_label 2 7d; val "$seven_pct"
   bar "$seven_pct" 100 "$(sevc "$seven_pct" 50 80)"; finish_bar "$VR" "$VK" "$VX"; ap 2 "$BP" "$BC"
   if [ "$has_fable" = 1 ]; then
     row_label 3 Fable; val "$fable_pct"
@@ -438,7 +438,7 @@ build_left() {
   if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 50 80)"; fi
   finish_bar "$VR" "$VK" "$VX"; ap 4 "$BP" "$BC"
 
-  # "Resets" is written once, on the 5-hour row; the weekly times hang off it tree-style,
+  # "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
   # the stem dropping from the middle of the word, the times lined up under 1h49m.
   ap 1 "Resets: ${five_r}" "${LAB}Resets${R}${DOT}:${R} ${VAL}${five_r}${R}"
   if [ "$has_fable" = 1 ]; then
@@ -625,7 +625,7 @@ detail() {
 }
 [ -n "$CR" ] && { detail Cache "$CR" "$CK" "$CX"; GRP[0]=$GP_; GRC[0]=$GC_; }
 [ -n "$TR" ] && { detail Temp "$TR" "$TK" "$TX"; GRP[4]=$GP_; GRC[4]=$GC_; }
-RLAB=(Model "$RL1" K8s Session Net)
+RLAB=(Model "$RL1" K8s ID Net)
 
 # The details start in one column: pad each bright part to the widest one that
 # has a detail after it.
@@ -649,20 +649,20 @@ W=$(( cols - 5 ))
 BW=$ncpu; build_left
 Bmin=0; CB=0; CF=0
 for i in $ROWS; do
-  b=$(( ${#LP[$i]} - BW - 14 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
+  b=$(( ${#LP[$i]} - BW - 12 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
   b=${#BRP[$i]}; [ "$b" -gt "$CB" ] && CB=$b
   [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
 done
-CB=$(( CB + 9 )); CF=$(( CF + 9 ))
+CB=$(( CB + 7 )); CF=$(( CF + 7 ))
 # The left side with the bars at one and two characters per core, values unpadded.
-L1=$(( ncpu + 14 + Bmin )); L2=$(( 2 * ncpu + 14 + Bmin ))
+L1=$(( ncpu + 12 + Bmin )); L2=$(( 2 * ncpu + 12 + Bmin ))
 pmax=4
 if   [ $(( L2 + 3 + CF )) -le "$W" ]; then show=full; C=$CF
-elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
+elif [ $(( L2 + 3 + 7 + MW + 2 + 16 )) -le "$W" ]; then
   # The details get whatever the right side has left; a long one ends in …,
   # in plain teal, since its colors can't be cut part way through. Cache and
   # Temp are single values, so they drop out whole rather than lose digits.
-  show=full; pmax=2; C=$(( W - L2 - 3 )); room=$(( C - 9 - MW - 2 ))
+  show=full; pmax=2; C=$(( W - L2 - 3 )); room=$(( C - 7 - MW - 2 ))
   for i in $ROWS; do
     if [ ${#GRP[$i]} -gt "$room" ]; then
       k=${GKP[$i]}
@@ -682,17 +682,17 @@ elif [ $(( L1 + 3 + CB )) -le "$W" ]; then show=bright; pmax=2; C=$CB
 else show=left; pmax=4; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
 per=$pmax
-while [ "$per" -gt 1 ] && [ $(( per * ncpu + 14 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
+while [ "$per" -gt 1 ] && [ $(( per * ncpu + 12 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
 BW=$(( per * ncpu ))
 # The bars then take every spare column, up to four per core, so no width
 # leaves a gap at the end of the line. The CPU chart gives some cores one more
 # column than others, spread evenly, when the width isn't a multiple of 14.
-b=$(( avail - 14 - Bmin )); [ "$b" -gt $(( pmax * ncpu )) ] && b=$(( pmax * ncpu ))
+b=$(( avail - 12 - Bmin )); [ "$b" -gt $(( pmax * ncpu )) ] && b=$(( pmax * ncpu ))
 [ "$b" -gt "$BW" ] && BW=$b
 build_left
 # The values column pads out to the divider by 3 spare columns at most; any
 # other leftover goes at the end of the line, where empty space doesn't show.
-A=$(( BW + 14 ))
+A=$(( BW + 12 ))
 L=$avail; [ $(( A + Bmin + 3 )) -lt "$L" ] && L=$(( A + Bmin + 3 ))
 [ "$show" = left ] && L=0
 for i in $ROWS; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
@@ -701,7 +701,7 @@ for i in $ROWS; do
   [ "$n" -gt 0 ] && printf '\n'; n=$(( n + 1 ))
   if [ "$show" = left ]; then printf '%s' "${LC[$i]}"; continue; fi
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
-  printf '%s' "${DIV} │ ${R}${LAB}${RLAB[$i]}${R}${DOT}:${R}$(spaces $(( 8 - ${#RLAB[$i]} )))${BRC[$i]}"
+  printf '%s' "${DIV} │ ${R}${LAB}${RLAB[$i]}${R}${DOT}:${R}$(spaces $(( 6 - ${#RLAB[$i]} )))${BRC[$i]}"
   if [ "$show" = full ] && [ -n "${GRP[$i]}" ]; then
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
