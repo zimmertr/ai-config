@@ -6,7 +6,7 @@ My Claude Code setup: the global `CLAUDE.md` every session loads, my `settings.j
 
 - `claude/CLAUDE.md`: the rules that apply in every repo.
 - `claude/settings.json`: my Claude Code settings.
-- `claude/statusline.sh`: my status line. Four rows: model and context, usage limits and cost, the directory and git state, and the Kubernetes context.
+- `claude/statusline.sh`: my status line. A bar each for context and my usage limits, then the model and cost, the git branch and directory, the Kubernetes context, and the session's name and short ID.
 - `claude/skills/`: my own skills. `initialize-project` starts a new project to my standards, and `create-issue` files GitHub issues the way I like them.
 
 ## Setup

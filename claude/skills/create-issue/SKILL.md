@@ -140,10 +140,12 @@ with `gh label create`.
   one every time, also when the maintainer asks for `PM`.
 - `PM` means Priority Manual. Add it only when the maintainer asks for it in
   the request. It is one more label, not a replacement for the priority.
-- The current Claude Code session ID, always. The ID is the UUID directory
-  above `scratchpad` in the session's scratchpad path. Create the label first
-  when it does not exist (the description must stay under 100 characters):
-  `gh label create <uuid> --color 5ec3f7 --description "Filed in Claude Code session <uuid> (<date> <topic>)"`.
+- The current Claude Code session's short ID, always: the first 8 characters
+  of the UUID directory above `scratchpad` in the session's scratchpad path,
+  the same ID the status line shows. Create the label first when it does not
+  exist, with the full UUID in its description so the session can still be
+  resumed (the description must stay under 100 characters):
+  `gh label create <short id> --color 5ec3f7 --description "Filed in Claude Code session <uuid> (<date> <topic>)"`.
 - Every area from the repo's list that applies.
 - One type: `bug`, `enhancement`, `documentation`, or `question`. A decision
   the maintainer has to make is a `question`.
