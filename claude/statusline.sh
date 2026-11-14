@@ -5,7 +5,7 @@
 # itself to the terminal's width. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   CPU   ▕▅▅▅▄▄▄▄▄▄▃▃▃▁▁▁▁▁▁ 18% ▁▁▁▁▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▏ Mem 62% · Swap ▕ 18G ▏ │ Temp    54°            Net ↓1.1 MB/s ↑7.7 KB/s
+#   CPU   ▕▅▅▅▄▄▄▄▄▄▃▃▃▁▁▁▁▁▁ 18% ▁▁▁▁▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▏ Mem 62% · Swap ▕ 18G ▏ │ Net     ↓1.1 MB/s ↑7.7 KB/s  Temp 54°
 #   Ctx   ▕▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱ 191k ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ AC 39% · Win 19%       │ Model   Opus 5.5/High  Cache ▕ 100% ▏
 #   5h    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱ 31% ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ Resets 1h39m           │ Git     main ↓7 ✚2     ~/git/personal/bluebird
 #   7d    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 90% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▏   ├─── 2d23h           │ K8s     admin@stable   default
@@ -544,22 +544,24 @@ GRP[3]="${GKP[3]}"; GRC[3]="${GKC[3]}"
 if [ -n "$sname" ]; then
   GRP[3]="${GRP[3]} · ${sname}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}${sname}${R}"
 fi
-# The machine row's right side: CPU temperature, then the network as its detail.
-# rate BYTES_PER_S -> a short rate: 840 B/s, 12 KB/s, 1.2 MB/s.
-rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 1000 && i < 4) { b /= 1000; i++ }
-  printf (b < 10 && i > 1 ? "%.1f %s/s" : "%d %s/s"), b, u[i] }'; }
-NET="Net ↓$(rate "$rx_bps") ↑$(rate "$tx_bps")"
+# The machine row's right side: the network, then CPU temperature as its detail.
+# Temperature keeps its limit color there, like the cache on the model row.
+# rate BYTES_PER_S -> a short rate, always 8 wide (840 B/s, 12 KB/s, 1.2 MB/s),
+# so the details after it don't shift as the numbers change.
+rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 999.5 && i < 4) { b /= 1000; i++ }
+  n = (b < 9.95 && i > 1) ? sprintf("%.1f", b) : sprintf("%d", b + 0.5)
+  printf "%3s %-4s", n, u[i] "/s" }'; }
+BRP[4]="↓$(rate "$rx_bps") ↑$(rate "$tx_bps")"; BRC[4]="${VAL}${BRP[4]}${R}"
 if [ "$have_ismc" = 0 ]; then
-  BRP[4]="iSMC not available"; BRC[4]="${DET}iSMC not available${R}"
+  GRP[4]="iSMC not available"; GRC[4]="${DET}iSMC not available${R}"
 else
-  if   [ -z "$cpu_temp" ]; then BRP[4]="-"; BRC[4]="${DET}-${R}"
-  elif [ "$cpu_temp" -ge 85 ]; then boxed "${cpu_temp}°"; BRP[4]=$CP_; BRC[4]=$CC_
-  elif [ "$cpu_temp" -ge 70 ]; then BRP[4]="${cpu_temp}°"; BRC[4]="${WARN}${cpu_temp}°${R}"
-  else BRP[4]="${cpu_temp}°"; BRC[4]="${OK}${cpu_temp}°${R}"; fi
-  :
+  if   [ -z "$cpu_temp" ]; then TMP="-"; TMC="${DET}-${R}"
+  elif [ "$cpu_temp" -ge 85 ]; then boxed "${cpu_temp}°"; TMP=$CP_; TMC=$CC_
+  elif [ "$cpu_temp" -ge 70 ]; then TMP="${cpu_temp}°"; TMC="${WARN}${cpu_temp}°${R}"
+  else TMP="${cpu_temp}°"; TMC="${OK}${cpu_temp}°${R}"; fi
+  GRP[4]="Temp ${TMP}"; GRC[4]="${DET}Temp${R} ${TMC}"
 fi
-GRP[4]=$NET; GRC[4]="${DET}${NET}${R}"
-RLAB=(Model "$RL1" K8s Session Temp)
+RLAB=(Model "$RL1" K8s Session Net)
 
 # The details start in one column: pad each bright part to the widest one that
 # has a detail after it.
