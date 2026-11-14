@@ -59,6 +59,7 @@ EOF
 : "${win_pct:=0}" "${ctx_tok:=0}" "${five_pct:=0}" "${five_reset:=0}" "${seven_pct:=0}" "${seven_reset:=0}" "${cost:=0}" "${win:=0}" "${cwarm:=none}" "${cexp:=0}"
 
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+tpath=$(echo "$input" | jq -r '.transcript_path // empty')
 dir="${cwd/#$HOME/~}"
 
 # The short session name is not in the stdin payload: Claude Code's messaging
@@ -66,7 +67,19 @@ dir="${cwd/#$HOME/~}"
 # same session id. A session started without messaging has no entry.
 sname=$(jq -r --arg sid "$sid" 'select(.sessionId == $sid) | .name // empty' \
   "$HOME"/.claude/sessions/*.json 2>/dev/null | head -1)
+lvl=$(printf '%s' "$effort" | tr '[:upper:]' '[:lower:]')
 effort=$(printf '%s' "$effort" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
+
+# Ultracode isn't in the payload. While it's on, the CLI writes an
+# ultra_effort_enter record into the transcript, and ultra_effort_exit when it
+# goes off, so the latest of the two is the session's state. It shows from the
+# next prompt after a toggle.
+ultra=0
+if [ -f "$tpath" ]; then
+  case $(grep -oE '"type":"ultra_effort_(enter|exit)"' "$tpath" 2>/dev/null | tail -1) in
+    *enter*) ultra=1 ;;
+  esac
+fi
 
 # One git call gives the branch, ahead/behind and changed files. A plain status
 # takes the index lock to refresh it, and with the status line re-running on a
@@ -325,11 +338,45 @@ fi
 BRP=(); BRC=(); GRP=(); GRC=()   # bright and detail parts per right row
 # The cache is the model row's detail: the label is teal like the other details,
 # but the number keeps its limit color so an expired cache still stands out.
-BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${BAR_WARN}/${R}${VAL}${effort}${R}"
+# Effort takes the colors of Claude Code's /effort picker. Its animations tick
+# every 100 ms; a status line only redraws on events and the refresh timer, so
+# here they step once per redraw: xhigh's highlight sweeps a letter at a time
+# and max's rainbow shifts a letter at a time.
+E=$'\033'; RGB() { printf '%s[38;2;%s;%s;%sm' "$E" "$1" "$2" "$3"; }
+RAINBOW=("$(RGB 235 95 87)" "$(RGB 245 139 87)" "$(RGB 250 195 95)" "$(RGB 145 200 130)" \
+         "$(RGB 130 170 220)" "$(RGB 155 130 200)" "$(RGB 200 130 180)")
+ULTRA=$(RGB 175 135 255)   # the CLI's effortUltra; xhigh's base color too
+effort_colored() {
+  local w=$1 n=${#1} i p out=""
+  case "$lvl" in
+    low)    printf '%s%s%s' "$(RGB 255 193 7)" "$w" "$R" ;;
+    medium) printf '%s%s%s' "$(RGB 78 186 101)" "$w" "$R" ;;
+    high)   printf '%s%s%s' "$(RGB 177 185 249)" "$w" "$R" ;;
+    xhigh)
+      p=$(( now % (n + 4) - 2 ))
+      for (( i = 0; i < n; i++ )); do
+        if   [ "$i" -eq "$p" ]; then out="${out}${E}[1m$(RGB 208 180 255)${w:i:1}${R}"
+        elif [ $(( i - p )) -eq 1 ] || [ $(( p - i )) -eq 1 ]; then out="${out}${E}[1m${ULTRA}${w:i:1}${R}"
+        else out="${out}${ULTRA}${w:i:1}${R}"; fi
+      done
+      printf '%s' "$out" ;;
+    max)
+      for (( i = 0; i < n; i++ )); do out="${out}${E}[1m${RAINBOW[$(( (i + now) % 7 ))]}${w:i:1}${R}"; done
+      printf '%s' "$out" ;;
+    *) printf '%s%s%s' "$VAL" "$w" "$R" ;;
+  esac
+}
+BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${BAR_WARN}/${R}$(effort_colored "$effort")"
 GRP[0]=""; GRC[0]=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
   GRP[0]="Cache ${VP}"; GRC[0]="${DET}Cache${R} ${VC}"
+fi
+# Ultracode joins the detail, in the CLI's own ultracode purple, so it can't
+# push the detail column out.
+if [ "$ultra" = 1 ]; then
+  if [ -n "${GRP[0]}" ]; then GRP[0]="${GRP[0]} · Ultracode"; GRC[0]="${GRC[0]}${DOT} · ${R}${ULTRA}Ultracode${R}"
+  else GRP[0]="Ultracode"; GRC[0]="${ULTRA}Ultracode${R}"; fi
 fi
 if [ "$in_git" = 1 ]; then
   RL1=Git
