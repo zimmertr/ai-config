@@ -8,9 +8,9 @@ Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
   CPU:   ▕ ▃▃▃▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 32% · GPU: 0%  · Temp:   45°    │ Net:   ↓5.7 KB/s ↑4.5 KB/s
   Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19%                  │ Model: Opus 5.5/High
-  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m       · Cache:▕ 100% ▏ │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
-  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h       · Cost:   $3.63  │ K8s:   admin@stable  default
-  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h       · Turn:   220    │ ID:    1feba53f      claude-00
+  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m         Cache:▕ 100% ▏ │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
+  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h         Cost:   $3.63  │ K8s:   admin@stable  default
+  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h         Turn:   220    │ ID:    1feba53f      claude-00
 
 The Ctx bar spans the model's whole window. AC is the share of the point where
 auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -294,8 +294,9 @@ def build_left(st, bw, with_third=True):
     vw3 = max([len(v[1]) for _, v in third.values()] or [0])
     bx3 = any(v[3] for _, v in third.values())
     for i, (lab, v) in third.items():
-        # A row with nothing before the column (no Fable bar) gets no dot.
-        dot = S(DOT, " · ") if len(rows[i]) else P("   ")
+        # Only Temp takes a dot, as the third of Mem · GPU · Temp; the values
+        # beside the resets stand apart from the times before them.
+        dot = S(DOT, " · ") if i == 4 else P("   ")
         rows[i] = (rows[i] + P(sp(start - len(rows[i]))) + dot + S(LAB, lab) + S(DOT, ":")
                    + P(sp(lw3 - len(lab)) + ("" if bx3 else " ")) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
     return rows
