@@ -20,7 +20,8 @@
 # cache's life has gone since the last message.
 #
 # One color per job: mauve labels a value, white is a value, slate teal is the
-# minor detail that ends a row, lavender dots sit between items, icy blue draws
+# minor detail that ends a row, lavender draws the dots, colons, arrows and the
+# resets tree, icy blue draws
 # the dividers, and mint / gold / coral is a value with a limit: mint under 50%,
 # gold under 80%, and from 80% bold coral, boxed by coral edges with a line above
 # and below. Ctx's token count takes AC's color. The bars fill in quieter tones
@@ -442,10 +443,10 @@ build_left() {
   # the stem dropping from the middle of the word, the times lined up under 1h49m.
   ap 1 "Resets: ${five_r}" "${LAB}Resets${R}${DOT}:${R} ${VAL}${five_r}${R}"
   if [ "$has_fable" = 1 ]; then
-    ap 2 "  ├──── ${seven_r}" "  ${LAB}├────${R} ${VAL}${seven_r}${R}"
-    ap 3 "  └──── ${fable_r}" "  ${LAB}└────${R} ${VAL}${fable_r}${R}"
+    ap 2 "  ├──── ${seven_r}" "  ${DOT}├────${R} ${VAL}${seven_r}${R}"
+    ap 3 "  └──── ${fable_r}" "  ${DOT}└────${R} ${VAL}${fable_r}${R}"
   else
-    ap 2 "  └──── ${seven_r}" "  ${LAB}└────${R} ${VAL}${seven_r}${R}"
+    ap 2 "  └──── ${seven_r}" "  ${DOT}└────${R} ${VAL}${seven_r}${R}"
     LP[3]=""; LC[3]=""
   fi
   # AC · Win and Mem · Swap form a grid: labels pad to the widest in their
@@ -596,11 +597,11 @@ fi
 rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 999.5 && i < 4) { b /= 1000; i++ }
   n = (b < 9.95 && i > 1) ? sprintf("%.1f", b) : sprintf("%d", b + 0.5)
   printf "%8s", n " " u[i] "/s" }'; }
-# The arrows stay white; only the rate takes its color. Each rate is right-
+# The arrows are lavender like the dots; only the rate takes its color. Each rate is right-
 # aligned in its 8 columns, so its unit always ends in the same place.
 graded "$rx_bps" 1000000 10000000 "$(rate "$rx_bps")" nobox; NIP=$GP_; NIC=$GC_
 graded "$tx_bps" 1000000 10000000 "$(rate "$tx_bps")" nobox; NOP=$GP_; NOC=$GC_
-BRP[4]="↓${NIP} ↑${NOP}"; BRC[4]="${VAL}↓${R}${NIC} ${VAL}↑${R}${NOC}"
+BRP[4]="↓${NIP} ↑${NOP}"; BRC[4]="${DOT}↓${R}${NIC} ${DOT}↑${R}${NOC}"
 if [ "$have_ismc" = 0 ]; then
   GRP[4]="iSMC not available"; GRC[4]="${DET}iSMC not available${R}"
 else
