@@ -562,10 +562,10 @@ effort_colored() {
 SLASH=$'\033[1;38;5;103m'
 slashed() { printf '%s' "$2${1//\//${R}${SLASH}/${R}$2}${R}"; }
 BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${SLASH}/${R}$(effort_colored "$effort")"
-GRP[0]=""; GRC[0]=""
+GRP[0]=""; GRC[0]=""; CR=""; TR=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
-  GRP[0]="Cache: ${VP}"; GRC[0]="${LAB}Cache${R}${DOT}:${R} ${VC}"
+  CR=$VR; CK=$VK; CX=$VX   # laid out with Temp, below
 fi
 
 if [ "$in_git" = 1 ]; then
@@ -608,12 +608,27 @@ BRP[4]="↓${NIP} ↑${NOP}"; BRC[4]="${DOT}↓${R}${NIC} ${DOT}↑${R}${NOC}"
 if [ "$have_ismc" = 0 ]; then
   GRP[4]="iSMC not available"; GRC[4]="${DET}iSMC not available${R}"
 else
-  if   [ -z "$cpu_temp" ]; then TMP="-"; TMC="${DET}-${R}"
-  elif [ "$cpu_temp" -ge 85 ]; then boxed "${cpu_temp}°"; TMP=$CP_; TMC=$CC_
-  elif [ "$cpu_temp" -ge 70 ]; then TMP="${cpu_temp}°"; TMC="${WARN}${cpu_temp}°${R}"
-  else TMP="${cpu_temp}°"; TMC="${OK}${cpu_temp}°${R}"; fi
-  GRP[4]="Temp: ${TMP}"; GRC[4]="${LAB}Temp${R}${DOT}:${R} ${TMC}"
+  TX=""
+  if   [ -z "$cpu_temp" ]; then TR="-"; TK=$DET
+  elif [ "$cpu_temp" -ge 85 ]; then TR="${cpu_temp}°"; TK=$CRIT; TX=1
+  elif [ "$cpu_temp" -ge 70 ]; then TR="${cpu_temp}°"; TK=$WARN
+  else TR="${cpu_temp}°"; TK=$OK; fi
 fi
+# Cache and Temp sit in the same column of details, so they line up like the
+# grid on the left: labels pad to Cache:, and when either value is boxed the
+# box's edge stands in for the space after its label while the other gets
+# blank cells in its place.
+dw=0; dbx=""
+[ -n "$CR" ] && { [ ${#CR} -gt "$dw" ] && dw=${#CR}; [ -n "$CX" ] && dbx=1; }
+[ -n "$TR" ] && { [ ${#TR} -gt "$dw" ] && dw=${#TR}; [ -n "$TX" ] && dbx=1; }
+# detail LABEL TEXT COLOR PAST_LIMIT -> GP_/GC_, using dw/dbx.
+detail() {
+  local sp=" "; [ -n "$dbx" ] && sp=""
+  cell "$2" "$3" "$4" "$dw" "$dbx" last
+  GP_="$(printf '%-6s' "$1:")$sp$CP_"; GC_="${LAB}$1${R}${DOT}:${R}$(spaces $(( 5 - ${#1} )))$sp$CC_"
+}
+[ -n "$CR" ] && { detail Cache "$CR" "$CK" "$CX"; GRP[0]=$GP_; GRC[0]=$GC_; }
+[ -n "$TR" ] && { detail Temp "$TR" "$TK" "$TX"; GRP[4]=$GP_; GRC[4]=$GC_; }
 RLAB=(Model "$RL1" K8s Session Net)
 
 # The details start in one column: pad each bright part to the widest one that
