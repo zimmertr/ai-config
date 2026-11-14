@@ -438,9 +438,6 @@ build_left() {
   if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 50 80)"; fi
   finish_bar "$VR" "$VK" "$VX"; ap 4 "$BP" "$BC"
 
-  val "$ac_pct";       ACP=$VP; ACC=$VC
-  val "$win_pct";      WNP=$VP; WNC=$VC
-  ap 0 "AC: ${ACP} · Win: ${WNP}" "${LAB}AC${R}${DOT}:${R} ${ACC}${DOT} · ${R}${LAB}Win${R}${DOT}:${R} ${WNC}"
   # "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
   # the stem dropping from the middle of the word, the times lined up under 1h49m.
   ap 1 "Resets: ${five_r}" "${LAB}Resets${R}${DOT}:${R} ${VAL}${five_r}${R}"
@@ -451,15 +448,39 @@ build_left() {
     ap 2 "  └──── ${seven_r}" "  ${LAB}└────${R} ${VAL}${seven_r}${R}"
     LP[3]=""; LC[3]=""
   fi
-  val "$mem_pct"
-  ap 4 "Mem: ${VP}" "${LAB}Mem${R}${DOT}:${R} ${VC}"
+  # AC · Win and Mem · Swap form a grid: labels pad to the widest in their
+  # column, values too, and when either value in a column is boxed the other
+  # gets blank cells where the box's edges go, so the numbers line up.
+  val "$ac_pct";  a1=$VR; k1=$VK; x1=$VX
+  val "$win_pct"; a2=$VR; k2=$VK; x2=$VX
+  val "$mem_pct"; m1=$VR; n1=$VK; y1=$VX
   # Swap steps up from 1 GB and is past its limit from 8 GB.
-  if [ "$swap_mb" -ge 1024 ]; then sw="$(( (swap_mb + 512) / 1024 ))G"; else sw="${swap_mb}M"; fi
-  [ "$swap_mb" -eq 0 ] && sw=0
-  if   [ "$swap_mb" -ge 8192 ]; then boxed "$sw"; SWP=$CP_; SWC=$CC_
-  elif [ "$swap_mb" -ge 1024 ]; then SWP=$sw; SWC="${WARN}${sw}${R}"
-  else SWP=$sw; SWC="${OK}${sw}${R}"; fi
-  ap 4 " · Swap: ${SWP}" "${DOT} · ${R}${LAB}Swap${R}${DOT}:${R} ${SWC}"
+  if [ "$swap_mb" -ge 1024 ]; then m2="$(( (swap_mb + 512) / 1024 ))G"; else m2="${swap_mb}M"; fi
+  [ "$swap_mb" -eq 0 ] && m2=0
+  y2=""; n2=$OK; [ "$swap_mb" -ge 1024 ] && n2=$WARN; [ "$swap_mb" -ge 8192 ] && { n2=$CRIT; y2=1; }
+  local w1=${#a1} w2=${#a2} b1="" b2=""
+  [ ${#m1} -gt "$w1" ] && w1=${#m1}; [ ${#m2} -gt "$w2" ] && w2=${#m2}
+  [ -n "$x1$y1" ] && b1=1; [ -n "$x2$y2" ] && b2=1
+  grid_row 0 AC Win "$a1" "$k1" "$x1" "$a2" "$k2" "$x2"
+  grid_row 4 Mem Swap "$m1" "$n1" "$y1" "$m2" "$n2" "$y2"
+}
+# cell TEXT COLOR PAST_LIMIT WIDTH COLUMN_BOXED LAST -> CP_/CC_: one grid value.
+cell() {
+  local pad; pad=$(spaces $(( $4 - ${#1} ))); [ -n "$6" ] && pad=""
+  if [ -n "$3" ]; then
+    CP_="▕ $1$pad ▏"; CC_="${BAD}${BOX}▕ ${R}${CRIT}${BOX}$1$pad${R}${BAD}${BOX} ▏${R}"
+  elif [ -n "$5" ]; then
+    CP_="  $1$pad"; CC_="  $2$1${R}$pad"; [ -z "$6" ] && { CP_="$CP_  "; CC_="$CC_  "; }
+  else CP_="$1$pad"; CC_="$2$1${R}$pad"; fi
+}
+# grid_row ROW LABEL1 LABEL2 TEXT1 COLOR1 PAST1 TEXT2 COLOR2 PAST2, using w1/w2/b1/b2.
+grid_row() {
+  local p c
+  p="$(printf '%-4s ' "$2:")"; c="${LAB}$2${R}${DOT}:${R}$(spaces $(( 4 - ${#2} )))"
+  cell "$4" "$5" "$6" "$w1" "$b1"; p="$p$CP_ · "; c="$c$CC_${DOT} · ${R}"
+  p="$p$(printf '%-5s ' "$3:")"; c="$c${LAB}$3${R}${DOT}:${R}$(spaces $(( 5 - ${#3} )))"
+  cell "$7" "$8" "$9" "$w2" "$b2" last; p="$p$CP_"; c="$c$CC_"
+  ap "$1" "$p" "$c"
 }
 
 # With per-core numbers, the CPU's bar becomes a chart: each core a column that
