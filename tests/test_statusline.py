@@ -98,8 +98,17 @@ def test_grids_line_up(name, cols):
     machine, ctx = rs[0], rs[1]
     assert machine.index("Mem:") == ctx.index("AC:")
     assert machine.index("GPU:") == ctx.index("Win:")
-    if "Temp:" in machine and "Cache:" in ctx:
-        assert machine.index("Temp:") == ctx.index("Cache:")
+    # The third column: Temp, Cache, Cost and Turn start in one column, or all
+    # drop together on a narrow terminal.
+    third = [r.index(lab) for r, lab in ((machine, "Temp:"), (ctx, "Cache:"), (rs[2], "Cost:"), (rs[3], "Turn:")) if lab in r]
+    assert len(set(third)) <= 1, rs
+    if cols >= 140:
+        assert "Cost:" in rs[2] and "Turn:" in rs[3]
+
+
+def test_third_column_drops_before_the_right_side():
+    rs = rows(state(), 81, 66)
+    assert "Cost:" not in rs[2] and " │ Git:" in rs[2]
 
 
 @pytest.mark.parametrize("name", STATES)
@@ -122,7 +131,7 @@ def test_narrow_terminal_trims_details_before_the_right_side():
     wide, narrow = rows(state(), 200, 66), rows(state(), 120, 66)
     assert "claude-00" in wide[4]
     assert "Model:" in narrow[1] and "Net:" in narrow[0]
-    assert "$3.63 · Turn: 220" in narrow[4]
+    assert "Cost:" in narrow[2] and "Turn:" in narrow[3]
 
 
 def test_very_narrow_terminal_keeps_only_the_bars():

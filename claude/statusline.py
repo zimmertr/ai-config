@@ -6,11 +6,11 @@ top, then a bar for context and each usage limit on the left, and what the
 session is working with on the right. The layout sizes itself to the terminal.
 Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▕ ▃▃▃▃▃▃▃▂▂▂▂▂▂▂▁▁▁▁▁▁  10%   ▁▁▁▁▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 32% · GPU: 0%  │ Net:   ↓5.7 KB/s ↑4.5 KB/s  Temp:   45°
-  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19% │ Model: Opus 5.5/High        Cache:▕ 100% ▏
-  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m       │ Git:   main ↓7 ✚2           ~/git/personal/bluebird
-  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h       │ K8s:   admin@stable         default
-  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h       │ ID:    1feba53f             $3.63 · Turn: 220 · claude-00
+  CPU:   ▕ ▅▅▅▅▅▅▅▄▄▄▃▃▃▁▁▁▁▁  16%   ▁▁▁▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 51% · GPU: 9%  · Temp:   50°    │ Net:   ↓306 KB/s ↑ 16 KB/s
+  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19% · Cache:▕ 100% ▏ │ Model: Opus 5.5/High
+  5h:    ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  19%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 3h55m       · Cost:   $3.63  │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
+  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 94%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱ ▏   ├──── 2d20h       · Turn:   231    │ K8s:   admin@stable  default
+  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d20h                        │ ID:    1feba53f      claude-00
 
 The Ctx bar spans the model's whole window. AC is the share of the point where
 auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -216,20 +216,29 @@ def cell(t, col, past, width, col_boxed, last=False):
     return S(col, t) + P(pad)
 
 
-def grid_row(l1, l2, v1, v2, w1, w2, b1, b2):
+def grid_row(l1, l2, v1, v2, w1, w2, b1, b2, last=True):
     """Two labeled values, padded to the grid. In a boxed column the box's edge
     stands in for the space after the label: the edge is drawn at the right of
-    its cell, so a space before it would look doubled."""
+    its cell, so a space before it would look doubled. last=False pads the
+    second value too, for a row that goes on to a third column."""
     s1, s2 = ("" if b1 else " "), ("" if b2 else " ")
     out = S(LAB, l1) + S(DOT, ":") + P(sp(3 - len(l1)) + s1)
     out = out + cell(v1[1], v1[2], v1[3], w1, b1) + S(DOT, " · ")
     out = out + S(LAB, l2) + S(DOT, ":") + P(sp(3 - len(l2)) + s2)
-    return out + cell(v2[1], v2[2], v2[3], w2, b2, last=True)
+    return out + cell(v2[1], v2[2], v2[3], w2, b2, last=last)
 
 
-def build_left(st, bw):
+def graded_cell(num, w, c, text):
+    """A value in the color NUM earns, as (styled, text, color, past_limit)."""
+    if num >= c:
+        return None, text, CRIT, True
+    return None, text, WARN if num >= w else OK, False
+
+
+def build_left(st, bw, with_third=True):
     """The left rows: 0 Ctx, 1 5h, 2 7d, 3 Fable, and 4 the machine (printed
-    above them). Each row's number sits in the middle of its bar."""
+    above them). Each row's number sits in the middle of its bar. with_third
+    False leaves out the third column of values, for a narrow terminal."""
     rows = [T() for _ in range(5)]
     _, _, ack, acx = val(st.ac_pct)
     rows[0] = row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
@@ -253,13 +262,39 @@ def build_left(st, bw):
         rows[2] = rows[2] + P("  ") + S(DOT, "└────") + P(" ") + S(VAL, st.seven_r)
         rows[3] = T()
 
+    # A third column runs down beside them: Temp, Cache, then the session's cost
+    # and turns beside the resets. Each is present only when it has a value.
+    third = {}
+    if st.have_ismc:
+        if st.cpu_temp is None:
+            third[4] = ("Temp", (None, "-", DET, False))
+        else:
+            third[4] = ("Temp", graded_cell(st.cpu_temp, 70, 85, "%d°" % st.cpu_temp))
+    if st.cache_pct is not None:
+        third[0] = ("Cache", val(st.cache_pct))
+    third[1] = ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))
+    third[2] = ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))
+    if not with_third:
+        third = {}
+
     # AC · Win and Mem · GPU form a grid: labels pad to the widest in their
     # column, values too.
     a1, a2, m1, m2 = val(st.ac_pct), val(st.win_pct), val(st.mem_pct), val(st.gpu_pct)
     w1, w2 = max(len(a1[1]), len(m1[1])), max(len(a2[1]), len(m2[1]))
     b1, b2 = a1[3] or m1[3], a2[3] or m2[3]
-    rows[0] = rows[0] + grid_row("AC", "Win", a1, a2, w1, w2, b1, b2)
-    rows[4] = rows[4] + grid_row("Mem", "GPU", m1, m2, w1, w2, b1, b2)
+    rows[0] = rows[0] + grid_row("AC", "Win", a1, a2, w1, w2, b1, b2, last=0 not in third)
+    rows[4] = rows[4] + grid_row("Mem", "GPU", m1, m2, w1, w2, b1, b2, last=4 not in third)
+
+    # The third column starts where the longest row before it ends. Its labels
+    # pad to the longest present, and as in the grid, a boxed value's edge stands
+    # in for the space after its label.
+    start = max([len(rows[i]) for i in third] or [0])
+    lw3 = max([len(lab) for lab, _ in third.values()] or [0])
+    vw3 = max([len(v[1]) for _, v in third.values()] or [0])
+    bx3 = any(v[3] for _, v in third.values())
+    for i, (lab, v) in third.items():
+        rows[i] = (rows[i] + P(sp(start - len(rows[i]))) + S(DOT, " · ") + S(LAB, lab) + S(DOT, ":")
+                   + P(sp(lw3 - len(lab)) + ("" if bx3 else " ")) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
     return rows
 
 
@@ -316,9 +351,8 @@ def rate(b):
 
 
 def build_right(st, now):
-    """The bright part and detail of each right row, plus the part of each
-    detail that must not be shortened."""
-    br, gr, gk = [T() for _ in range(5)], [T() for _ in range(5)], [None] * 5
+    """The bright part and detail of each right row."""
+    br, gr = [T() for _ in range(5)], [T() for _ in range(5)]
 
     br[0] = S(VAL, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now)
 
@@ -340,52 +374,20 @@ def build_right(st, now):
     if st.ns:
         gr[2] = S(DET, st.ns)
 
-    # The session's name goes last: it is the one part that can run long, so it
-    # is what gets shortened when the row runs out of room. gk keeps the colored
-    # part before it, so shortening the name doesn't wash out the cost and turn.
     br[3] = S(VAL, st.sid8)
-    gk[3] = (graded(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost) + S(DOT, " · ")
-             + S(LAB, "Turn") + S(DOT, ":") + P(" ") + graded(st.turns, 150, 300, str(st.turns)))
-    gr[3] = gk[3]
     if st.sname:
-        gr[3] = gr[3] + S(DOT, " · ") + S(DET, st.sname)
+        gr[3] = S(DET, st.sname)
 
     # The machine row: the network, with lavender arrows and only the rates in
-    # their color, then CPU temperature as its detail.
+    # their color.
     br[4] = (S(DOT, "↓") + graded(st.rx_bps, 10**6, 10**7, rate(st.rx_bps), nobox=True) + P(" ")
              + S(DOT, "↑") + graded(st.tx_bps, 10**6, 10**7, rate(st.tx_bps), nobox=True))
+    return br, gr, ["Model", rl1, "K8s", "ID", "Net"]
 
-    cache = val(st.cache_pct) if st.cache_pct is not None else None
-    temp = None
-    if not st.have_ismc:
-        gr[4] = S(DET, "iSMC not available")
-    elif st.cpu_temp is None:
-        temp = (None, "-", DET, False)
-    else:
-        t = "%d°" % st.cpu_temp
-        temp = (None, t, CRIT, True) if st.cpu_temp >= 85 else \
-            (None, t, WARN, False) if st.cpu_temp >= 70 else (None, t, OK, False)
-
-    # Cache and Temp sit in the same column of details, so they line up like the
-    # grid on the left: labels pad to Cache:, and when either value is boxed the
-    # box's edge stands in for the space after its label.
-    have = [v for v in (cache, temp) if v]
-    dw = max([len(v[1]) for v in have] or [0])
-    dbx = any(v[3] for v in have)
-
-    def detail(label, v):
-        gap = "" if dbx else " "
-        return S(LAB, label) + S(DOT, ":") + P(sp(5 - len(label)) + gap) + cell(v[1], v[2], v[3], dw, dbx, last=True)
-
-    if cache:
-        gr[0] = detail("Cache", cache)
-    if temp:
-        gr[4] = detail("Temp", temp)
-    return br, gr, gk, ["Model", rl1, "K8s", "ID", "Net"]
 
 
 def render(st, cols, lines, now):
-    br, gr, gk, rlab = build_right(st, now)
+    br, gr, rlab = build_right(st, now)
     # A short terminal (under 20 rows) leaves out the machine row, so the status
     # line takes four rows instead of five. Everything below measures and prints
     # only the rows in this list, in the order they print.
@@ -401,49 +403,43 @@ def render(st, cols, lines, now):
     # left, up to four characters per core, and the values column keeps at most 3
     # spare. On a narrower terminal the bars win over the teal details: they hold
     # at two characters per core while the details shorten, then drop. Then the
-    # bars go to one per core, and last the whole right side drops.
+    # bars go to one per core, then the third column of values drops, and last
+    # the whole right side.
     ncpu = st.ncpu
     w_avail = (cols if cols > 0 else 145) - 5
-    left = build_left(st, ncpu)
-    # A left row is its label (7), the bar's edges with a space inside each and
-    # one after (5), and the bar; a right row starts with its label (7).
-    bmin = max([0] + [len(left[i]) - ncpu - 12 for i in order])
-    cb, cf = 0, 0
-    for i in order:
-        cb = max(cb, len(br[i]))
-        cf = max(cf, mw + 2 + len(gr[i]) if len(gr[i]) else len(br[i]))
-    cb, cf = cb + 7, cf + 7
-    # The left side with the bars at one and two characters per core.
-    l1, l2 = ncpu + 12 + bmin, 2 * ncpu + 12 + bmin
-    pmax, c = 4, 0
-    if l2 + 3 + cf <= w_avail:
-        show, c = "full", cf
-    elif l2 + 3 + 7 + mw + 2 + 16 <= w_avail:
-        # The details get whatever the right side has left; a long one ends in
-        # …, in plain teal, since its colors can't be cut part way through. Cache
-        # and Temp are single values, so they drop out whole rather than lose digits.
-        show, pmax = "full", 2
-        c = w_avail - l2 - 3
-        room = c - 7 - mw - 2
+    # The third column of values goes before the right side does: when the
+    # right side can't fit beside it, the layout is worked out again without it.
+    for with_third in (True, False):
+        left = build_left(st, ncpu, with_third)
+        # A left row is its label (7), the bar's edges with a space inside each and
+        # one after (5), and the bar; a right row starts with its label (7).
+        bmin = max([0] + [len(left[i]) - ncpu - 12 for i in order])
+        cb, cf = 0, 0
         for i in order:
-            if len(gr[i]) <= room:
-                continue
-            k = gk[i]
-            if i in (0, 4):
-                gr[i] = T()
-            elif k and room > len(k) + 4:
-                t = gr[i].plain[len(k):][:room - len(k) - 1] + "…"
-                gr[i] = k + S(DET, t)
-            elif k and room >= len(k):
-                gr[i] = k
-            else:
-                gr[i] = slashed(gr[i].plain[:room - 1] + "…", DET)
-    elif l2 + 3 + cb <= w_avail:
-        show, c = "bright", cb
-    elif l1 + 3 + cb <= w_avail:
-        show, pmax, c = "bright", 2, cb
-    else:
-        show = "left"
+            cb = max(cb, len(br[i]))
+            cf = max(cf, mw + 2 + len(gr[i]) if len(gr[i]) else len(br[i]))
+        cb, cf = cb + 7, cf + 7
+        # The left side with the bars at one and two characters per core.
+        l1, l2 = ncpu + 12 + bmin, 2 * ncpu + 12 + bmin
+        pmax, c = 4, 0
+        if l2 + 3 + cf <= w_avail:
+            show, c = "full", cf
+        elif l2 + 3 + 7 + mw + 2 + 16 <= w_avail:
+            # The details get whatever the right side has left; a long one ends in ….
+            show, pmax = "full", 2
+            c = w_avail - l2 - 3
+            room = c - 7 - mw - 2
+            for i in order:
+                if len(gr[i]) > room:
+                    gr[i] = slashed(gr[i].plain[:room - 1] + "…", DET)
+        elif l2 + 3 + cb <= w_avail:
+            show, c = "bright", cb
+        elif l1 + 3 + cb <= w_avail:
+            show, pmax, c = "bright", 2, cb
+        else:
+            show = "left"
+        if show != "left":
+            break
     avail = w_avail if show == "left" else w_avail - 3 - c
     per = pmax
     while per > 1 and per * ncpu + 12 + bmin > avail:
@@ -451,7 +447,7 @@ def render(st, cols, lines, now):
     # The bars then take every spare column, up to four per core, so no width
     # leaves a gap at the end of the line.
     bw = max(per * ncpu, min(avail - 12 - bmin, pmax * ncpu))
-    left = build_left(st, bw)
+    left = build_left(st, bw, with_third)
     # The values column pads out to the divider by 3 spare columns at most; any
     # other leftover goes at the end of the line, where empty space doesn't show.
     lw = 0 if show == "left" else min(avail, bw + 12 + bmin + 3)
