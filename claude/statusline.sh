@@ -589,7 +589,12 @@ RLAB=(Model "$RL1" K8s Session Net)
 # The details start in one column: pad each bright part to the widest one that
 # has a detail after it.
 MW=0
-for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
+# A short terminal (under 30 rows, from LINES) leaves out the machine row, so
+# the status line takes four rows instead of five. Everything below measures
+# and prints only the rows in ROWS, in the order they print.
+ROWS="4 0 1 2 3"
+[ "${LINES:-0}" -gt 0 ] 2>/dev/null && [ "$LINES" -lt 30 ] && ROWS="0 1 2 3"
+for i in $ROWS; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
 # --- Width ---
 # Claude Code passes the terminal's width in COLUMNS and keeps a few columns for
@@ -602,7 +607,7 @@ cols=${COLUMNS:-145}; [ "$cols" -gt 0 ] 2>/dev/null || cols=145
 W=$(( cols - 5 ))
 BW=$ncpu; build_left
 Bmin=0; CB=0; CF=0
-for i in 0 1 2 3 4; do
+for i in $ROWS; do
   b=$(( ${#LP[$i]} - BW - 12 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
   b=${#BRP[$i]}; [ "$b" -gt "$CB" ] && CB=$b
   [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
@@ -617,7 +622,7 @@ elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
   # in plain teal, since its colors can't be cut part way through. Cache and
   # Temp are single values, so they drop out whole rather than lose digits.
   show=full; pmax=2; C=$(( W - L2 - 3 )); room=$(( C - 9 - MW - 2 ))
-  for i in 0 1 2 3 4; do
+  for i in $ROWS; do
     if [ ${#GRP[$i]} -gt "$room" ]; then
       k=${GKP[$i]}
       if [ "$i" = 0 ] || [ "$i" = 4 ]; then GRP[$i]=""; GRC[$i]=""
@@ -649,9 +654,9 @@ build_left
 A=$(( BW + 12 ))
 L=$avail; [ $(( A + Bmin + 3 )) -lt "$L" ] && L=$(( A + Bmin + 3 ))
 [ "$show" = left ] && L=0
-for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
+for i in $ROWS; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
 n=0
-for i in 4 0 1 2 3; do
+for i in $ROWS; do
   [ "$n" -gt 0 ] && printf '\n'; n=$(( n + 1 ))
   if [ "$show" = left ]; then printf '%s' "${LC[$i]}"; continue; fi
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
