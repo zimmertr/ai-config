@@ -63,8 +63,9 @@ and its "An example caller" names the repo to copy the callers from.
     the values: the module pushes it to `oci://ghcr.io/<owner>` after the
     tag, and opens the deploy bump (the chart's version, in `deploys`) only
     after that. On PRs the `chart` module lints it and renders it with its
-    defaults, then runs the repo's own renders from its `test` input. Its
-    check, `Chart / Chart`, is required.
+    defaults, then runs the helm-unittest suites in the chart's `tests/`
+    folder (yggdrasil record 0060). Never Bash renders in its deprecated
+    `test` input. Its check, `Chart / Chart`, is required.
 
 ## Workflow hygiene
 
@@ -94,14 +95,29 @@ and its "An example caller" names the repo to copy the callers from.
     - a type checker for every typed language (`tsc --noEmit`, mypy)
     - when the project ships an image: the `docker-build` module, which runs
       hadolint, builds the image, scans it with Trivy, keeps a sticky scan
-      comment on the PR, and runs the repo's smoke test against it
+      comment on the PR, and runs the repo's container-structure-test file
+      against it (its `structure-test` input, yggdrasil record 0060), never a
+      Bash smoke test. A check the tool can't hold, such as one against a
+      running server, goes to TJ first
     - **conditional (web UI):** Lighthouse CI budgets and a browser smoke
       test with axe
-16. **Conditional (web UI):** a preview environment per PR, and a cache
-    cleanup workflow when caches pile up. A preview lives for as long as its
-    PR carries a label, and ends when the label comes off or the PR closes;
-    there's no age limit. Previews share one namespace, apart from
-    production's, with Pod Security `restricted`.
+16. **Conditional (previews):** a preview environment per PR, and a cache
+    cleanup workflow when caches pile up.
+    1. yggdrasil's `pr-preview` module builds each PR's image on
+       `pull_request` as `<image>-pr:pr-<N>-<head sha>`, and labels the
+       maintainer's own PRs `create pr container` (yggdrasil record 0059).
+    2. An ApplicationSet with Argo CD's pull request generator, in
+       Kubernetes-Manifests beside the app's folder, runs each labelled PR's
+       chart at `pr-<N>.<host>`. The release bumps its chart version with the
+       live app's.
+    3. A preview never gets production's credentials. It runs on made-up
+       data, and a banner names the PR and the commit.
+    4. A preview lives for as long as its PR carries the label, and ends when
+       the label comes off or the PR closes; there's no age limit. Previews
+       share one namespace, apart from production's, with Pod Security
+       `restricted`.
+
+    hevy-garmin-sync and Bluebird are the worked examples.
 17. Every CI check of the repo's own is also a `make` target that runs in
     Docker.
 18. **Unused code is found on demand.** A `make check-unused` target (Knip,
