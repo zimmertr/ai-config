@@ -18,7 +18,7 @@
 # repo; ↑/↓ track the branch's own upstream, ✚ counts changed files.
 #
 # One color per job: mauve labels a value, white is a value, dim grey is a minor
-# value or punctuation, deep plum draws the dividers, and green / yellow / red is a value with a limit: green
+# value or punctuation, icy pale blue draws the dividers, and green / yellow / red is a value with a limit: green
 # under 50%, yellow under 80%, and a bold white-on-red block at 80% and up (AC
 # from 75%, the token count past 250K).
 #
@@ -168,7 +168,7 @@ fi
 # --- Palette ---
 # Real escape bytes, printed with %s, so a backslash in a branch or path prints as-is.
 LAB=$'\033[38;5;139m'   # mauve: labels
-DIV=$'\033[38;5;96m'    # deep plum: the dividers, a darker shade of the labels' mauve
+DIV=$'\033[38;5;153m'   # icy pale blue: the dividers, a soft counterpart to the mauve
 VAL=$'\033[97m'         # white: values
 DIM=$'\033[38;5;243m'   # dim grey: minor values and punctuation
 OK=$'\033[92m'; WARN=$'\033[93m'; BAD=$'\033[91m'; CRIT=$'\033[1;97;41m'
