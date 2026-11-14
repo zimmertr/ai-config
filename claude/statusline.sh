@@ -236,9 +236,9 @@ val() {
 }
 
 # --- Bars ---
-# 14 segments, one per core of this 14-core Mac, so the CPU chart gives every
-# core an equal width. ▰ sits inside its cell, unlike a block, so segments stay
-# apart from each other and from the bar on the next row.
+# BW segments, a whole number per core (set from the terminal width below), so
+# the CPU chart gives every core an equal width. ▰ sits inside its cell, unlike a
+# block, so segments stay apart from each other and from the bar on the next row.
 BW=14
 # bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> BP/BC, in whole segments.
 bar() {
@@ -368,64 +368,69 @@ fi
 
 has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 
-# Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
-row_label 0 Ctx
-bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
-row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "$BC"
-row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
-[ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
-# Row 4 is the machine, printed above the others.
-# With per-core numbers, the CPU's bar becomes a chart: each core a column that
-# rises with its load, stretched across the bar's width and colored like a bar.
-SPARK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
-core_chart() {
-  local -a c=($cores); local n=${#c[@]} j p g col
-  BP="▕"; BC="${DIM}▕${R}"
-  for (( j = 0; j < BW; j++ )); do
-    p=${c[$(( j * n / BW ))]}
-    g=${SPARK[$(( p >= 100 ? 7 : p * 8 / 100 ))]}
-    if [ "$p" -ge 66 ]; then col=$BAR_BAD; elif [ "$p" -ge 33 ]; then col=$BAR_WARN; else col=$BAR_OK; fi
-    BP="${BP}${g}"; BC="${BC}${col}${g}${R}"
-  done
-  BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
+# The left rows are built by a function, because the bar width depends on how
+# much room the right side leaves, which is only known once it is built.
+build_left() {
+  LP=(); LC=()
+  # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
+  row_label 0 Ctx
+  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
+  row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "$BC"
+  row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
+  [ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
+  # Row 4 is the machine, printed above the others.
+  # With per-core numbers, the CPU's bar becomes a chart: each core a column that
+  # rises with its load, stretched across the bar's width and colored like a bar.
+  SPARK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+  core_chart() {
+    local -a c=($cores); local n=${#c[@]} j p g col
+    BP="▕"; BC="${DIM}▕${R}"
+    for (( j = 0; j < BW; j++ )); do
+      p=${c[$(( j * n / BW ))]}
+      g=${SPARK[$(( p >= 100 ? 7 : p * 8 / 100 ))]}
+      if [ "$p" -ge 66 ]; then col=$BAR_BAD; elif [ "$p" -ge 33 ]; then col=$BAR_WARN; else col=$BAR_OK; fi
+      BP="${BP}${g}"; BC="${BC}${col}${g}${R}"
+    done
+    BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
+  }
+  row_label 4 CPU
+  if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; fi
+  ap 4 "$BP" "$BC"
+
+  # The first value on each row is padded so the words after them form one column.
+  if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
+    TP="${ctxk}kꜝ"; TC="${CRIT}${ctxk}k${R}${BAD}ꜝ${R}"
+  else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
+  val "$five_pct";  HP=$VP; HC=$VC
+  val "$seven_pct"; SP=$VP; SC=$VC
+  FP=""; [ "$has_fable" = 1 ] && { val "$fable_pct"; FP=$VP; FC=$VC; }
+  val "$cpu_pct";   CP=$VP; CC=$VC
+  FW=0
+  for v in "$TP" "$HP" "$SP" "$FP" "$CP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
+  FW=$(( FW + 1 ))
+  first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))"; }
+
+  val "$ac_pct" 50 75; ACP=$VP; ACC=$VC
+  val "$win_pct";      WNP=$VP; WNC=$VC
+  first 0 "$TP" "$TC"
+  ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DOT} · ${R}${LAB}Win${R} ${WNC}"
+  # "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
+  # the stem dropping from the middle of the word, the times lined up under 1h49m.
+  first 1 "$HP" "$HC"
+  ap 1 "Resets ${five_r}" "${LAB}Resets${R} ${VAL}${five_r}${R}"
+  first 2 "$SP" "$SC"
+  if [ "$has_fable" = 1 ]; then
+    ap 2 "  ├─── ${seven_r}" "  ${LAB}├───${R} ${VAL}${seven_r}${R}"
+    first 3 "$FP" "$FC"
+    ap 3 "  └─── ${fable_r}" "  ${LAB}└───${R} ${VAL}${fable_r}${R}"
+  else
+    ap 2 "  └─── ${seven_r}" "  ${LAB}└───${R} ${VAL}${seven_r}${R}"
+    LP[3]=""; LC[3]=""
+  fi
+  first 4 "$CP" "$CC"
+  val "$mem_pct"
+  ap 4 "Mem ${VP}" "${LAB}Mem${R} ${VC}"
 }
-row_label 4 CPU
-if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; fi
-ap 4 "$BP" "$BC"
-
-# The first value on each row is padded so the words after them form one column.
-if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
-  TP="${ctxk}kꜝ"; TC="${CRIT}${ctxk}k${R}${BAD}ꜝ${R}"
-else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
-val "$five_pct";  HP=$VP; HC=$VC
-val "$seven_pct"; SP=$VP; SC=$VC
-FP=""; [ "$has_fable" = 1 ] && { val "$fable_pct"; FP=$VP; FC=$VC; }
-val "$cpu_pct";   CP=$VP; CC=$VC
-FW=0
-for v in "$TP" "$HP" "$SP" "$FP" "$CP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
-FW=$(( FW + 1 ))
-first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))"; }
-
-val "$ac_pct" 50 75; ACP=$VP; ACC=$VC
-val "$win_pct";      WNP=$VP; WNC=$VC
-first 0 "$TP" "$TC"
-ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DOT} · ${R}${LAB}Win${R} ${WNC}"
-# "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
-# the stem dropping from the middle of the word, the times lined up under 1h49m.
-first 1 "$HP" "$HC"
-ap 1 "Resets ${five_r}" "${LAB}Resets${R} ${VAL}${five_r}${R}"
-first 2 "$SP" "$SC"
-if [ "$has_fable" = 1 ]; then
-  ap 2 "  ├─── ${seven_r}" "  ${LAB}├───${R} ${VAL}${seven_r}${R}"
-  first 3 "$FP" "$FC"
-  ap 3 "  └─── ${fable_r}" "  ${LAB}└───${R} ${VAL}${fable_r}${R}"
-else
-  ap 2 "  └─── ${seven_r}" "  ${LAB}└───${R} ${VAL}${seven_r}${R}"
-  LP[3]=""; LC[3]=""
-fi
-first 4 "$CP" "$CC"
-val "$mem_pct"
-ap 4 "Mem ${VP}" "${LAB}Mem${R} ${VC}"
 
 # --- Right rows: a mauve label, a bright part, then a slate teal detail ---
 # Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad.
@@ -530,15 +535,44 @@ RLAB=(Model "$RL1" K8s Session Temp)
 MW=0
 for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
-L=0
+# --- Width ---
+# Claude Code passes the terminal's width in COLUMNS. The right side keeps its
+# natural width; the bars and the values beside them split what is left about
+# evenly, the bars in whole characters per core (1 to 4). A terminal too narrow
+# for all of it drops the teal details first, then the whole right side.
+cols=${COLUMNS:-145}; [ "$cols" -gt 0 ] 2>/dev/null || cols=145
+W=$(( cols - 2 ))
+BW=$ncpu; build_left
+Bmin=0; CB=0; CF=0
+for i in 0 1 2 3 4; do
+  b=$(( ${#LP[$i]} - BW - 9 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
+  b=${#BRP[$i]}; [ "$b" -gt "$CB" ] && CB=$b
+  [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
+done
+CB=$(( CB + 8 )); CF=$(( CF + 8 ))
+if   [ $(( ncpu + 9 + Bmin + 3 + CF )) -le "$W" ]; then show=full;   C=$CF
+elif [ $(( ncpu + 9 + Bmin + 3 + CB )) -le "$W" ]; then show=bright; C=$CB
+else show=left; C=0; fi
+avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
+per=$(( (avail - 18 + ncpu) / (2 * ncpu) ))
+[ "$per" -gt 4 ] && per=4
+while [ "$per" -gt 1 ] && [ $(( per * ncpu + 9 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
+[ "$per" -lt 1 ] && per=1
+BW=$(( per * ncpu )); build_left
+# The values column pads out to the divider, but no wider than the bars or the
+# right side, so a very wide terminal doesn't leave a gulf before the divider.
+A=$(( BW + 9 )); m=$Bmin; [ "$A" -gt "$m" ] && m=$A; [ "$C" -gt "$m" ] && m=$C
+L=$avail; [ $(( A + m )) -lt "$L" ] && L=$(( A + m ))
 for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
 
 n=0
 for i in 4 0 1 2 3; do
   [ "$n" -gt 0 ] && printf '\n'; n=$(( n + 1 ))
+  if [ "$show" = left ]; then printf '%s' "${LC[$i]}"; continue; fi
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
   printf '%s' "${DIV} │ ${R}${LAB}$(printf '%-8s' "${RLAB[$i]}")${R}${BRC[$i]}"
-  if [ -n "${GRP[$i]}" ]; then
+  if [ "$show" = full ] && [ -n "${GRP[$i]}" ]; then
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
 done
+exit 0
