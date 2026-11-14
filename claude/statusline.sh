@@ -389,8 +389,44 @@ RLAB=(Model "$RL1" K8s Session)
 MW=0
 for i in 0 1 2 3; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
+# --- Hardware: a fourth column ---
+# Only what macOS reports without sudo or extra tools. Temperature and fan speed
+# need powermetrics (root) or a third-party SMC reader, so the Heat row shows
+# macOS's thermal pressure instead: the state it throttles on.
+ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
+# ps reports each process's recent share of one core; summed over all cores.
+cpu_pct=$(ps -A -o %cpu= | awk -v n="$ncpu" '{ s += $1 } END { v = int(s / n + 0.5); print (v > 100 ? 100 : v) }')
+load=$(sysctl -n vm.loadavg 2>/dev/null | awk '{ print $2 }')
+mem_gb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))
+# The kernel's memorystatus level is the share of memory it counts as free.
+mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
+gpu_pct=$(ioreg -r -d 1 -c IOAccelerator 2>/dev/null | grep -o '"Device Utilization %"=[0-9]*' | head -1 | cut -d= -f2)
+therm=$(notifyutil -g com.apple.system.thermalpressurelevel 2>/dev/null | awk '{ print $2 }')
+
+HWL=(CPU Mem GPU Heat); HVP=(); HVC=(); HDP=(); HDC=()
+val "$cpu_pct";        HVP[0]=$VP; HVC[0]=$VC; HDP[0]="load ${load}"; HDC[0]="${DET}load ${load}${R}"
+val "$mem_pct";        HVP[1]=$VP; HVC[1]=$VC
+HDP[1]="$(( mem_gb * mem_pct / 100 ))/${mem_gb}G"; HDC[1]="${DET}${HDP[1]}${R}"
+val "${gpu_pct:-0}";   HVP[2]=$VP; HVC[2]=$VC; HDP[2]=""; HDC[2]=""
+case "${therm:-0}" in
+  0) HVP[3]="Nominal";  HVC[3]="${OK}Nominal${R}" ;;
+  1) HVP[3]="Moderate"; HVC[3]="${WARN}Moderate${R}" ;;
+  2) HVP[3]="Heavyꜝ";   HVC[3]="${CRIT}Heavy${R}${BAD}ꜝ${R}" ;;
+  3) HVP[3]="Trappingꜝ"; HVC[3]="${CRIT}Trapping${R}${BAD}ꜝ${R}" ;;
+  *) HVP[3]="Sleepingꜝ"; HVC[3]="${CRIT}Sleeping${R}${BAD}ꜝ${R}" ;;
+esac
+HDP[3]=""; HDC[3]=""
+HW=0; for i in 0 1 2 3; do [ ${#HVP[$i]} -gt "$HW" ] && HW=${#HVP[$i]}; done
+
 L=0
 for i in 0 1 2 3; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
+# Each right row's printed width, so the hardware column's divider lines up.
+RW=(); RMAX=0
+for i in 0 1 2 3; do
+  RW[$i]=$(( 8 + ${#BRP[$i]} ))
+  [ -n "${GRP[$i]}" ] && RW[$i]=$(( 8 + MW + 2 + ${#GRP[$i]} ))
+  [ "${RW[$i]}" -gt "$RMAX" ] && RMAX=${RW[$i]}
+done
 
 for i in 0 1 2 3; do
   [ "$i" -gt 0 ] && printf '\n'
@@ -399,4 +435,6 @@ for i in 0 1 2 3; do
   if [ -n "${GRP[$i]}" ]; then
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
+  printf '%s' "$(spaces $(( RMAX - RW[$i] )))${DIV} │ ${R}${LAB}$(printf '%-5s' "${HWL[$i]}")${R}${HVC[$i]}"
+  if [ -n "${HDP[$i]}" ]; then printf '%s%s' "$(spaces $(( HW - ${#HVP[$i]} + 2 )))" "${HDC[$i]}"; fi
 done
