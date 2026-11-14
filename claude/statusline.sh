@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
-# Claude Code status line. Reads session-context JSON on stdin and prints four
-# rows: a bar for context and each usage limit on the left, and what the session
-# is working with on the right. Wired via ~/.claude/settings.json as
+# Claude Code status line. Reads session-context JSON on stdin and prints five
+# rows: the machine on top, then a bar for context and each usage limit on the
+# left, and what the session is working with on the right. The layout sizes
+# itself to the terminal's width. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   Ctx   ▕▰▰▰▰▰▱▱▱▱▱▱▱┃▱▱▱▱▱▱▱▱▱▱▱▱▏ 191k  AC 39% · Win 19% │ Model   Opus 5.5/High  Cache 8%
-#   5h    ▕▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ 37%   Resets 1h49m     │ Git     main ↓7 ✚2     ~/git/personal/bluebird
-#   7d    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▏ 81%ꜝ    ├─── 3d4h      │ K8s     admin@stable   default
-#   Fable ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏ 100%ꜝ   └─── 3d4h      │ Session $3.63          1feba53f · claude-80
+#   CPU   ▕▅▅▅▄▄▄▄▄▄▃▃▃▁▁▁▁▁▁ 18% ▁▁▁▁▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▏ Mem 62% · Swap ▕ 18G ▏ │ Temp    54°            Net ↓1.1 MB/s ↑7.7 KB/s
+#   Ctx   ▕▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱ 191k ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ AC 39% · Win 19%       │ Model   Opus 5.5/High  Cache ▕ 100% ▏
+#   5h    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱ 31% ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ Resets 1h39m           │ Git     main ↓7 ✚2     ~/git/personal/bluebird
+#   7d    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 90% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▏   ├─── 2d23h           │ K8s     admin@stable   default
+#   Fable ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 100% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏   └─── 2d23h           │ Session 1feba53f       $3.63 · Turn 185 · claude-00
 #
-# The ctx bar spans the model's whole window. ┃ marks where auto-compact fires,
-# and the dusty rose cells before it are the last quarter of the way there. AC is
-# the share of that compaction point used, Win the share of the whole window.
-# With auto-compact on, Win can never pass the AC point, so it only matters when
-# compaction is off (DISABLE_AUTO_COMPACT=1). The Fable row is hidden until the
-# Fable limit has been fetched (see below). The Git row reads Dir outside a
-# repo; ↑/↓ track the branch's own upstream, ✚ counts changed files. Cache is how
-# much of the prompt cache's life has gone since the last message.
+# The ctx bar spans the model's whole window. AC is the share of the point where
+# auto-compact fires, Win the share of the whole window. With auto-compact on,
+# Win can never pass the AC point, so it only matters when compaction is off
+# (DISABLE_AUTO_COMPACT=1). The Fable row is hidden until the Fable limit has
+# been fetched (see below). The Git row reads Dir outside a repo; ↑/↓ track the
+# branch's own upstream, ✚ counts changed files. Cache is how much of the prompt
+# cache's life has gone since the last message.
 #
 # One color per job: mauve labels a value, white is a value, slate teal is the
 # minor detail that ends a row, lavender dots sit between items, icy blue draws
-# the dividers and the compaction mark, and mint / gold / coral is a value with a
-# limit: mint under 50%, gold under 80%, and bold coral with a raised ꜝ at 80%
-# and up (AC from 75%, the token count past 250K). The bars step sooner, by thirds:
-# steel blue under 33%, soft violet under 66%, orchid from 66% (ctx by its AC).
+# the dividers, and mint / gold / coral is a value with a limit: mint under 50%,
+# gold under 80%, and from 80% bold coral, boxed by coral edges with a line above
+# and below. Ctx's token count takes AC's color. The bars fill in quieter tones
+# with the same steps: steel blue, soft violet, orchid.
 #
 # The session's short name (`claude-80`) is what other sessions message it by;
 # the 8-character ID prefix is what create-issue labels its issues with.
@@ -218,8 +219,12 @@ OK=$'\033[38;5;151m'; WARN=$'\033[38;5;222m'; BAD=$'\033[38;5;210m'   # mint, go
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
 # shout over the numbers beside it.
 BAR_OK=$'\033[38;5;110m'; BAR_WARN=$'\033[38;5;140m'; BAR_BAD=$'\033[38;5;175m'   # steel blue, soft violet, orchid
-CRIT=$'\033[1;38;5;210m'   # bold coral: a value past its limit, then a raised ꜝ in plain coral
-EMPTY=$'\033[38;5;237m'; ZONE=$'\033[38;5;95m'; R=$'\033[0m'
+CRIT=$'\033[1;38;5;210m'   # bold coral: a value past its limit
+BOX=$'\033[4;53m'          # underline and overline: with coral edges, a box around it
+# boxed PLAIN -> CP_/CC_: a value past its limit, framed by coral edges with a
+# line above and below. Each part restates BOX, since every reset clears it.
+boxed() { CP_="▕ $1 ▏"; CC_="${BAD}${BOX}▕ ${R}${CRIT}${BOX}$1${R}${BAD}${BOX} ▏${R}"; }
+EMPTY=$'\033[38;5;237m'; R=$'\033[0m'
 
 # Each row is built twice: P* holds the plain text (for measuring) and C* the
 # colored text (for printing). ap ROW PLAIN COLORED appends to one left row.
@@ -230,7 +235,7 @@ spaces() { [ "$1" -gt 0 ] && printf '%*s' "$1" ''; }
 # val VALUE [WARN=50] [CRIT=80] -> VP/VC.
 val() {
   local w=${2:-50} c=${3:-80}
-  if   [ "$1" -ge "$c" ]; then VP="$1%ꜝ"; VC="${CRIT}$1%${R}${BAD}ꜝ${R}"
+  if   [ "$1" -ge "$c" ]; then boxed "$1%"; VP=$CP_; VC=$CC_
   elif [ "$1" -ge "$w" ]; then VP="$1%";  VC="${WARN}$1%${R}"
   else                         VP="$1%";  VC="${OK}$1%${R}"; fi
 }
@@ -242,9 +247,9 @@ val() {
 BW=14
 # Each bar is built as cells, CH (glyph) and FG (color), so its number can then
 # replace the cells in the middle.
-# bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> cells, in whole segments.
+# bar NUM DEN COLOR -> cells, in whole segments.
 bar() {
-  local num=$1 den=$2 col=$3 mk=${4:--1} zs=${5:--1} i fill
+  local num=$1 den=$2 col=$3 i fill
   [ "$den" -gt 0 ] || den=1
   fill=$(( (num * BW + den / 2) / den )); [ "$fill" -gt "$BW" ] && fill=$BW
   # A sliver of use still shows one segment.
@@ -252,8 +257,6 @@ bar() {
   CH=(); FG=()
   for (( i = 0; i < BW; i++ )); do
     if   [ "$i" -lt "$fill" ]; then CH[i]='▰'; FG[i]=$col
-    elif [ "$i" -eq "$mk" ]; then CH[i]='┃'; FG[i]=$DIV
-    elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then CH[i]='▱'; FG[i]=$ZONE
     else CH[i]='▱'; FG[i]=$EMPTY; fi
   done
 }
@@ -277,17 +280,17 @@ sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2"
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
 # --- The machine and Claude's activity ---
-# CPU and memory come from macOS itself. Temperature and fans need iSMC (brew tap
+# CPU, memory, swap and network come from macOS itself. Temperature needs iSMC (brew tap
 # dkorunic/tap && brew install ismc), which reads the sensors without sudo; when
 # it's missing the Temp slot says so rather than failing the whole status line.
 ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
 # One reading of the machine is shared by every session for 10 s, so they all
 # show the same numbers. The first session past that takes the next reading.
-machine="$HOME/.claude/cache/machine-v2"   # cpu, mem, cores, swap
+machine="$HOME/.claude/cache/machine-v2"   # cpu, mem, cores, swap, net in, net out
 mage=999999; [ -f "$machine" ] && mage=$(( now - $(stat -f %m "$machine" 2>/dev/null || echo 0) ))
 cores=""
 if [ "$mage" -lt 10 ]; then
-  IFS=$'\t' read -r cpu_pct mem_pct cores swap_mb < "$machine"
+  IFS=$'\t' read -r cpu_pct mem_pct cores swap_mb rx_bps tx_bps < "$machine"
 else
 # Per-core usage comes straight from the kernel's tick counters (host_processor_info),
 # as the change since the previous reading, about 10 s earlier. macOS has no
@@ -333,33 +336,38 @@ mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${m
 # Swap in use, in MB. macOS grows the swap file as it needs, so the amount used
 # says more about memory pressure than a share of the file would.
 swap_mb=$(sysctl -n vm.swapusage 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "used") { v = $(i + 2); sub(/M$/, "", v); printf "%d", v } }')
+# Network: bytes in and out across the en* interfaces (Wi-Fi, Ethernet), as the
+# rate since the previous reading. Loopback and VPN tunnels are left out, since
+# their traffic also crosses a real interface and would be counted twice.
 mkdir -p "${machine%/*}"
-printf '%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${swap_mb:-0}" > "$machine.$$" && mv -f "$machine.$$" "$machine"
+netc="$HOME/.claude/cache/net-bytes"
+read -r rx tx <<EOF
+$(netstat -ibn 2>/dev/null | awk '$1 ~ /^en[0-9]+$/ && $3 ~ /^<Link/ { i += $(NF - 4); o += $(NF - 1) } END { printf "%.0f %.0f", i, o }')
+EOF
+rx_bps=0; tx_bps=0
+if [ -f "$netc" ] && read -r pt prx ptx < "$netc" && [ "$now" -gt "${pt:-0}" ]; then
+  rx_bps=$(awk -v a="$rx" -v b="$prx" -v t=$(( now - pt )) 'BEGIN { d = a - b; printf "%.0f", (d > 0 ? d / t : 0) }')
+  tx_bps=$(awk -v a="$tx" -v b="$ptx" -v t=$(( now - pt )) 'BEGIN { d = a - b; printf "%.0f", (d > 0 ? d / t : 0) }')
 fi
-: "${cpu_pct:=0}" "${mem_pct:=0}" "${swap_mb:=0}"
+printf '%s %s %s\n' "$now" "${rx:-0}" "${tx:-0}" > "$netc.$$" && mv -f "$netc.$$" "$netc"
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${swap_mb:-0}" "$rx_bps" "$tx_bps" > "$machine.$$" && mv -f "$machine.$$" "$machine"
+fi
+: "${cpu_pct:=0}" "${mem_pct:=0}" "${swap_mb:=0}" "${rx_bps:=0}" "${tx_bps:=0}"
 have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
 # iSMC takes about a second to read the temperatures, so it runs in the
 # background every 10 s and leaves its reading in a cache, like the Fable limit.
-# A fan reports a speed only while it spins; none means the fans are off.
-cpu_temp=""; fans=""
+cpu_temp=""
 if [ "$have_ismc" = 1 ]; then
   sensors="$HOME/.claude/cache/sensors.json"; sstamp="$HOME/.claude/cache/sensors.stamp"
   sage=999999; [ -f "$sstamp" ] && sage=$(( now - $(stat -f %m "$sstamp" 2>/dev/null || echo 0) ))
   if [ "$sage" -ge 10 ]; then
     mkdir -p "${sstamp%/*}"; touch "$sstamp"
     (
-      t=$(ismc temp -o json 2>/dev/null | jq -c '{temp: (."CPU Die Average".quantity // null)}')
-      f=$(ismc fans -o json 2>/dev/null | jq -c '{fans: [to_entries[] | select(.value.key | test("^F[0-9]Ac$")) | .value.quantity | round]}')
-      jq -cn --argjson a "${t:-{\}}" --argjson b "${f:-{\}}" '$a + $b' > "$sensors.$$" && mv -f "$sensors.$$" "$sensors"
+      ismc temp -o json 2>/dev/null | jq -c '{temp: (."CPU Die Average".quantity // null)}' > "$sensors.$$" && mv -f "$sensors.$$" "$sensors"
     ) >/dev/null 2>&1 &
   fi
   if [ -f "$sensors" ] && [ $(( now - $(stat -f %m "$sensors" 2>/dev/null || echo 0) )) -lt 60 ]; then
-    IFS=$'\t' read -r cpu_temp fanlist <<EOF
-$(jq -r '[(.temp // "" | if . == "" then "" else round end), ((.fans // []) | map(select(. > 0)) | map(tostring) | join(" "))] | @tsv' "$sensors" 2>/dev/null)
-EOF
-    if [ -n "$fanlist" ]; then
-      fans="Fans $(printf '%s\n' $fanlist | awk '{ printf "%s%\047d", (NR > 1 ? " · " : ""), $1 }') rpm"
-    else fans="Fans off"; fi
+    cpu_temp=$(jq -r '.temp // "" | if . == "" then "" else round end' "$sensors" 2>/dev/null)
   fi
 fi
 
@@ -394,11 +402,10 @@ build_left() {
   # Each row's number sits in the middle of its bar.
   val "$ac_pct"
   if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null || [ "$ac_pct" -ge 80 ]; then
-    TP="${ctxk}kꜝ"; TC="${CRIT}${ctxk}k${R}${BAD}ꜝ${R}"
+    boxed "${ctxk}k"; TP=$CP_; TC=$CC_
   else TP="${ctxk}k"; TC="${VC/$ac_pct%/${ctxk}k}"; fi
-  local mk=$(( ac_thr * BW / win ))
   row_label 0 Ctx
-  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 80)" "$mk" $(( ac_thr * 3 / 4 * BW / win ))
+  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 80)"
   finish_bar "$TP" "$TC"; ap 0 "$BP" "$BC"
   row_label 1 5h; val "$five_pct"
   bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 1 "$BP" "$BC"
@@ -430,7 +437,7 @@ build_left() {
   # Swap steps up from 1 GB and is past its limit from 8 GB.
   if [ "$swap_mb" -ge 1024 ]; then sw="$(( (swap_mb + 512) / 1024 ))G"; else sw="${swap_mb}M"; fi
   [ "$swap_mb" -eq 0 ] && sw=0
-  if   [ "$swap_mb" -ge 8192 ]; then SWP="${sw}ꜝ"; SWC="${CRIT}${sw}${R}${BAD}ꜝ${R}"
+  if   [ "$swap_mb" -ge 8192 ]; then boxed "$sw"; SWP=$CP_; SWC=$CC_
   elif [ "$swap_mb" -ge 1024 ]; then SWP=$sw; SWC="${WARN}${sw}${R}"
   else SWP=$sw; SWC="${OK}${sw}${R}"; fi
   ap 4 " · Swap ${SWP}" "${DOT} · ${R}${LAB}Swap${R} ${SWC}"
@@ -532,21 +539,26 @@ BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R
 # what gets shortened when the row runs out of room. GKP/GKC keep the colored
 # part before it, so shortening the name doesn't wash out the cost and turn.
 BRP[3]="$sid8"; BRC[3]="${VAL}${sid8}${R}"
-GKP[3]="\$${sc} · Turn ${turns}"; GKC[3]="${VAL}\$${sc}${R}${DOT} · ${R}${DET}Turn${R} ${VAL}${turns}${R}"
+GKP[3]="\$${sc} · Turn ${turns}"; GKC[3]="${DET}\$${sc}${R}${DOT} · ${R}${DET}Turn ${turns}${R}"
 GRP[3]="${GKP[3]}"; GRC[3]="${GKC[3]}"
 if [ -n "$sname" ]; then
   GRP[3]="${GRP[3]} · ${sname}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}${sname}${R}"
 fi
-# The machine row's right side: CPU temperature, then the fans as its detail.
+# The machine row's right side: CPU temperature, then the network as its detail.
+# rate BYTES_PER_S -> a short rate: 840 B/s, 12 KB/s, 1.2 MB/s.
+rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 1000 && i < 4) { b /= 1000; i++ }
+  printf (b < 10 && i > 1 ? "%.1f %s/s" : "%d %s/s"), b, u[i] }'; }
+NET="Net ↓$(rate "$rx_bps") ↑$(rate "$tx_bps")"
 if [ "$have_ismc" = 0 ]; then
-  BRP[4]="iSMC not available"; BRC[4]="${DET}iSMC not available${R}"; GRP[4]=""; GRC[4]=""
+  BRP[4]="iSMC not available"; BRC[4]="${DET}iSMC not available${R}"
 else
   if   [ -z "$cpu_temp" ]; then BRP[4]="-"; BRC[4]="${DET}-${R}"
-  elif [ "$cpu_temp" -ge 85 ]; then BRP[4]="${cpu_temp}°ꜝ"; BRC[4]="${CRIT}${cpu_temp}°${R}${BAD}ꜝ${R}"
+  elif [ "$cpu_temp" -ge 85 ]; then boxed "${cpu_temp}°"; BRP[4]=$CP_; BRC[4]=$CC_
   elif [ "$cpu_temp" -ge 70 ]; then BRP[4]="${cpu_temp}°"; BRC[4]="${WARN}${cpu_temp}°${R}"
   else BRP[4]="${cpu_temp}°"; BRC[4]="${OK}${cpu_temp}°${R}"; fi
-  GRP[4]="${fans:-Fans -}"; GRC[4]="${DET}${fans:-Fans -}${R}"
+  :
 fi
+GRP[4]=$NET; GRC[4]="${DET}${NET}${R}"
 RLAB=(Model "$RL1" K8s Session Temp)
 
 # The details start in one column: pad each bright part to the widest one that
