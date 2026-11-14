@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# Claude Code status line. Reads session-context JSON on stdin and prints five
-# rows: a bar for context, each usage limit and the Mac's CPU on the left, and
-# what the session is working with on the right. Wired via ~/.claude/settings.json as
+# Claude Code status line. Reads session-context JSON on stdin and prints four
+# rows: a bar for context and each usage limit on the left, and what the session
+# is working with on the right. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
 #   Ctx   ▕▰▰▰▰▰▱▱▱▱▱▱▱┃▱▱▱▱▱▱▱▱▱▱▱▱▏ 191k  AC 39% · Win 19% │ Model   Opus 5.5/High  Cache 8%
 #   5h    ▕▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ 37%   Resets 1h49m     │ Git     main ↓7 ✚2     ~/git/personal/bluebird
 #   7d    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▏ 81%ꜝ    ├─── 3d4h      │ K8s     admin@stable   default
 #   Fable ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏ 100%ꜝ   └─── 3d4h      │ Session $3.63          1feba53f · claude-80
-#   CPU   ▕▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ 13%   Mem 62% · GPU 0% │ Mac     Nominal        load 3.32 · 14/24G
 #
 # The ctx bar spans the model's whole window. ┃ marks where auto-compact fires,
 # and the dusty rose cells before it are the last quarter of the way there. AC is
@@ -260,29 +259,14 @@ bar() {
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
-# --- Hardware: the fifth row ---
-# Only what macOS reports without sudo or extra tools. Temperature and fan speed
-# need powermetrics (root) or a third-party SMC reader, so the Mac row shows
-# macOS's thermal pressure instead: the state it throttles on.
-ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
-# ps reports each process's recent share of one core; summed over all cores.
-cpu_pct=$(ps -A -o %cpu= | awk -v n="$ncpu" '{ s += $1 } END { v = int(s / n + 0.5); print (v > 100 ? 100 : v) }')
-load=$(sysctl -n vm.loadavg 2>/dev/null | awk '{ print $2 }')
-mem_gb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1073741824 ))
-# The kernel's memorystatus level is the share of memory it counts as free.
-mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
-gpu_pct=$(ioreg -r -d 1 -c IOAccelerator 2>/dev/null | grep -o '"Device Utilization %"=[0-9]*' | head -1 | cut -d= -f2)
-therm=$(notifyutil -g com.apple.system.thermalpressurelevel 2>/dev/null | awk '{ print $2 }')
-
 has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 
-# Left rows: 0 ctx, 1 5h, 2 7d, 3 fable, 4 cpu.
+# Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
 row_label 0 Ctx
 bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
 row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "$BC"
 row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
 [ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
-row_label 4 CPU; bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; ap 4 "$BP" "$BC"
 
 # The first value on each row is padded so the words after them form one column.
 if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
@@ -291,9 +275,8 @@ else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
 val "$five_pct";  HP=$VP; HC=$VC
 val "$seven_pct"; SP=$VP; SC=$VC
 FP=""; [ "$has_fable" = 1 ] && { val "$fable_pct"; FP=$VP; FC=$VC; }
-val "$cpu_pct";   CP=$VP; CC=$VC
 FW=0
-for v in "$TP" "$HP" "$SP" "$FP" "$CP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
+for v in "$TP" "$HP" "$SP" "$FP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
 FW=$(( FW + 1 ))
 first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))"; }
 
@@ -314,10 +297,6 @@ else
   ap 2 "  └─── ${seven_r}" "  ${LAB}└───${R} ${VAL}${seven_r}${R}"
   LP[3]=""; LC[3]=""
 fi
-first 4 "$CP" "$CC"
-val "$mem_pct";      MEP=$VP; MEC=$VC
-val "${gpu_pct:-0}"; GPP=$VP; GPC=$VC
-ap 4 "Mem ${MEP} · GPU ${GPP}" "${LAB}Mem${R} ${MEC}${DOT} · ${R}${LAB}GPU${R} ${GPC}"
 
 # --- Right rows: a mauve label, a bright part, then a slate teal detail ---
 # Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad.
@@ -403,27 +382,17 @@ if [ -n "$sname" ]; then
 else
   BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
 fi
-case "${therm:-0}" in
-  0) BRP[4]="Nominal";   BRC[4]="${OK}Nominal${R}" ;;
-  1) BRP[4]="Moderate";  BRC[4]="${WARN}Moderate${R}" ;;
-  2) BRP[4]="Heavyꜝ";    BRC[4]="${CRIT}Heavy${R}${BAD}ꜝ${R}" ;;
-  3) BRP[4]="Trappingꜝ"; BRC[4]="${CRIT}Trapping${R}${BAD}ꜝ${R}" ;;
-  *) BRP[4]="Sleepingꜝ"; BRC[4]="${CRIT}Sleeping${R}${BAD}ꜝ${R}" ;;
-esac
-mem_used=$(( mem_gb * mem_pct / 100 ))
-GRP[4]="load ${load} · ${mem_used}/${mem_gb}G"; GRC[4]="${DET}load ${load}${R}${DOT} · ${R}${DET}${mem_used}/${mem_gb}G${R}"
-RLAB=(Model "$RL1" K8s Session Mac)
+RLAB=(Model "$RL1" K8s Session)
 
 # The details start in one column: pad each bright part to the widest one that
 # has a detail after it.
 MW=0
-for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
-
+for i in 0 1 2 3; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
 L=0
-for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
+for i in 0 1 2 3; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
 
-for i in 0 1 2 3 4; do
+for i in 0 1 2 3; do
   [ "$i" -gt 0 ] && printf '\n'
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
   printf '%s' "${DIV} │ ${R}${LAB}$(printf '%-8s' "${RLAB[$i]}")${R}${BRC[$i]}"
@@ -431,4 +400,3 @@ for i in 0 1 2 3 4; do
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
 done
-
