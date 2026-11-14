@@ -6,11 +6,11 @@ top, then a bar for context and each usage limit on the left, and what the
 session is working with on the right. The layout sizes itself to the terminal.
 Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▕ ▃▃▃▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 32% · GPU: 0%  · Temp:   45°    │ Net:   ↓5.7 KB/s ↑4.5 KB/s
-  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19%                  │ Model: Opus 5.5/High
-  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m         Cache:▕ 100% ▏ │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
-  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h         Cost:   $3.63  │ K8s:   admin@stable  default
-  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h         Turn:   220    │ ID:    1feba53f      claude-00
+  CPU:   ▕ ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 32% · GPU: 0% · Temp: 45° │ Net:   ↓5.7 KB/s ↑4.5 KB/s
+  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19%            │ Model: Opus 5.5/High
+  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m · Cache:▕ 100% ▏ │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
+  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h · Cost:   $3.63  │ K8s:   admin@stable  default
+  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h · Turn:   220    │ ID:    1feba53f      claude-00
 
 The Ctx bar spans the model's whole window. AC is the share of the point where
 auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -216,16 +216,15 @@ def cell(t, col, past, width, col_boxed, last=False):
     return S(col, t) + P(pad)
 
 
-def grid_row(l1, l2, v1, v2, w1, w2, b1, b2, last=True):
+def grid_row(l1, l2, v1, v2, w1, w2, b1, b2):
     """Two labeled values, padded to the grid. In a boxed column the box's edge
     stands in for the space after the label: the edge is drawn at the right of
-    its cell, so a space before it would look doubled. last=False pads the
-    second value too, for a row that goes on to a third column."""
+    its cell, so a space before it would look doubled."""
     s1, s2 = ("" if b1 else " "), ("" if b2 else " ")
     out = S(LAB, l1) + S(DOT, ":") + P(sp(3 - len(l1)) + s1)
     out = out + cell(v1[1], v1[2], v1[3], w1, b1) + S(DOT, " · ")
     out = out + S(LAB, l2) + S(DOT, ":") + P(sp(3 - len(l2)) + s2)
-    return out + cell(v2[1], v2[2], v2[3], w2, b2, last=last)
+    return out + cell(v2[1], v2[2], v2[3], w2, b2, last=True)
 
 
 def graded_cell(num, w, c, text):
@@ -238,7 +237,7 @@ def graded_cell(num, w, c, text):
 def build_left(st, bw, with_third=True):
     """The left rows: 0 Ctx, 1 5h, 2 7d, 3 Fable, and 4 the machine (printed
     above them). Each row's number sits in the middle of its bar. with_third
-    False leaves out the third column of values, for a narrow terminal."""
+    False leaves out Temp, Cache, Cost and Turn, for a narrow terminal."""
     rows = [T() for _ in range(5)]
     _, _, ack, acx = val(st.ac_pct)
     rows[0] = row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
@@ -262,41 +261,36 @@ def build_left(st, bw, with_third=True):
         rows[2] = rows[2] + P("  ") + S(DOT, "└────") + P(" ") + S(VAL, st.seven_r)
         rows[3] = T()
 
-    # A third column runs down beside them: Temp on the machine row, then Cache,
-    # Cost and Turn beside the resets, leaving the Ctx row's slot empty. Each is
-    # present only when it has a value.
-    third = {}
-    if st.have_ismc:
-        if st.cpu_temp is None:
-            third[4] = ("Temp", (None, "-", DET, False))
-        else:
-            third[4] = ("Temp", graded_cell(st.cpu_temp, 70, 85, "%d°" % st.cpu_temp))
-    if st.cache_pct is not None:
-        third[1] = ("Cache", val(st.cache_pct))
-    third[2] = ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))
-    third[3] = ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))
-    if not with_third:
-        third = {}
-
     # AC · Win and Mem · GPU form a grid: labels pad to the widest in their
     # column, values too.
     a1, a2, m1, m2 = val(st.ac_pct), val(st.win_pct), val(st.mem_pct), val(st.gpu_pct)
     w1, w2 = max(len(a1[1]), len(m1[1])), max(len(a2[1]), len(m2[1]))
     b1, b2 = a1[3] or m1[3], a2[3] or m2[3]
-    rows[0] = rows[0] + grid_row("AC", "Win", a1, a2, w1, w2, b1, b2, last=0 not in third)
-    rows[4] = rows[4] + grid_row("Mem", "GPU", m1, m2, w1, w2, b1, b2, last=4 not in third)
+    rows[0] = rows[0] + grid_row("AC", "Win", a1, a2, w1, w2, b1, b2)
+    rows[4] = rows[4] + grid_row("Mem", "GPU", m1, m2, w1, w2, b1, b2)
+    if not with_third:
+        return rows
 
-    # The third column starts where the longest row before it ends. Its labels
-    # pad to the longest present, and as in the grid, a boxed value's edge stands
-    # in for the space after its label.
-    start = max([len(rows[i]) for i in third] or [0])
-    lw3 = max([len(lab) for lab, _ in third.values()] or [0])
-    vw3 = max([len(v[1]) for _, v in third.values()] or [0])
-    bx3 = any(v[3] for _, v in third.values())
-    for i, (lab, v) in third.items():
-        # Only Temp takes a dot, as the third of Mem · GPU · Temp; the values
-        # beside the resets stand apart from the times before them.
-        dot = S(DOT, " · ") if i == 4 else P("   ")
+    # Temp is the machine row's third item. A boxed value's edge stands in for
+    # the space after its label, as in the grid.
+    if st.have_ismc:
+        t = (None, "-", DET, False) if st.cpu_temp is None else graded_cell(st.cpu_temp, 70, 85, "%d°" % st.cpu_temp)
+        rows[4] = (rows[4] + S(DOT, " · ") + S(LAB, "Temp") + S(DOT, ":") + P("" if t[3] else " ")
+                   + cell(t[1], t[2], t[3], len(t[1]), t[3], last=True))
+
+    # Cache, Cost and Turn form their own column beside the resets, starting
+    # where the longest reset row ends. Labels pad to the longest present.
+    beside = {2: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost)),
+              3: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))}
+    if st.cache_pct is not None:
+        beside[1] = ("Cache", val(st.cache_pct))
+    start = max(len(rows[i]) for i in beside)
+    lw3 = max(len(lab) for lab, _ in beside.values())
+    vw3 = max(len(v[1]) for _, v in beside.values())
+    bx3 = any(v[3] for _, v in beside.values())
+    for i, (lab, v) in beside.items():
+        # A row with nothing before the column (no Fable bar) gets no dot.
+        dot = S(DOT, " · ") if len(rows[i]) else P("   ")
         rows[i] = (rows[i] + P(sp(start - len(rows[i]))) + dot + S(LAB, lab) + S(DOT, ":")
                    + P(sp(lw3 - len(lab)) + ("" if bx3 else " ")) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
     return rows

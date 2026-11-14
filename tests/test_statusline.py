@@ -98,12 +98,13 @@ def test_grids_line_up(name, cols):
     machine, ctx = rs[0], rs[1]
     assert machine.index("Mem:") == ctx.index("AC:")
     assert machine.index("GPU:") == ctx.index("Win:")
-    # The third column: Temp, Cache, Cost and Turn start in one column, or all
-    # drop together on a narrow terminal.
-    third = [r.index(lab) for r, lab in ((machine, "Temp:"), (rs[2], "Cache:"), (rs[3], "Cost:"), (rs[4], "Turn:")) if lab in r]
-    assert len(set(third)) <= 1, rs
+    # Cache, Cost and Turn start in one column beside the resets, or drop
+    # together with Temp on a narrow terminal.
+    beside = [r.index(lab) for r, lab in ((rs[2], "Cache:"), (rs[3], "Cost:"), (rs[4], "Turn:")) if lab in r]
+    assert len(set(beside)) <= 1, rs
     if cols >= 140:
         assert "Cost:" in rs[3] and "Turn:" in rs[4] and "·" not in ctx[ctx.index("Win:"):]
+        assert ("Temp:" in machine) == STATES[name].have_ismc
 
 
 def test_third_column_drops_before_the_right_side():
