@@ -586,8 +586,9 @@ for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${
 # Claude Code passes the terminal's width in COLUMNS and keeps a few columns for
 # its own padding. The right side keeps its natural width; the bars take what is
 # left, in whole characters per core (1 to 4), and the values column keeps at
-# most 3 spare. A terminal too narrow for all of it shortens the teal details,
-# then drops them, then drops the whole right side.
+# most 3 spare. On a narrower terminal the bars win over the teal details: they
+# hold at two characters per core while the details shorten, then drop, then
+# the whole right side drops. Only past that do the bars go to one per core.
 cols=${COLUMNS:-145}; [ "$cols" -gt 0 ] 2>/dev/null || cols=145
 W=$(( cols - 5 ))
 BW=$ncpu; build_left
@@ -598,14 +599,15 @@ for i in 0 1 2 3 4; do
   [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
 done
 CB=$(( CB + 9 )); CF=$(( CF + 9 ))
-# The narrowest left side: the bars at one character per core, the values unpadded.
-Lmin=$(( ncpu + 10 + Bmin ))
-if   [ $(( Lmin + 3 + CF )) -le "$W" ]; then show=full; C=$CF
-elif [ $(( Lmin + 3 + 9 + MW + 2 + 6 )) -le "$W" ]; then
+# The left side with the bars at two characters per core, values unpadded.
+L2=$(( 2 * ncpu + 10 + Bmin ))
+pmax=4
+if   [ $(( L2 + 3 + CF )) -le "$W" ]; then show=full; C=$CF
+elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
   # The details get whatever the right side has left; a long one ends in …,
   # in plain teal, since its colors can't be cut part way through. Cache and
   # Temp are single values, so they drop out whole rather than lose digits.
-  show=full; C=$(( W - Lmin - 3 )); room=$(( C - 9 - MW - 2 ))
+  show=full; pmax=2; C=$(( W - L2 - 3 )); room=$(( C - 9 - MW - 2 ))
   for i in 0 1 2 3 4; do
     if [ ${#GRP[$i]} -gt "$room" ]; then
       k=${GKP[$i]}
@@ -620,10 +622,12 @@ elif [ $(( Lmin + 3 + 9 + MW + 2 + 6 )) -le "$W" ]; then
       fi
     fi
   done
-elif [ $(( Lmin + 3 + CB )) -le "$W" ]; then show=bright; C=$CB
-else show=left; C=0; fi
+elif [ $(( L2 + 3 + CB )) -le "$W" ]; then show=bright; pmax=2; C=$CB
+else show=left; pmax=2; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
-per=4
+# Once the details start to give way, the bars stop at two per core, so a
+# narrower window never shows wider bars.
+per=$pmax
 while [ "$per" -gt 1 ] && [ $(( per * ncpu + 10 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
 BW=$(( per * ncpu )); build_left
 # The values column pads out to the divider by 3 spare columns at most; any
