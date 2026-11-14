@@ -591,14 +591,16 @@ if [ -n "$sname" ]; then
 fi
 # The machine row's right side: the network, then CPU temperature as its detail.
 # Temperature keeps its limit color there, like the cache on the model row.
-# rate BYTES_PER_S -> a short rate, always 8 wide (840 B/s, 12 KB/s, 1.2 MB/s),
-# so the details after it don't shift as the numbers change.
+# rate BYTES_PER_S -> a short rate, right-aligned in 8 columns (840 B/s, 12 KB/s,
+# 1.2 MB/s), so the details after it don't shift as the numbers change.
 rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 999.5 && i < 4) { b /= 1000; i++ }
   n = (b < 9.95 && i > 1) ? sprintf("%.1f", b) : sprintf("%d", b + 0.5)
-  printf "%3s %-4s", n, u[i] "/s" }'; }
-graded "$rx_bps" 1000000 10000000 "↓$(rate "$rx_bps")" nobox; NIP=$GP_; NIC=$GC_
-graded "$tx_bps" 1000000 10000000 "↑$(rate "$tx_bps")" nobox; NOP=$GP_; NOC=$GC_
-BRP[4]="${NIP} ${NOP}"; BRC[4]="${NIC} ${NOC}"
+  printf "%8s", n " " u[i] "/s" }'; }
+# The arrows stay white; only the rate takes its color. Each rate is right-
+# aligned in its 8 columns, so its unit always ends in the same place.
+graded "$rx_bps" 1000000 10000000 "$(rate "$rx_bps")" nobox; NIP=$GP_; NIC=$GC_
+graded "$tx_bps" 1000000 10000000 "$(rate "$tx_bps")" nobox; NOP=$GP_; NOC=$GC_
+BRP[4]="↓${NIP} ↑${NOP}"; BRC[4]="${VAL}↓${R}${NIC} ${VAL}↑${R}${NOC}"
 if [ "$have_ismc" = 0 ]; then
   GRP[4]="iSMC not available"; GRC[4]="${DET}iSMC not available${R}"
 else
