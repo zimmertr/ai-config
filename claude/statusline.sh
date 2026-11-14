@@ -286,7 +286,8 @@ finish_bar() {
     tp="  ${lp}${t}${rp}  "; tc="  ${lp}${col}${t}${R}${rp}  "
   fi
   st=$(( (BW - span) / 2 )); [ "$st" -lt 0 ] && st=0
-  BP="▕"; BC="${DIM}▕${R}"
+  # A space inside each edge keeps the bar off its frame.
+  BP="▕ "; BC="${DIM}▕${R} "
   for (( i = 0; i < BW; i++ )); do
     if [ "$i" -lt "$st" ] || [ "$i" -ge $(( st + span )) ]; then
       BP="${BP}${CH[i]}"; BC="${BC}${FG[i]}${CH[i]}${R}"
@@ -294,7 +295,7 @@ finish_bar() {
       BP="${BP}${tp}"; BC="${BC}${tc}"
     fi
   done
-  BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
+  BP="${BP} ▏ "; BC="${BC} ${DIM}▏${R} "
 }
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
 row_label() { ap "$1" "$(printf '%-7s' "$2:")" "${LAB}$2${R}${DOT}:${R}$(spaces $(( 6 - ${#2} )))"; }
@@ -602,13 +603,13 @@ W=$(( cols - 5 ))
 BW=$ncpu; build_left
 Bmin=0; CB=0; CF=0
 for i in 0 1 2 3 4; do
-  b=$(( ${#LP[$i]} - BW - 10 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
+  b=$(( ${#LP[$i]} - BW - 12 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
   b=${#BRP[$i]}; [ "$b" -gt "$CB" ] && CB=$b
   [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
 done
 CB=$(( CB + 9 )); CF=$(( CF + 9 ))
 # The left side with the bars at one and two characters per core, values unpadded.
-L1=$(( ncpu + 10 + Bmin )); L2=$(( 2 * ncpu + 10 + Bmin ))
+L1=$(( ncpu + 12 + Bmin )); L2=$(( 2 * ncpu + 12 + Bmin ))
 pmax=4
 if   [ $(( L2 + 3 + CF )) -le "$W" ]; then show=full; C=$CF
 elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
@@ -630,24 +631,22 @@ elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
       fi
     fi
   done
-elif [ $(( L2 + 3 + CB )) -le "$W" ]; then show=bright; pmax=2; C=$CB
-elif [ $(( L1 + 3 + CB )) -le "$W" ]; then show=bright; pmax=1; C=$CB
-else show=left; pmax=1; C=0; fi
+elif [ $(( L2 + 3 + CB )) -le "$W" ]; then show=bright; pmax=4; C=$CB
+elif [ $(( L1 + 3 + CB )) -le "$W" ]; then show=bright; pmax=2; C=$CB
+else show=left; pmax=4; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
 per=$pmax
-while [ "$per" -gt 1 ] && [ $(( per * ncpu + 10 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
+while [ "$per" -gt 1 ] && [ $(( per * ncpu + 12 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
 BW=$(( per * ncpu ))
-# With the details gone there's nothing else to give spare columns to, so the
-# bars take them all, up to four per core. The CPU chart then gives some cores
-# an extra column, spread evenly, instead of every core the same width.
-if [ "$show" = bright ]; then
-  b=$(( avail - 10 - Bmin )); [ "$b" -gt $(( 4 * ncpu )) ] && b=$(( 4 * ncpu ))
-  [ "$b" -gt "$BW" ] && BW=$b
-fi
+# The bars then take every spare column, up to four per core, so no width
+# leaves a gap at the end of the line. The CPU chart gives some cores one more
+# column than others, spread evenly, when the width isn't a multiple of 14.
+b=$(( avail - 12 - Bmin )); [ "$b" -gt $(( pmax * ncpu )) ] && b=$(( pmax * ncpu ))
+[ "$b" -gt "$BW" ] && BW=$b
 build_left
 # The values column pads out to the divider by 3 spare columns at most; any
 # other leftover goes at the end of the line, where empty space doesn't show.
-A=$(( BW + 10 ))
+A=$(( BW + 12 ))
 L=$avail; [ $(( A + Bmin + 3 )) -lt "$L" ] && L=$(( A + Bmin + 3 ))
 [ "$show" = left ] && L=0
 for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
