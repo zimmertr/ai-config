@@ -4,23 +4,25 @@
 # is working with on the right. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   ctx   ▕███▌░░░░┃░░░░░░░░░ │ 191k  AC 39% · Win 19% │ model   Opus 5.5 · High  $3.63
-#   5h    ▕██████▋░░░░░░░░░░░ │ 37%   resets 1h49m     │ git     main ↓7 ✚2       ~/git/personal/bluebird
-#   7d    ▕██████████████▋░░░ │  81%    ├─── 3d4h      │ k8s     admin@stable     default
-#   fable ▕██████████████████ │  100%   └─── 3d4h      │ session claude-80        1feba53f
+#   Ctx   ▕███▌░░░░┃░░░░░░░░░▏ │ 191k  AC 39% · Win 19% │ Model   Opus 5.5 · High · Cache 8% · $3.63
+#   5h    ▕██████▋░░░░░░░░░░░▏ │ 37%   Resets 1h49m     │ Git     main ↓7 ✚2     ~/git/personal/bluebird
+#   7d    ▕██████████████▋░░░▏ │  81%    ├─── 3d4h      │ K8s     admin@stable   default
+#   Fable ▕██████████████████▏ │  100%   └─── 3d4h      │ Session claude-80      1feba53f
 #
 # The ctx bar spans the model's whole window. ┃ marks where auto-compact fires,
-# and the dark red cells before it are the last quarter of the way there. AC is
+# and the dusty rose cells before it are the last quarter of the way there. AC is
 # the share of that compaction point used, Win the share of the whole window.
 # With auto-compact on, Win can never pass the AC point, so it only matters when
-# compaction is off (DISABLE_AUTO_COMPACT=1). The fable row is hidden until the
-# Fable limit has been fetched (see below). The git row reads `dir` outside a
-# repo; ↑/↓ track the branch's own upstream, ✚ counts changed files.
+# compaction is off (DISABLE_AUTO_COMPACT=1). The Fable row is hidden until the
+# Fable limit has been fetched (see below). The Git row reads Dir outside a
+# repo; ↑/↓ track the branch's own upstream, ✚ counts changed files. Cache is how
+# much of the prompt cache's life has gone since the last message.
 #
-# One color per job: mauve labels a value, white is a value, dim grey is a minor
-# value or punctuation, icy pale blue draws the dividers, and green / yellow / red is a value with a limit: green
-# under 50%, yellow under 80%, and a bold white-on-red block at 80% and up (AC
-# from 75%, the token count past 250K).
+# One color per job: mauve labels a value, white is a value, slate teal is the
+# minor detail that ends a row, lavender dots sit between items, icy blue draws
+# the dividers and the compaction mark, and mint / gold / coral is a value with a
+# limit: mint under 50%, gold under 80%, and a bold white-on-red block at 80% and
+# up (AC from 75%, the token count past 250K).
 #
 # The session's short name (`claude-80`) is what other sessions message it by;
 # the 8-character ID prefix is what create-issue labels its issues with.
@@ -31,7 +33,7 @@ export LC_ALL=en_US.UTF-8
 
 input=$(cat)
 
-IFS=$'\t' read -r model effort win_pct ctx_tok five_pct five_reset seven_pct seven_reset cost sid win mid <<EOF
+IFS=$'\t' read -r model effort win_pct ctx_tok five_pct five_reset seven_pct seven_reset cost sid win cwarm cttl cexp mid <<EOF
 $(echo "$input" | jq -r '[
   .model.display_name // "?",
   (.effort.level // "?"),
@@ -44,12 +46,16 @@ $(echo "$input" | jq -r '[
   (.cost.total_cost_usd // 0),
   (.session_id // "?"),
   (.context_window.context_window_size // 0),
+  (if (.prompt_cache // null) == null or .prompt_cache.caching_observed == false
+     then "none" else (.prompt_cache.warm | tostring) end),
+  (.prompt_cache.ttl // "-"),
+  (.prompt_cache.expires_at // 0),
   (.model.id // "")
 ] | @tsv')
 EOF
 
 # An empty or malformed payload leaves these blank; zero keeps the arithmetic below quiet.
-: "${win_pct:=0}" "${ctx_tok:=0}" "${five_pct:=0}" "${five_reset:=0}" "${seven_pct:=0}" "${seven_reset:=0}" "${cost:=0}" "${win:=0}"
+: "${win_pct:=0}" "${ctx_tok:=0}" "${five_pct:=0}" "${five_reset:=0}" "${seven_pct:=0}" "${seven_reset:=0}" "${cost:=0}" "${win:=0}" "${cwarm:=none}" "${cexp:=0}"
 
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 dir="${cwd/#$HOME/~}"
@@ -61,19 +67,24 @@ sname=$(jq -r --arg sid "$sid" 'select(.sessionId == $sid) | .name // empty' \
   "$HOME"/.claude/sessions/*.json 2>/dev/null | head -1)
 effort=$(printf '%s' "$effort" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
 
-in_git=0; branch="—"; dirty=0; ahead=0; behind=0
-if git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+# One git call gives the branch, ahead/behind and changed files. A plain status
+# takes the index lock to refresh it, and with the status line re-running on a
+# timer that lock can collide with an agent's own git command in the same repo
+# ("index.lock exists"), so it runs without the optional locks.
+in_git=0; branch=""; dirty=0; ahead=0; behind=0
+if gs=$(git -C "$cwd" --no-optional-locks status --porcelain=v2 --branch 2>/dev/null); then
   in_git=1
-  branch=$(git -C "$cwd" branch --show-current 2>/dev/null); [ -z "$branch" ] && branch="—"
-  dirty=$(git -C "$cwd" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
-  if ab=$(git -C "$cwd" rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null); then
-    behind=$(printf '%s' "$ab" | awk '{print $1}')
-    ahead=$(printf  '%s' "$ab" | awk '{print $2}')
-  fi
+  IFS=$'\t' read -r branch ahead behind dirty <<EOF
+$(printf '%s\n' "$gs" | awk '
+  /^# branch\.head /        { h = $3 }
+  /^# branch\.ab /          { a = substr($3, 2); b = substr($4, 2) }
+  !/^# /                    { n++ }
+  END { printf "%s\t%d\t%d\t%d", (h == "(detached)" ? "detached" : h), a, b, n }')
+EOF
 fi
 
 # K8s context + namespace (namespace needs a second query; only when a context is set)
-kube="—"; ns=""
+kube="none"; ns=""
 if command -v kubectl >/dev/null 2>&1; then
   c=$(kubectl config current-context 2>/dev/null)
   if [ -n "$c" ]; then
@@ -120,7 +131,7 @@ ac_pct=$(awk -v u="$ctx_tok" -v t="$ac_thr" 'BEGIN{ printf "%d", (t>0 ? u/t*100+
 
 now=$(date +%s)
 fmt_reset() {
-  [ "$1" -le 0 ] 2>/dev/null && { printf -- '—'; return; }
+  [ "$1" -le 0 ] 2>/dev/null && { printf -- '-'; return; }
   d=$(( $1 - now ))
   [ "$d" -le 0 ] && { printf 'now'; return; }
   if   [ "$d" -ge 172800 ]; then printf '%dd%dh' "$(( d / 86400 ))" "$(( (d % 86400) / 3600 ))"
@@ -168,11 +179,14 @@ fi
 # --- Palette ---
 # Real escape bytes, printed with %s, so a backslash in a branch or path prints as-is.
 LAB=$'\033[38;5;139m'   # mauve: labels
-DIV=$'\033[38;5;153m'   # icy pale blue: the dividers, a soft counterpart to the mauve
+DIV=$'\033[38;5;153m'   # icy pale blue: the dividers and the compaction mark
 VAL=$'\033[97m'         # white: values
-DIM=$'\033[38;5;243m'   # dim grey: minor values and punctuation
-OK=$'\033[92m'; WARN=$'\033[93m'; BAD=$'\033[91m'; CRIT=$'\033[1;97;41m'
-EMPTY=$'\033[38;5;237m'; ZONE=$'\033[38;5;52m'; R=$'\033[0m'
+DET=$'\033[38;5;66m'    # slate teal: the minor detail that ends a row
+DOT=$'\033[38;5;103m'   # lavender: the dots between items
+DIM=$'\033[38;5;243m'   # dim grey: the bar's edges
+OK=$'\033[38;5;151m'; WARN=$'\033[38;5;222m'; BAD=$'\033[38;5;210m'   # mint, gold, coral
+CRIT=$'\033[1;97;48;5;160m'   # bold white on red reads as an error, not a shade
+EMPTY=$'\033[38;5;237m'; ZONE=$'\033[38;5;95m'; R=$'\033[0m'
 
 # Each row is built twice: P* holds the plain text (for measuring) and C* the
 # colored text (for printing). ap ROW PLAIN COLORED appends to one left row.
@@ -201,24 +215,25 @@ bar() {
   for (( i = 0; i < BW; i++ )); do
     lv=$(( total - i * 8 )); [ "$lv" -lt 0 ] && lv=0; [ "$lv" -gt 8 ] && lv=8
     if   [ "$lv" -gt 0 ];  then s="${EIGHTHS[$lv]}"; BC="${BC}${col}${s}"
-    elif [ "$i" -eq "$mk" ]; then s='┃'; BC="${BC}${VAL}${s}"
+    elif [ "$i" -eq "$mk" ]; then s='┃'; BC="${BC}${DIV}${s}"
     elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then s='░'; BC="${BC}${ZONE}${s}"
     else s='░'; BC="${BC}${EMPTY}${s}"; fi
     BP="${BP}${s}"
   done
-  # The divider closes the bar, the same one that sits before the right-hand column.
-  BP="${BP} │ "; BC="${BC}${R}${DIV} │ ${R}"
+  # Grey edges hold the bar; the divider after it is the same one that sits before
+  # the right-hand column.
+  BP="${BP}▏ │ "; BC="${BC}${R}${DIM}▏${R}${DIV} │ ${R}"
 }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
 has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 
 # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
-row_label 0 ctx
+row_label 0 Ctx
 bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 75)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
 row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)";   ap 1 "$BP" "$BC"
 row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 50 80)"; ap 2 "$BP" "$BC"
-[ "$has_fable" = 1 ] && { row_label 3 fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 50 80)"; ap 3 "$BP" "$BC"; }
+[ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 50 80)"; ap 3 "$BP" "$BC"; }
 
 # The first value on each row is padded so the words after them form one column.
 # The token count and the 5h value are followed straight by a label, so they
@@ -240,11 +255,11 @@ first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))
 val "$ac_pct" 50 75; ACP=$VP; ACC=$VC
 val "$win_pct";      WNP=$VP; WNC=$VC
 first 0 "$TP" "$TC"
-ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DIM} · ${R}${LAB}Win${R} ${WNC}"
-# "resets" is written once, on the 5h row; the weekly times hang off it tree-style,
+ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DOT} · ${R}${LAB}Win${R} ${WNC}"
+# "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
 # the stem dropping from the middle of the word, the times lined up under 1h49m.
 first 1 "$HP" "$HC"
-ap 1 "resets ${five_r}" "${LAB}resets${R} ${VAL}${five_r}${R}"
+ap 1 "Resets ${five_r}" "${LAB}Resets${R} ${VAL}${five_r}${R}"
 first 2 "$SP" "$SC"
 if [ "$has_fable" = 1 ]; then
   ap 2 "  ├─── ${seven_r}" "  ${LAB}├───${R} ${VAL}${seven_r}${R}"
@@ -255,7 +270,7 @@ else
   LP[3]=""; LC[3]=""
 fi
 
-# --- Right rows: a mauve label, a bright part, then a dim grey detail ---
+# --- Right rows: a mauve label, a bright part, then a slate teal detail ---
 # Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad.
 short_dir() {
   local p=$1 n
@@ -269,32 +284,49 @@ sdir=$(short_dir "$dir")
 [ ${#branch} -gt 20 ] && branch="${branch:0:19}…"
 sid8="${sid:0:8}"
 
-BRP=(); BRC=(); GRP=(); GRC=()   # bright and grey parts per right row
-BRP[0]="${model} · ${effort}"; BRC[0]="${VAL}${model}${R}${DIM} · ${R}${VAL}${effort}${R}"
-GRP[0]="\$${sc}";              GRC[0]="${DIM}\$${sc}${R}"
+# The prompt cache shows how much of its life (5m or 1h) has gone: it fills toward
+# trouble like every other percentage, and at 100% the next message pays to
+# rebuild the whole context. Hidden until a response has reported caching.
+cache_pct=""
+if [ "$cwarm" = false ]; then cache_pct=100
+elif [ "$cwarm" = true ] && [ "$cexp" -gt 0 ] 2>/dev/null; then
+  case "$cttl" in 5m) ttl=300 ;; *) ttl=3600 ;; esac
+  cache_pct=$(( ( (ttl - (cexp - now)) * 100 + ttl / 2 ) / ttl ))
+  [ "$cache_pct" -lt 0 ] && cache_pct=0; [ "$cache_pct" -gt 100 ] && cache_pct=100
+fi
+
+BRP=(); BRC=(); GRP=(); GRC=()   # bright and detail parts per right row
+# The model row is one run of items, outside the detail column: it is the shortest
+# row, and lining its cost up with the others would only add a gap.
+BRP[0]="${model} · ${effort}"; BRC[0]="${VAL}${model}${R}${DOT} · ${R}${VAL}${effort}${R}"
+if [ -n "$cache_pct" ]; then
+  val "$cache_pct"
+  BRP[0]="${BRP[0]} · Cache ${VP}"; BRC[0]="${BRC[0]}${DOT} · ${R}${VAL}Cache${R} ${VC}"
+fi
+BRP[0]="${BRP[0]} · \$${sc}"; BRC[0]="${BRC[0]}${DOT} · ${R}${DET}\$${sc}${R}"
 if [ "$in_git" = 1 ]; then
-  RL1=git
+  RL1=Git
   BRP[1]="$branch"; BRC[1]="${VAL}${branch}${R}"
   [ "${ahead:-0}"  -gt 0 ] && { BRP[1]="${BRP[1]} ↑${ahead}";  BRC[1]="${BRC[1]} ${OK}↑${ahead}${R}"; }
   [ "${behind:-0}" -gt 0 ] && { BRP[1]="${BRP[1]} ↓${behind}"; BRC[1]="${BRC[1]} ${BAD}↓${behind}${R}"; }
   if [ "${dirty:-0}" -gt 0 ]; then BRP[1]="${BRP[1]} ✚${dirty}"; BRC[1]="${BRC[1]} ${WARN}✚${dirty}${R}"
   else BRP[1]="${BRP[1]} ✓"; BRC[1]="${BRC[1]} ${OK}✓${R}"; fi
-  GRP[1]="$sdir"; GRC[1]="${DIM}${sdir}${R}"
+  GRP[1]="$sdir"; GRC[1]="${DET}${sdir}${R}"
 else
   # Outside a repo the folder is the row's only item, so it stays bright.
-  RL1=dir
+  RL1=Dir
   BRP[1]="$sdir"; BRC[1]="${VAL}${sdir}${R}"; GRP[1]=""; GRC[1]=""
 fi
-BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DIM}${ns}${R}"
+BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R}"
 if [ -n "$sname" ]; then
-  BRP[3]="$sname"; BRC[3]="${VAL}${sname}${R}"; GRP[3]="$sid8"; GRC[3]="${DIM}${sid8}${R}"
+  BRP[3]="$sname"; BRC[3]="${VAL}${sname}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
 else
   BRP[3]="$sid8"; BRC[3]="${VAL}${sid8}${R}"; GRP[3]=""; GRC[3]=""
 fi
-RLAB=(model "$RL1" k8s session)
+RLAB=(Model "$RL1" K8s Session)
 
-# The grey details start in one column: pad each bright part to the widest one
-# that has a detail after it.
+# The details start in one column: pad each bright part to the widest one that
+# has a detail after it.
 MW=0
 for i in 0 1 2 3; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
