@@ -265,14 +265,74 @@ row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}";
 # dkorunic/tap && brew install ismc), which reads the sensors without sudo; when
 # it's missing the Temp slot says so rather than failing the whole status line.
 ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
-# ps reports each process's recent share of one core; summed over all cores.
-cpu_pct=$(ps -A -o %cpu= | awk -v n="$ncpu" '{ s += $1 } END { v = int(s / n + 0.5); print (v > 100 ? 100 : v) }')
+# Per-core usage comes straight from the kernel's tick counters (host_processor_info),
+# as the change since the last run, which any session may have made. macOS has
+# no command for it, so the system Python reads it through ctypes.
+cores=""
+if command -v python3 >/dev/null 2>&1; then
+  cores=$(python3 -I - "$HOME/.claude/cache/cpu-ticks" 2>/dev/null <<'PY'
+import ctypes, ctypes.util, sys, os
+libc = ctypes.CDLL(ctypes.util.find_library("c"))
+n = ctypes.c_uint(); info = ctypes.POINTER(ctypes.c_int)(); cnt = ctypes.c_uint()
+libc.mach_host_self.restype = ctypes.c_uint
+if libc.host_processor_info(libc.mach_host_self(), 2, ctypes.byref(n), ctypes.byref(info), ctypes.byref(cnt)) != 0:
+    sys.exit(1)
+now = [[info[i * 4 + j] & 0xFFFFFFFF for j in range(4)] for i in range(n.value)]  # user, system, idle, nice
+path = sys.argv[1]
+os.makedirs(os.path.dirname(path), exist_ok=True)
+try:
+    prev = [[int(x) for x in l.split()] for l in open(path)]
+except Exception:
+    prev = []
+if len(prev) != len(now):
+    prev = [[0, 0, 0, 0] for _ in now]
+out = []
+for a, b in zip(now, prev):
+    d = [(x - y) % 2**32 for x, y in zip(a, b)]
+    tot = sum(d)
+    out.append(round(100 * (tot - d[2]) / tot) if tot else 0)
+tmp = path + ".%d" % os.getpid()
+with open(tmp, "w") as f:
+    f.write("\n".join(" ".join(map(str, c)) for c in now))
+os.replace(tmp, path)
+print(" ".join(map(str, out)))
+PY
+)
+fi
+if [ -n "$cores" ]; then
+  cpu_pct=$(printf '%s\n' "$cores" | awk '{ for (i = 1; i <= NF; i++) s += $i; printf "%d", s / NF + 0.5 }')
+else
+  # Without Python: ps reports each process's recent share of one core.
+  cpu_pct=$(ps -A -o %cpu= | awk -v n="$ncpu" '{ s += $1 } END { v = int(s / n + 0.5); print (v > 100 ? 100 : v) }')
+fi
 mem_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo 0); mem_gb=$(( mem_bytes / 1073741824 ))
 # The kernel's memorystatus level is the share of memory it counts as free.
 mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
-mem_used=$(awk -v t="$mem_gb" -v p="$mem_pct" 'BEGIN { printf "%.1f", t * p / 100 }')
 have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
+# iSMC takes about a second to read the temperatures, so it runs in the
+# background every 10 s and leaves its reading in a cache, like the Fable limit.
+# A fan reports a speed only while it spins; none means the fans are off.
 cpu_temp=""; fans=""
+if [ "$have_ismc" = 1 ]; then
+  sensors="$HOME/.claude/cache/sensors.json"; sstamp="$HOME/.claude/cache/sensors.stamp"
+  sage=999999; [ -f "$sstamp" ] && sage=$(( now - $(stat -f %m "$sstamp" 2>/dev/null || echo 0) ))
+  if [ "$sage" -ge 10 ]; then
+    mkdir -p "${sstamp%/*}"; touch "$sstamp"
+    (
+      t=$(ismc temp -o json 2>/dev/null | jq -c '{temp: (."CPU Die Average".quantity // null)}')
+      f=$(ismc fans -o json 2>/dev/null | jq -c '{fans: [to_entries[] | select(.value.key | test("^F[0-9]Ac$")) | .value.quantity | round]}')
+      jq -cn --argjson a "${t:-{\}}" --argjson b "${f:-{\}}" '$a + $b' > "$sensors.$$" && mv -f "$sensors.$$" "$sensors"
+    ) >/dev/null 2>&1 &
+  fi
+  if [ -f "$sensors" ] && [ $(( now - $(stat -f %m "$sensors" 2>/dev/null || echo 0) )) -lt 60 ]; then
+    IFS=$'\t' read -r cpu_temp fanlist <<EOF
+$(jq -r '[(.temp // "" | if . == "" then "" else round end), ((.fans // []) | map(select(. > 0)) | map(tostring) | join(" "))] | @tsv' "$sensors" 2>/dev/null)
+EOF
+    if [ -n "$fanlist" ]; then
+      fans="Fans $(printf '%s\n' $fanlist | awk '{ printf "%s%\047d", (NR > 1 ? " · " : ""), $1 }') rpm"
+    else fans="Fans off"; fi
+  fi
+fi
 
 # Agents: subagent logs under this session that were written in the last minute.
 agents=0
@@ -299,13 +359,6 @@ EOF
   fi
   turns=$cnt
 fi
-# Sessions: Claude Code keeps ~/.claude/sessions/<pid>.json per running process.
-sessions=0
-for f in "$HOME"/.claude/sessions/[0-9]*.json; do
-  [ -e "$f" ] || continue
-  pid=${f##*/}; pid=${pid%.json}
-  kill -0 "$pid" 2>/dev/null && sessions=$(( sessions + 1 ))
-done
 
 has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 
@@ -316,7 +369,23 @@ row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "
 row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
 [ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
 # Row 4 is the machine, printed above the others.
-row_label 4 CPU; bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; ap 4 "$BP" "$BC"
+# With per-core numbers, the CPU's bar becomes a chart: each core a column that
+# rises with its load, stretched across the bar's width and colored like a bar.
+SPARK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+core_chart() {
+  local -a c=($cores); local n=${#c[@]} j p g col
+  BP="▕"; BC="${DIM}▕${R}"
+  for (( j = 0; j < BW; j++ )); do
+    p=${c[$(( j * n / BW ))]}
+    g=${SPARK[$(( p >= 100 ? 7 : p * 8 / 100 ))]}
+    if [ "$p" -ge 66 ]; then col=$BAR_BAD; elif [ "$p" -ge 33 ]; then col=$BAR_WARN; else col=$BAR_OK; fi
+    BP="${BP}${g}"; BC="${BC}${col}${g}${R}"
+  done
+  BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
+}
+row_label 4 CPU
+if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; fi
+ap 4 "$BP" "$BC"
 
 # The first value on each row is padded so the words after them form one column.
 if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
@@ -349,11 +418,8 @@ else
   LP[3]=""; LC[3]=""
 fi
 first 4 "$CP" "$CC"
-# Memory in use out of the total; the used figure takes the limit colors.
-if   [ "$mem_pct" -ge 80 ]; then MUC="${CRIT}${mem_used}${R}${BAD}ꜝ${R}"; MUP="${mem_used}ꜝ"
-elif [ "$mem_pct" -ge 50 ]; then MUC="${WARN}${mem_used}${R}"; MUP=$mem_used
-else MUC="${OK}${mem_used}${R}"; MUP=$mem_used; fi
-ap 4 "Mem ${MUP}/${mem_gb}G" "${LAB}Mem${R} ${MUC}${DET}/${mem_gb}G${R}"
+val "$mem_pct"
+ap 4 "Mem ${VP}" "${LAB}Mem${R} ${VC}"
 
 # --- Right rows: a mauve label, a bright part, then a slate teal detail ---
 # Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad.
@@ -421,10 +487,8 @@ if [ -n "$cache_pct" ]; then
 fi
 if [ "$agents" -gt 0 ]; then
   [ -n "${GRP[0]}" ] && { GRP[0]="${GRP[0]} · "; GRC[0]="${GRC[0]}${DOT} · ${R}"; }
-  GRP[0]="${GRP[0]}${agents} agents"; GRC[0]="${GRC[0]}${DET}${agents} agents${R}"
+  GRP[0]="${GRP[0]}Agents ${agents}"; GRC[0]="${GRC[0]}${DET}Agents${R} ${VAL}${agents}${R}"
 fi
-[ -n "${GRP[0]}" ] && { GRP[0]="${GRP[0]} · "; GRC[0]="${GRC[0]}${DOT} · ${R}"; }
-GRP[0]="${GRP[0]}${sessions} sessions"; GRC[0]="${GRC[0]}${DET}${sessions} sessions${R}"
 if [ "$in_git" = 1 ]; then
   RL1=Git
   BRP[1]="$branch"; BRC[1]="${VAL}${branch}${R}"
@@ -445,7 +509,7 @@ if [ -n "$sname" ]; then
 else
   BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
 fi
-GRP[3]="${GRP[3]} · turn ${turns}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}turn ${turns}${R}"
+GRP[3]="${GRP[3]} · Turn ${turns}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}Turn${R} ${VAL}${turns}${R}"
 # The machine row's right side: CPU temperature, then the fans as its detail.
 if [ "$have_ismc" = 0 ]; then
   BRP[4]="iSMC not available"; BRC[4]="${DET}iSMC not available${R}"; GRP[4]=""; GRC[4]=""
@@ -454,7 +518,7 @@ else
   elif [ "$cpu_temp" -ge 85 ]; then BRP[4]="${cpu_temp}°ꜝ"; BRC[4]="${CRIT}${cpu_temp}°${R}${BAD}ꜝ${R}"
   elif [ "$cpu_temp" -ge 70 ]; then BRP[4]="${cpu_temp}°"; BRC[4]="${WARN}${cpu_temp}°${R}"
   else BRP[4]="${cpu_temp}°"; BRC[4]="${OK}${cpu_temp}°${R}"; fi
-  GRP[4]="${fans:-fans -}"; GRC[4]="${DET}${fans:-fans -}${R}"
+  GRP[4]="${fans:-Fans -}"; GRC[4]="${DET}${fans:-Fans -}${R}"
 fi
 RLAB=(Model "$RL1" K8s Session Temp)
 
