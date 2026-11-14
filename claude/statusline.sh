@@ -5,11 +5,11 @@
 # itself to the terminal's width. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   CPU:   ▕▅▅▅▅▅▅▄▄▄▃▃▃▁▁▁▁▁▁ 25% ▁▁▁▁▃▃▃▃▃▃▂▂▂▂▂▂▂▂▂▏ Mem: 62% · Swap: ▕ 17G ▏   │ Net:     ↓ 39 KB/s ↑ 13 KB/s  Temp: 52°
-#   Ctx:   ▕▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱ 191k ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ AC: 39% · Win: 19%         │ Model:   Opus 5.5/High        Cache: ▕ 100% ▏
-#   5h:    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱ 37% ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ Resets: 1h20m              │ Git:     main ↓7 ✚2           ~/git/personal/bluebird
-#   7d:    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 90% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▏   ├─── 2d23h               │ K8s:     admin@stable         default
-#   Fable: ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 100% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏   └─── 2d23h               │ Session: 1feba53f             $3.63 · Turn: 190 · claude-00
+#   CPU:   ▕▄▄▄▄▄▄▄▄▄▃▃▃▁▁▁▁    17%   ▁▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▏ Mem: 60% · Swap: ▕ 16G ▏   │ Net:     ↓3.5 KB/s ↑4.3 KB/s  Temp: 46°
+#   Ctx:   ▕▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱   191k   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ AC: 39% · Win: 19%         │ Model:   Opus 5.5/High        Cache: ▕ 100% ▏
+#   5h:    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰    38%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ Resets: 1h5m               │ Git:     main ↓7 ✚2           ~/git/personal/bluebird
+#   7d:    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕  90% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▏   ├──── 2d22h              │ K8s:     admin@stable         default
+#   Fable: ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 100% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏   └──── 2d22h              │ Session: 1feba53f             $3.63 · Turn: 195 · claude-00
 #
 # The ctx bar spans the model's whole window. AC is the share of the point where
 # auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -242,12 +242,14 @@ graded() {
   else GP_=$4; GC_="${OK}$4${R}"; fi
 }
 
-# val VALUE [WARN=50] [CRIT=80] -> VP/VC.
+# val VALUE [WARN=50] [CRIT=80] -> VP/VC, plus VR (the bare text), VK (its
+# color) and VX (1 past the limit) for a bar to frame itself.
 val() {
   local w=${2:-50} c=${3:-80}
-  if   [ "$1" -ge "$c" ]; then boxed "$1%"; VP=$CP_; VC=$CC_
-  elif [ "$1" -ge "$w" ]; then VP="$1%";  VC="${WARN}$1%${R}"
-  else                         VP="$1%";  VC="${OK}$1%${R}"; fi
+  VR="$1%"; VX=""
+  if   [ "$1" -ge "$c" ]; then boxed "$1%"; VP=$CP_; VC=$CC_; VK=$CRIT; VX=1
+  elif [ "$1" -ge "$w" ]; then VP="$1%";  VC="${WARN}$1%${R}"; VK=$WARN
+  else                         VP="$1%";  VC="${OK}$1%${R}"; VK=$OK; fi
 }
 
 # --- Bars ---
@@ -270,18 +272,26 @@ bar() {
     else CH[i]='▱'; FG[i]=$EMPTY; fi
   done
 }
-# finish_bar PLAIN COLORED -> BP/BC: the cells with the number centered in them,
-# a space either side. The number wins over anything under it, the compaction
-# mark included.
+# finish_bar TEXT COLOR [PAST_LIMIT] -> BP/BC: the cells with the number in the
+# middle. Every bar cuts the same slot, a box's width plus a space either side,
+# and right-aligns the number in it, so 9% and 100% take the same room, line up
+# on their %, and a box is always the same size.
 finish_bar() {
-  local tp=$1 tc=$2 span=$(( ${#1} + 2 )) st i
+  local t=$1 col=$2 x=$3 w=4 span st i pad tp tc
+  [ ${#t} -gt "$w" ] && w=${#t}
+  span=$(( w + 6 )); pad=$(spaces $(( w - ${#t} )))
+  if [ -n "$x" ]; then
+    tp=" ▕ ${pad}${t} ▏ "; tc=" ${BAD}${BOX}▕ ${R}${CRIT}${BOX}${pad}${t}${R}${BAD}${BOX} ▏${R} "
+  else
+    tp="   ${pad}${t}   "; tc="   ${pad}${col}${t}${R}   "
+  fi
   st=$(( (BW - span) / 2 )); [ "$st" -lt 0 ] && st=0
   BP="▕"; BC="${DIM}▕${R}"
   for (( i = 0; i < BW; i++ )); do
     if [ "$i" -lt "$st" ] || [ "$i" -ge $(( st + span )) ]; then
       BP="${BP}${CH[i]}"; BC="${BC}${FG[i]}${CH[i]}${R}"
     elif [ "$i" -eq "$st" ]; then
-      BP="${BP} ${tp} "; BC="${BC} ${tc} "
+      BP="${BP}${tp}"; BC="${BC}${tc}"
     fi
   done
   BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
@@ -411,23 +421,21 @@ build_left() {
   # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable; 4 is the machine, printed above them.
   # Each row's number sits in the middle of its bar.
   val "$ac_pct"
-  if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null || [ "$ac_pct" -ge 80 ]; then
-    boxed "${ctxk}k"; TP=$CP_; TC=$CC_
-  else TP="${ctxk}k"; TC="${VC/$ac_pct%/${ctxk}k}"; fi
+  [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null && VX=1
   row_label 0 Ctx
   bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 80)"
-  finish_bar "$TP" "$TC"; ap 0 "$BP" "$BC"
+  finish_bar "${ctxk}k" "$VK" "$VX"; ap 0 "$BP" "$BC"
   row_label 1 5h; val "$five_pct"
-  bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 1 "$BP" "$BC"
+  bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)"; finish_bar "$VR" "$VK" "$VX"; ap 1 "$BP" "$BC"
   row_label 2 7d; val "$seven_pct"
-  bar "$seven_pct" 100 "$(sevc "$seven_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 2 "$BP" "$BC"
+  bar "$seven_pct" 100 "$(sevc "$seven_pct" 50 80)"; finish_bar "$VR" "$VK" "$VX"; ap 2 "$BP" "$BC"
   if [ "$has_fable" = 1 ]; then
     row_label 3 Fable; val "$fable_pct"
-    bar "$fable_pct" 100 "$(sevc "$fable_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 3 "$BP" "$BC"
+    bar "$fable_pct" 100 "$(sevc "$fable_pct" 50 80)"; finish_bar "$VR" "$VK" "$VX"; ap 3 "$BP" "$BC"
   fi
   row_label 4 CPU; val "$cpu_pct"
   if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 50 80)"; fi
-  finish_bar "$VP" "$VC"; ap 4 "$BP" "$BC"
+  finish_bar "$VR" "$VK" "$VX"; ap 4 "$BP" "$BC"
 
   val "$ac_pct";       ACP=$VP; ACC=$VC
   val "$win_pct";      WNP=$VP; WNC=$VC
@@ -436,10 +444,10 @@ build_left() {
   # the stem dropping from the middle of the word, the times lined up under 1h49m.
   ap 1 "Resets: ${five_r}" "${LAB}Resets${R}${DOT}:${R} ${VAL}${five_r}${R}"
   if [ "$has_fable" = 1 ]; then
-    ap 2 "  ├─── ${seven_r}" "  ${LAB}├───${R} ${VAL}${seven_r}${R}"
-    ap 3 "  └─── ${fable_r}" "  ${LAB}└───${R} ${VAL}${fable_r}${R}"
+    ap 2 "  ├──── ${seven_r}" "  ${LAB}├────${R} ${VAL}${seven_r}${R}"
+    ap 3 "  └──── ${fable_r}" "  ${LAB}└────${R} ${VAL}${fable_r}${R}"
   else
-    ap 2 "  └─── ${seven_r}" "  ${LAB}└───${R} ${VAL}${seven_r}${R}"
+    ap 2 "  └──── ${seven_r}" "  ${LAB}└────${R} ${VAL}${seven_r}${R}"
     LP[3]=""; LC[3]=""
   fi
   val "$mem_pct"
