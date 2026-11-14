@@ -283,11 +283,11 @@ row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}";
 ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
 # One reading of the machine is shared by every session for 10 s, so they all
 # show the same numbers. The first session past that takes the next reading.
-machine="$HOME/.claude/cache/machine"
+machine="$HOME/.claude/cache/machine-v2"   # cpu, mem, cores, swap
 mage=999999; [ -f "$machine" ] && mage=$(( now - $(stat -f %m "$machine" 2>/dev/null || echo 0) ))
 cores=""
 if [ "$mage" -lt 10 ]; then
-  IFS=$'\t' read -r cpu_pct mem_pct cores < "$machine"
+  IFS=$'\t' read -r cpu_pct mem_pct cores swap_mb < "$machine"
 else
 # Per-core usage comes straight from the kernel's tick counters (host_processor_info),
 # as the change since the previous reading, about 10 s earlier. macOS has no
@@ -330,10 +330,13 @@ else
 fi
 # The kernel's memorystatus level is the share of memory it counts as free.
 mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
+# Swap in use, in MB. macOS grows the swap file as it needs, so the amount used
+# says more about memory pressure than a share of the file would.
+swap_mb=$(sysctl -n vm.swapusage 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "used") { v = $(i + 2); sub(/M$/, "", v); printf "%d", v } }')
 mkdir -p "${machine%/*}"
-printf '%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" > "$machine.$$" && mv -f "$machine.$$" "$machine"
+printf '%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${swap_mb:-0}" > "$machine.$$" && mv -f "$machine.$$" "$machine"
 fi
-: "${cpu_pct:=0}" "${mem_pct:=0}"
+: "${cpu_pct:=0}" "${mem_pct:=0}" "${swap_mb:=0}"
 have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
 # iSMC takes about a second to read the temperatures, so it runs in the
 # background every 10 s and leaves its reading in a cache, like the Fable limit.
@@ -389,26 +392,27 @@ build_left() {
   LP=(); LC=()
   # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable; 4 is the machine, printed above them.
   # Each row's number sits in the middle of its bar.
-  if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
+  val "$ac_pct"
+  if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null || [ "$ac_pct" -ge 80 ]; then
     TP="${ctxk}kꜝ"; TC="${CRIT}${ctxk}k${R}${BAD}ꜝ${R}"
-  else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
+  else TP="${ctxk}k"; TC="${VC/$ac_pct%/${ctxk}k}"; fi
   local mk=$(( ac_thr * BW / win ))
   row_label 0 Ctx
-  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" "$mk" $(( ac_thr * 3 / 4 * BW / win ))
+  bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 80)" "$mk" $(( ac_thr * 3 / 4 * BW / win ))
   finish_bar "$TP" "$TC"; ap 0 "$BP" "$BC"
   row_label 1 5h; val "$five_pct"
-  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)"; finish_bar "$VP" "$VC"; ap 1 "$BP" "$BC"
+  bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 1 "$BP" "$BC"
   row_label 2 7d; val "$seven_pct"
-  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; finish_bar "$VP" "$VC"; ap 2 "$BP" "$BC"
+  bar "$seven_pct" 100 "$(sevc "$seven_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 2 "$BP" "$BC"
   if [ "$has_fable" = 1 ]; then
     row_label 3 Fable; val "$fable_pct"
-    bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; finish_bar "$VP" "$VC"; ap 3 "$BP" "$BC"
+    bar "$fable_pct" 100 "$(sevc "$fable_pct" 50 80)"; finish_bar "$VP" "$VC"; ap 3 "$BP" "$BC"
   fi
   row_label 4 CPU; val "$cpu_pct"
-  if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; fi
+  if [ -n "$cores" ]; then core_chart; else bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 50 80)"; fi
   finish_bar "$VP" "$VC"; ap 4 "$BP" "$BC"
 
-  val "$ac_pct" 50 75; ACP=$VP; ACC=$VC
+  val "$ac_pct";       ACP=$VP; ACC=$VC
   val "$win_pct";      WNP=$VP; WNC=$VC
   ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DOT} · ${R}${LAB}Win${R} ${WNC}"
   # "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
@@ -423,6 +427,13 @@ build_left() {
   fi
   val "$mem_pct"
   ap 4 "Mem ${VP}" "${LAB}Mem${R} ${VC}"
+  # Swap steps up from 1 GB and is past its limit from 8 GB.
+  if [ "$swap_mb" -ge 1024 ]; then sw="$(( (swap_mb + 512) / 1024 ))G"; else sw="${swap_mb}M"; fi
+  [ "$swap_mb" -eq 0 ] && sw=0
+  if   [ "$swap_mb" -ge 8192 ]; then SWP="${sw}ꜝ"; SWC="${CRIT}${sw}${R}${BAD}ꜝ${R}"
+  elif [ "$swap_mb" -ge 1024 ]; then SWP=$sw; SWC="${WARN}${sw}${R}"
+  else SWP=$sw; SWC="${OK}${sw}${R}"; fi
+  ap 4 " · Swap ${SWP}" "${DOT} · ${R}${LAB}Swap${R} ${SWC}"
 }
 
 # With per-core numbers, the CPU's bar becomes a chart: each core a column that
@@ -434,7 +445,7 @@ core_chart() {
   for (( j = 0; j < BW; j++ )); do
     p=${c[$(( j * n / BW ))]}
     CH[j]=${SPARK[$(( p >= 100 ? 7 : p * 8 / 100 ))]}
-    if [ "$p" -ge 66 ]; then FG[j]=$BAR_BAD; elif [ "$p" -ge 33 ]; then FG[j]=$BAR_WARN; else FG[j]=$BAR_OK; fi
+    if [ "$p" -ge 80 ]; then FG[j]=$BAR_BAD; elif [ "$p" -ge 50 ]; then FG[j]=$BAR_WARN; else FG[j]=$BAR_OK; fi
   done
 }
 
