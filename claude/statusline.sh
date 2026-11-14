@@ -463,7 +463,7 @@ elif [ "$cwarm" = true ] && [ "$cexp" -gt 0 ] 2>/dev/null; then
   [ "$cache_pct" -lt 0 ] && cache_pct=0; [ "$cache_pct" -gt 100 ] && cache_pct=100
 fi
 
-BRP=(); BRC=(); GRP=(); GRC=()   # bright and detail parts per right row
+BRP=(); BRC=(); GRP=(); GRC=(); GKP=(); GKC=()   # bright and detail parts per right row
 # The cache is the model row's detail: the label is teal like the other details,
 # but the number keeps its limit color so an expired cache still stands out.
 # Effort takes the colors of Claude Code's /effort picker. Its animations tick
@@ -517,13 +517,15 @@ else
   BRP[1]="$sdir"; BRC[1]="${VAL}${sdir}${R}"; GRP[1]=""; GRC[1]=""
 fi
 BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R}"
+# The session's name goes last: it is the one part that can run long, so it is
+# what gets shortened when the row runs out of room. GKP/GKC keep the colored
+# part before it, so shortening the name doesn't wash out the cost and turn.
+BRP[3]="$sid8"; BRC[3]="${VAL}${sid8}${R}"
+GKP[3]="\$${sc} · Turn ${turns}"; GKC[3]="${VAL}\$${sc}${R}${DOT} · ${R}${DET}Turn${R} ${VAL}${turns}${R}"
+GRP[3]="${GKP[3]}"; GRC[3]="${GKC[3]}"
 if [ -n "$sname" ]; then
-  BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"
-  GRP[3]="$sid8 · $sname"; GRC[3]="${DET}${sid8}${R}${DOT} · ${R}${DET}${sname}${R}"
-else
-  BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
+  GRP[3]="${GRP[3]} · ${sname}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}${sname}${R}"
 fi
-GRP[3]="${GRP[3]} · Turn ${turns}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}Turn${R} ${VAL}${turns}${R}"
 # The machine row's right side: CPU temperature, then the fans as its detail.
 if [ "$have_ismc" = 0 ]; then
   BRP[4]="iSMC not available"; BRC[4]="${DET}iSMC not available${R}"; GRP[4]=""; GRC[4]=""
@@ -566,7 +568,13 @@ elif [ $(( Lmin + 3 + 8 + MW + 2 + 6 )) -le "$W" ]; then
   show=full; C=$(( W - Lmin - 3 )); room=$(( C - 8 - MW - 2 ))
   for i in 0 1 2 3 4; do
     if [ ${#GRP[$i]} -gt "$room" ]; then
-      GRP[$i]="${GRP[$i]:0:$(( room - 1 ))}…"; GRC[$i]="${DET}${GRP[$i]}${R}"
+      k=${GKP[$i]}
+      if [ -n "$k" ] && [ "$room" -gt $(( ${#k} + 4 )) ]; then
+        t=${GRP[$i]:${#k}}; t="${t:0:$(( room - ${#k} - 1 ))}…"
+        GRP[$i]="${k}${t}"; GRC[$i]="${GKC[$i]}${DET}${t}${R}"
+      else
+        GRP[$i]="${GRP[$i]:0:$(( room - 1 ))}…"; GRC[$i]="${DET}${GRP[$i]}${R}"
+      fi
     fi
   done
 elif [ $(( Lmin + 3 + CB )) -le "$W" ]; then show=bright; C=$CB
