@@ -5,11 +5,11 @@
 # itself to the terminal's width. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   CPU   ▕▅▅▅▄▄▄▄▄▄▃▃▃▁▁▁▁▁▁ 18% ▁▁▁▁▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▏ Mem 62% · Swap ▕ 18G ▏ │ Net     ↓1.1 MB/s ↑7.7 KB/s  Temp 54°
-#   Ctx   ▕▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱ 191k ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ AC 39% · Win 19%       │ Model   Opus 5.5/High  Cache ▕ 100% ▏
-#   5h    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱ 31% ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ Resets 1h39m           │ Git     main ↓7 ✚2     ~/git/personal/bluebird
-#   7d    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 90% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▏   ├─── 2d23h           │ K8s     admin@stable   default
-#   Fable ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 100% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏   └─── 2d23h           │ Session 1feba53f       $3.63 · Turn 185 · claude-00
+#   CPU:   ▕▅▅▅▅▅▅▄▄▄▃▃▃▁▁▁▁▁▁ 25% ▁▁▁▁▃▃▃▃▃▃▂▂▂▂▂▂▂▂▂▏ Mem: 62% · Swap: ▕ 17G ▏   │ Net:     ↓ 39 KB/s ↑ 13 KB/s  Temp: 52°
+#   Ctx:   ▕▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱ 191k ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ AC: 39% · Win: 19%         │ Model:   Opus 5.5/High        Cache: ▕ 100% ▏
+#   5h:    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱ 37% ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ Resets: 1h20m              │ Git:     main ↓7 ✚2           ~/git/personal/bluebird
+#   7d:    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 90% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▏   ├─── 2d23h               │ K8s:     admin@stable         default
+#   Fable: ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▕ 100% ▏ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏   └─── 2d23h               │ Session: 1feba53f             $3.63 · Turn: 190 · claude-00
 #
 # The ctx bar spans the model's whole window. AC is the share of the point where
 # auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -287,7 +287,7 @@ finish_bar() {
   BP="${BP}▏ "; BC="${BC}${DIM}▏${R} "
 }
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
-row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
+row_label() { ap "$1" "$(printf '%-7s' "$2:")" "${LAB}$2${R}${DOT}:${R}$(spaces $(( 6 - ${#2} )))"; }
 
 # --- The machine and Claude's activity ---
 # CPU, memory, swap and network come from macOS itself. Temperature needs iSMC (brew tap
@@ -431,10 +431,10 @@ build_left() {
 
   val "$ac_pct";       ACP=$VP; ACC=$VC
   val "$win_pct";      WNP=$VP; WNC=$VC
-  ap 0 "AC ${ACP} · Win ${WNP}" "${LAB}AC${R} ${ACC}${DOT} · ${R}${LAB}Win${R} ${WNC}"
+  ap 0 "AC: ${ACP} · Win: ${WNP}" "${LAB}AC${R}${DOT}:${R} ${ACC}${DOT} · ${R}${LAB}Win${R}${DOT}:${R} ${WNC}"
   # "Resets" is written once, on the 5h row; the weekly times hang off it tree-style,
   # the stem dropping from the middle of the word, the times lined up under 1h49m.
-  ap 1 "Resets ${five_r}" "${LAB}Resets${R} ${VAL}${five_r}${R}"
+  ap 1 "Resets: ${five_r}" "${LAB}Resets${R}${DOT}:${R} ${VAL}${five_r}${R}"
   if [ "$has_fable" = 1 ]; then
     ap 2 "  ├─── ${seven_r}" "  ${LAB}├───${R} ${VAL}${seven_r}${R}"
     ap 3 "  └─── ${fable_r}" "  ${LAB}└───${R} ${VAL}${fable_r}${R}"
@@ -443,14 +443,14 @@ build_left() {
     LP[3]=""; LC[3]=""
   fi
   val "$mem_pct"
-  ap 4 "Mem ${VP}" "${LAB}Mem${R} ${VC}"
+  ap 4 "Mem: ${VP}" "${LAB}Mem${R}${DOT}:${R} ${VC}"
   # Swap steps up from 1 GB and is past its limit from 8 GB.
   if [ "$swap_mb" -ge 1024 ]; then sw="$(( (swap_mb + 512) / 1024 ))G"; else sw="${swap_mb}M"; fi
   [ "$swap_mb" -eq 0 ] && sw=0
   if   [ "$swap_mb" -ge 8192 ]; then boxed "$sw"; SWP=$CP_; SWC=$CC_
   elif [ "$swap_mb" -ge 1024 ]; then SWP=$sw; SWC="${WARN}${sw}${R}"
   else SWP=$sw; SWC="${OK}${sw}${R}"; fi
-  ap 4 " · Swap ${SWP}" "${DOT} · ${R}${LAB}Swap${R} ${SWC}"
+  ap 4 " · Swap: ${SWP}" "${DOT} · ${R}${LAB}Swap${R}${DOT}:${R} ${SWC}"
 }
 
 # With per-core numbers, the CPU's bar becomes a chart: each core a column that
@@ -528,7 +528,7 @@ BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${BAR_WARN}/${R}$(effort_
 GRP[0]=""; GRC[0]=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
-  GRP[0]="Cache ${VP}"; GRC[0]="${DET}Cache${R} ${VC}"
+  GRP[0]="Cache: ${VP}"; GRC[0]="${DET}Cache${R}${DOT}:${R} ${VC}"
 fi
 
 if [ "$in_git" = 1 ]; then
@@ -551,7 +551,7 @@ BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R
 BRP[3]="$sid8"; BRC[3]="${VAL}${sid8}${R}"
 graded "${sc%.*}" 50 100 "\$${sc}"; CSP=$GP_; CSC=$GC_
 graded "$turns" 150 300 "$turns"; TNP=$GP_; TNC=$GC_
-GKP[3]="${CSP} · Turn ${TNP}"; GKC[3]="${CSC}${DOT} · ${R}${DET}Turn${R} ${TNC}"
+GKP[3]="${CSP} · Turn: ${TNP}"; GKC[3]="${CSC}${DOT} · ${R}${DET}Turn${R}${DOT}:${R} ${TNC}"
 GRP[3]="${GKP[3]}"; GRC[3]="${GKC[3]}"
 if [ -n "$sname" ]; then
   GRP[3]="${GRP[3]} · ${sname}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}${sname}${R}"
@@ -573,7 +573,7 @@ else
   elif [ "$cpu_temp" -ge 85 ]; then boxed "${cpu_temp}°"; TMP=$CP_; TMC=$CC_
   elif [ "$cpu_temp" -ge 70 ]; then TMP="${cpu_temp}°"; TMC="${WARN}${cpu_temp}°${R}"
   else TMP="${cpu_temp}°"; TMC="${OK}${cpu_temp}°${R}"; fi
-  GRP[4]="Temp ${TMP}"; GRC[4]="${DET}Temp${R} ${TMC}"
+  GRP[4]="Temp: ${TMP}"; GRC[4]="${DET}Temp${R}${DOT}:${R} ${TMC}"
 fi
 RLAB=(Model "$RL1" K8s Session Net)
 
@@ -593,24 +593,28 @@ W=$(( cols - 5 ))
 BW=$ncpu; build_left
 Bmin=0; CB=0; CF=0
 for i in 0 1 2 3 4; do
-  b=$(( ${#LP[$i]} - BW - 9 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
+  b=$(( ${#LP[$i]} - BW - 10 )); [ "$b" -gt "$Bmin" ] && Bmin=$b
   b=${#BRP[$i]}; [ "$b" -gt "$CB" ] && CB=$b
   [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
 done
-CB=$(( CB + 8 )); CF=$(( CF + 8 ))
+CB=$(( CB + 9 )); CF=$(( CF + 9 ))
 # The narrowest left side: the bars at one character per core, the values unpadded.
-Lmin=$(( ncpu + 9 + Bmin ))
+Lmin=$(( ncpu + 10 + Bmin ))
 if   [ $(( Lmin + 3 + CF )) -le "$W" ]; then show=full; C=$CF
-elif [ $(( Lmin + 3 + 8 + MW + 2 + 6 )) -le "$W" ]; then
+elif [ $(( Lmin + 3 + 9 + MW + 2 + 6 )) -le "$W" ]; then
   # The details get whatever the right side has left; a long one ends in …,
-  # in plain teal, since its colors can't be cut part way through.
-  show=full; C=$(( W - Lmin - 3 )); room=$(( C - 8 - MW - 2 ))
+  # in plain teal, since its colors can't be cut part way through. Cache and
+  # Temp are single values, so they drop out whole rather than lose digits.
+  show=full; C=$(( W - Lmin - 3 )); room=$(( C - 9 - MW - 2 ))
   for i in 0 1 2 3 4; do
     if [ ${#GRP[$i]} -gt "$room" ]; then
       k=${GKP[$i]}
-      if [ -n "$k" ] && [ "$room" -gt $(( ${#k} + 4 )) ]; then
+      if [ "$i" = 0 ] || [ "$i" = 4 ]; then GRP[$i]=""; GRC[$i]=""
+      elif [ -n "$k" ] && [ "$room" -gt $(( ${#k} + 4 )) ]; then
         t=${GRP[$i]:${#k}}; t="${t:0:$(( room - ${#k} - 1 ))}…"
         GRP[$i]="${k}${t}"; GRC[$i]="${GKC[$i]}${DET}${t}${R}"
+      elif [ -n "$k" ] && [ "$room" -ge "${#k}" ]; then
+        GRP[$i]=$k; GRC[$i]=${GKC[$i]}
       else
         GRP[$i]="${GRP[$i]:0:$(( room - 1 ))}…"; GRC[$i]="${DET}${GRP[$i]}${R}"
       fi
@@ -620,11 +624,11 @@ elif [ $(( Lmin + 3 + CB )) -le "$W" ]; then show=bright; C=$CB
 else show=left; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
 per=4
-while [ "$per" -gt 1 ] && [ $(( per * ncpu + 9 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
+while [ "$per" -gt 1 ] && [ $(( per * ncpu + 10 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
 BW=$(( per * ncpu )); build_left
 # The values column pads out to the divider by 3 spare columns at most; any
 # other leftover goes at the end of the line, where empty space doesn't show.
-A=$(( BW + 9 ))
+A=$(( BW + 10 ))
 L=$avail; [ $(( A + Bmin + 3 )) -lt "$L" ] && L=$(( A + Bmin + 3 ))
 [ "$show" = left ] && L=0
 for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
@@ -633,7 +637,7 @@ for i in 4 0 1 2 3; do
   [ "$n" -gt 0 ] && printf '\n'; n=$(( n + 1 ))
   if [ "$show" = left ]; then printf '%s' "${LC[$i]}"; continue; fi
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
-  printf '%s' "${DIV} │ ${R}${LAB}$(printf '%-8s' "${RLAB[$i]}")${R}${BRC[$i]}"
+  printf '%s' "${DIV} │ ${R}${LAB}${RLAB[$i]}${R}${DOT}:${R}$(spaces $(( 8 - ${#RLAB[$i]} )))${BRC[$i]}"
   if [ "$show" = full ] && [ -n "${GRP[$i]}" ]; then
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
