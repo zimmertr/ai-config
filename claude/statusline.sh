@@ -5,11 +5,11 @@
 # itself to the terminal's width. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   CPU:     ▕ ▅▅▅▄▄▄▃▃▃▃▃▃▁▁▁▁  17%   ▁▁▁▂▂▂▂▂▂▂▂▂▁▁▁▁▁ ▏ Mem: 60% · Swap:▕ 16G ▏ │ Net:     ↓5.3 KB/s ↑2.7 KB/s  Temp: 50°
-#   Context: ▕ ▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win:   19%   │ Model:   Opus 5.5/High        Cache: ▕ 100% ▏
-#   5-hour:  ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰  43%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 17m             │ Git:     main ↓7 ✚2           ~/git/personal/bluebird
-#   Week:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 91%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d22h           │ K8s:     admin@stable         default
-#   Fable:   ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d22h           │ Session: 1feba53f             $3.63 · Turn: 211 · claude-00
+#   CPU:     ▕ ▄▄▄▄▄▄▄▃▃▃▂▂▂▁▁▁▁▁  14%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 38% · GPU: 12% │ Net:     ↓ 23 KB/s ↑ 37 KB/s  Temp:   48°
+#   Context: ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19% │ Model:   Opus 5.5/High        Cache:▕ 100% ▏
+#   5-hour:  ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   1%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h56m       │ Git:     main ↓7 ✚2           ~/git/personal/bluebird
+#   Week:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h       │ K8s:     docker-desktop       default
+#   Fable:   ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h       │ Session: 1feba53f             $3.63 · Turn: 217 · claude-00
 #
 # The Context bar spans the model's whole window. AC is the share of the point where
 # auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -302,17 +302,17 @@ sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2"
 row_label() { ap "$1" "$(printf '%-9s' "$2:")" "${LAB}$2${R}${DOT}:${R}$(spaces $(( 8 - ${#2} )))"; }
 
 # --- The machine and Claude's activity ---
-# CPU, memory, swap and network come from macOS itself. Temperature needs iSMC (brew tap
+# CPU, memory, GPU and network come from macOS itself. Temperature needs iSMC (brew tap
 # dkorunic/tap && brew install ismc), which reads the sensors without sudo; when
 # it's missing the Temp slot says so rather than failing the whole status line.
 ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
 # One reading of the machine is shared by every session for 10 s, so they all
 # show the same numbers. The first session past that takes the next reading.
-machine="$HOME/.claude/cache/machine-v3"   # cpu, mem, cores, swap rate, net in, net out
+machine="$HOME/.claude/cache/machine-v4"   # cpu, mem, cores, gpu, net in, net out
 mage=999999; [ -f "$machine" ] && mage=$(( now - $(stat -f %m "$machine" 2>/dev/null || echo 0) ))
 cores=""
 if [ "$mage" -lt 10 ]; then
-  IFS=$'\t' read -r cpu_pct mem_pct cores swap_bps rx_bps tx_bps < "$machine"
+  IFS=$'\t' read -r cpu_pct mem_pct cores gpu_pct rx_bps tx_bps < "$machine"
 else
 # Per-core usage comes straight from the kernel's tick counters (host_processor_info),
 # as the change since the previous reading, about 10 s earlier. macOS has no
@@ -355,22 +355,9 @@ else
 fi
 # The kernel's memorystatus level is the share of memory it counts as free.
 mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
-# Swap is shown as activity: bytes moved in and out of swap per second since the
-# previous reading. The amount in swap says little, since pages an idle app
-# pushed out days ago stay there until something touches them; swapping right
-# now is what means memory is short.
-swapc="$HOME/.claude/cache/swap-pages"
-read -r sin sout <<EOF
-$(vm_stat 2>/dev/null | awk '/^Swapins:/ { i = $2 } /^Swapouts:/ { o = $2 } END { printf "%d %d", i, o }')
-EOF
-pgsz=$(pagesize 2>/dev/null || echo 16384)
-swap_bps=0
-if [ -f "$swapc" ] && read -r pt psin psout < "$swapc" && [ "$now" -gt "${pt:-0}" ]; then
-  swap_bps=$(awk -v a="$sin" -v b="$psin" -v c="$sout" -v d="$psout" -v z="$pgsz" -v t=$(( now - pt )) \
-    'BEGIN { n = (a - b) + (c - d); printf "%.0f", (n > 0 ? n * z / t : 0) }')
-fi
-mkdir -p "${swapc%/*}"
-printf '%s %s %s\n' "$now" "${sin:-0}" "${sout:-0}" > "$swapc.$$" && mv -f "$swapc.$$" "$swapc"
+# The GPU's utilization comes from its IOAccelerator entry in the I/O Registry,
+# readable without sudo.
+gpu_pct=$(ioreg -r -d 1 -c IOAccelerator 2>/dev/null | grep -o '"Device Utilization %"=[0-9]*' | head -1 | cut -d= -f2)
 # Network: bytes in and out across the en* interfaces (Wi-Fi, Ethernet), as the
 # rate since the previous reading. Loopback and VPN tunnels are left out, since
 # their traffic also crosses a real interface and would be counted twice.
@@ -385,9 +372,9 @@ if [ -f "$netc" ] && read -r pt prx ptx < "$netc" && [ "$now" -gt "${pt:-0}" ]; 
   tx_bps=$(awk -v a="$tx" -v b="$ptx" -v t=$(( now - pt )) 'BEGIN { d = a - b; printf "%.0f", (d > 0 ? d / t : 0) }')
 fi
 printf '%s %s %s\n' "$now" "${rx:-0}" "${tx:-0}" > "$netc.$$" && mv -f "$netc.$$" "$netc"
-printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${swap_bps:-0}" "$rx_bps" "$tx_bps" > "$machine.$$" && mv -f "$machine.$$" "$machine"
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${gpu_pct:-0}" "$rx_bps" "$tx_bps" > "$machine.$$" && mv -f "$machine.$$" "$machine"
 fi
-: "${cpu_pct:=0}" "${mem_pct:=0}" "${swap_bps:=0}" "${rx_bps:=0}" "${tx_bps:=0}"
+: "${cpu_pct:=0}" "${mem_pct:=0}" "${gpu_pct:=0}" "${rx_bps:=0}" "${tx_bps:=0}"
 have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
 # iSMC takes about a second to read the temperatures, so it runs in the
 # background every 10 s and leaves its reading in a cache, like the Fable limit.
@@ -436,7 +423,6 @@ build_left() {
   # Left rows: 0 Context, 1 5-hour, 2 Week, 3 Fable; 4 is the machine, printed above them.
   # Each row's number sits in the middle of its bar.
   val "$ac_pct"
-  [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null && VX=1
   row_label 0 Context
   bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 80)"
   finish_bar "${ctxk}k" "$VK" "$VX"; ap 0 "$BP" "$BC"
@@ -462,22 +448,18 @@ build_left() {
     ap 2 "  └──── ${seven_r}" "  ${DOT}└────${R} ${VAL}${seven_r}${R}"
     LP[3]=""; LC[3]=""
   fi
-  # AC · Win and Mem · Swap form a grid: labels pad to the widest in their
+  # AC · Win and Mem · GPU form a grid: labels pad to the widest in their
   # column, values too, and when either value in a column is boxed the other
   # gets blank cells where the box's edges go, so the numbers line up.
   val "$ac_pct";  a1=$VR; k1=$VK; x1=$VX
   val "$win_pct"; a2=$VR; k2=$VK; x2=$VX
   val "$mem_pct"; m1=$VR; n1=$VK; y1=$VX
-  # Swapping steps up from 1 MB/s and is past its limit from 10 MB/s.
-  # Left-aligned here, with the padding after it, so it starts under Win's value
-  # while keeping its width as the number changes.
-  m2=$(rate "$swap_bps"); m2="${m2#"${m2%%[! ]*}"}"; m2="$m2$(spaces $(( 8 - ${#m2} )))"
-  y2=""; n2=$OK; [ "$swap_bps" -ge 1000000 ] && n2=$WARN; [ "$swap_bps" -ge 10000000 ] && { n2=$CRIT; y2=1; }
+  val "$gpu_pct"; m2=$VR; n2=$VK; y2=$VX
   local w1=${#a1} w2=${#a2} b1="" b2=""
   [ ${#m1} -gt "$w1" ] && w1=${#m1}; [ ${#m2} -gt "$w2" ] && w2=${#m2}
   [ -n "$x1$y1" ] && b1=1; [ -n "$x2$y2" ] && b2=1
   grid_row 0 AC Win "$a1" "$k1" "$x1" "$a2" "$k2" "$x2"
-  grid_row 4 Mem Swap "$m1" "$n1" "$y1" "$m2" "$n2" "$y2"
+  grid_row 4 Mem GPU "$m1" "$n1" "$y1" "$m2" "$n2" "$y2"
 }
 # cell TEXT COLOR PAST_LIMIT WIDTH COLUMN_BOXED LAST -> CP_/CC_: one grid value.
 cell() {
@@ -496,7 +478,7 @@ grid_row() {
   [ -n "$b1" ] && s1=""; [ -n "$b2" ] && s2=""
   p="$(printf '%-4s' "$2:")$s1"; c="${LAB}$2${R}${DOT}:${R}$(spaces $(( 3 - ${#2} )))$s1"
   cell "$4" "$5" "$6" "$w1" "$b1"; p="$p$CP_ · "; c="$c$CC_${DOT} · ${R}"
-  p="$p$(printf '%-5s' "$3:")$s2"; c="$c${LAB}$3${R}${DOT}:${R}$(spaces $(( 4 - ${#3} )))$s2"
+  p="$p$(printf '%-4s' "$3:")$s2"; c="$c${LAB}$3${R}${DOT}:${R}$(spaces $(( 3 - ${#3} )))$s2"
   cell "$7" "$8" "$9" "$w2" "$b2" last; p="$p$CP_"; c="$c$CC_"
   ap "$1" "$p" "$c"
 }
