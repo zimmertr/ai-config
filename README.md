@@ -6,7 +6,7 @@ My Claude Code setup: the global `CLAUDE.md` every session loads, my `settings.j
 
 - `claude/CLAUDE.md`: the rules that apply in every repo.
 - `claude/settings.json`: my Claude Code settings.
-- `claude/statusline.sh`: my status line. A bar each for context and my usage limits, then the model and effort with how long the prompt cache has left, the git branch and directory, the Kubernetes context, and the session's cost, short ID and name. Every session shares the newest usage limits any of them has seen.
+- `claude/statusline.py`: my status line. I wanted to see at a glance how close I am to my limits, so it's five rows in three columns. First come the charts: each CPU core, then a bar each for context and my 5 hour, weekly and Fable limits. Next to them sit the numbers that go with them: how close auto-compact is, the session's cost and turns, when each limit resets and its pace (where it lands at the reset if I keep going like this). Last come the names: the model and effort, the session's short ID and name, the directory, the git branch and the Kubernetes context. Anything past its limit turns coral and gets a box around it, and every session shares the newest usage limits any of them has seen. It only needs the `python3` from Apple's Command Line Tools.
 - `claude/skills/`: my own skills. `initialize-project` starts a new project to my standards, and `create-issue` files GitHub issues the way I like them.
 
 ## Setup
@@ -17,7 +17,7 @@ My Claude Code setup: the global `CLAUDE.md` every session loads, my `settings.j
 git clone https://github.com/zimmertr/ai-config.git ~/git/personal/ai-config
 ln -s ~/git/personal/ai-config/claude/CLAUDE.md ~/.claude/CLAUDE.md
 ln -s ~/git/personal/ai-config/claude/settings.json ~/.claude/settings.json
-ln -s ~/git/personal/ai-config/claude/statusline.sh ~/.claude/statusline.sh
+ln -s ~/git/personal/ai-config/claude/statusline.py ~/.claude/statusline.py
 for s in ~/git/personal/ai-config/claude/skills/*/; do ln -s "${s%/}" ~/.claude/skills/; done
 ```
 
