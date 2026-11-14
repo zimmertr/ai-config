@@ -308,11 +308,11 @@ row_label() { ap "$1" "$(printf '%-9s' "$2:")" "${LAB}$2${R}${DOT}:${R}$(spaces 
 ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
 # One reading of the machine is shared by every session for 10 s, so they all
 # show the same numbers. The first session past that takes the next reading.
-machine="$HOME/.claude/cache/machine-v2"   # cpu, mem, cores, swap, net in, net out
+machine="$HOME/.claude/cache/machine-v3"   # cpu, mem, cores, swap rate, net in, net out
 mage=999999; [ -f "$machine" ] && mage=$(( now - $(stat -f %m "$machine" 2>/dev/null || echo 0) ))
 cores=""
 if [ "$mage" -lt 10 ]; then
-  IFS=$'\t' read -r cpu_pct mem_pct cores swap_mb rx_bps tx_bps < "$machine"
+  IFS=$'\t' read -r cpu_pct mem_pct cores swap_bps rx_bps tx_bps < "$machine"
 else
 # Per-core usage comes straight from the kernel's tick counters (host_processor_info),
 # as the change since the previous reading, about 10 s earlier. macOS has no
@@ -355,9 +355,22 @@ else
 fi
 # The kernel's memorystatus level is the share of memory it counts as free.
 mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
-# Swap in use, in MB. macOS grows the swap file as it needs, so the amount used
-# says more about memory pressure than a share of the file would.
-swap_mb=$(sysctl -n vm.swapusage 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "used") { v = $(i + 2); sub(/M$/, "", v); printf "%d", v } }')
+# Swap is shown as activity: bytes moved in and out of swap per second since the
+# previous reading. The amount in swap says little, since pages an idle app
+# pushed out days ago stay there until something touches them; swapping right
+# now is what means memory is short.
+swapc="$HOME/.claude/cache/swap-pages"
+read -r sin sout <<EOF
+$(vm_stat 2>/dev/null | awk '/^Swapins:/ { i = $2 } /^Swapouts:/ { o = $2 } END { printf "%d %d", i, o }')
+EOF
+pgsz=$(pagesize 2>/dev/null || echo 16384)
+swap_bps=0
+if [ -f "$swapc" ] && read -r pt psin psout < "$swapc" && [ "$now" -gt "${pt:-0}" ]; then
+  swap_bps=$(awk -v a="$sin" -v b="$psin" -v c="$sout" -v d="$psout" -v z="$pgsz" -v t=$(( now - pt )) \
+    'BEGIN { n = (a - b) + (c - d); printf "%.0f", (n > 0 ? n * z / t : 0) }')
+fi
+mkdir -p "${swapc%/*}"
+printf '%s %s %s\n' "$now" "${sin:-0}" "${sout:-0}" > "$swapc.$$" && mv -f "$swapc.$$" "$swapc"
 # Network: bytes in and out across the en* interfaces (Wi-Fi, Ethernet), as the
 # rate since the previous reading. Loopback and VPN tunnels are left out, since
 # their traffic also crosses a real interface and would be counted twice.
@@ -372,9 +385,9 @@ if [ -f "$netc" ] && read -r pt prx ptx < "$netc" && [ "$now" -gt "${pt:-0}" ]; 
   tx_bps=$(awk -v a="$tx" -v b="$ptx" -v t=$(( now - pt )) 'BEGIN { d = a - b; printf "%.0f", (d > 0 ? d / t : 0) }')
 fi
 printf '%s %s %s\n' "$now" "${rx:-0}" "${tx:-0}" > "$netc.$$" && mv -f "$netc.$$" "$netc"
-printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${swap_mb:-0}" "$rx_bps" "$tx_bps" > "$machine.$$" && mv -f "$machine.$$" "$machine"
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$cpu_pct" "$mem_pct" "$cores" "${swap_bps:-0}" "$rx_bps" "$tx_bps" > "$machine.$$" && mv -f "$machine.$$" "$machine"
 fi
-: "${cpu_pct:=0}" "${mem_pct:=0}" "${swap_mb:=0}" "${rx_bps:=0}" "${tx_bps:=0}"
+: "${cpu_pct:=0}" "${mem_pct:=0}" "${swap_bps:=0}" "${rx_bps:=0}" "${tx_bps:=0}"
 have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
 # iSMC takes about a second to read the temperatures, so it runs in the
 # background every 10 s and leaves its reading in a cache, like the Fable limit.
@@ -455,10 +468,11 @@ build_left() {
   val "$ac_pct";  a1=$VR; k1=$VK; x1=$VX
   val "$win_pct"; a2=$VR; k2=$VK; x2=$VX
   val "$mem_pct"; m1=$VR; n1=$VK; y1=$VX
-  # Swap steps up from 1 GB and is past its limit from 8 GB.
-  if [ "$swap_mb" -ge 1024 ]; then m2="$(( (swap_mb + 512) / 1024 ))G"; else m2="${swap_mb}M"; fi
-  [ "$swap_mb" -eq 0 ] && m2=0
-  y2=""; n2=$OK; [ "$swap_mb" -ge 1024 ] && n2=$WARN; [ "$swap_mb" -ge 8192 ] && { n2=$CRIT; y2=1; }
+  # Swapping steps up from 1 MB/s and is past its limit from 10 MB/s.
+  # Left-aligned here, with the padding after it, so it starts under Win's value
+  # while keeping its width as the number changes.
+  m2=$(rate "$swap_bps"); m2="${m2#"${m2%%[! ]*}"}"; m2="$m2$(spaces $(( 8 - ${#m2} )))"
+  y2=""; n2=$OK; [ "$swap_bps" -ge 1000000 ] && n2=$WARN; [ "$swap_bps" -ge 10000000 ] && { n2=$CRIT; y2=1; }
   local w1=${#a1} w2=${#a2} b1="" b2=""
   [ ${#m1} -gt "$w1" ] && w1=${#m1}; [ ${#m2} -gt "$w2" ] && w2=${#m2}
   [ -n "$x1$y1" ] && b1=1; [ -n "$x2$y2" ] && b2=1
