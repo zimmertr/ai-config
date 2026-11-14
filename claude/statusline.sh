@@ -589,11 +589,11 @@ RLAB=(Model "$RL1" K8s Session Net)
 # The details start in one column: pad each bright part to the widest one that
 # has a detail after it.
 MW=0
-# A short terminal (under 30 rows, from LINES) leaves out the machine row, so
+# A short terminal (under 20 rows, from LINES) leaves out the machine row, so
 # the status line takes four rows instead of five. Everything below measures
 # and prints only the rows in ROWS, in the order they print.
 ROWS="4 0 1 2 3"
-[ "${LINES:-0}" -gt 0 ] 2>/dev/null && [ "$LINES" -lt 30 ] && ROWS="0 1 2 3"
+[ "${LINES:-0}" -gt 0 ] 2>/dev/null && [ "$LINES" -lt 20 ] && ROWS="0 1 2 3"
 for i in $ROWS; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
 # --- Width ---
