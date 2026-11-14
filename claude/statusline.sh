@@ -59,6 +59,7 @@ EOF
 : "${win_pct:=0}" "${ctx_tok:=0}" "${five_pct:=0}" "${five_reset:=0}" "${seven_pct:=0}" "${seven_reset:=0}" "${cost:=0}" "${win:=0}" "${cwarm:=none}" "${cexp:=0}"
 
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+tpath=$(echo "$input" | jq -r '.transcript_path // empty')
 dir="${cwd/#$HOME/~}"
 
 # The short session name is not in the stdin payload: Claude Code's messaging
@@ -259,6 +260,53 @@ bar() {
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
+# --- The machine and Claude's activity ---
+# CPU and memory come from macOS itself. Temperature and fans need iSMC (brew tap
+# dkorunic/tap && brew install ismc), which reads the sensors without sudo; when
+# it's missing the Temp slot says so rather than failing the whole status line.
+ncpu=$(sysctl -n hw.ncpu 2>/dev/null); [ "${ncpu:-0}" -gt 0 ] 2>/dev/null || ncpu=1
+# ps reports each process's recent share of one core; summed over all cores.
+cpu_pct=$(ps -A -o %cpu= | awk -v n="$ncpu" '{ s += $1 } END { v = int(s / n + 0.5); print (v > 100 ? 100 : v) }')
+mem_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo 0); mem_gb=$(( mem_bytes / 1073741824 ))
+# The kernel's memorystatus level is the share of memory it counts as free.
+mem_free=$(sysctl -n kern.memorystatus_level 2>/dev/null); mem_pct=$(( 100 - ${mem_free:-100} ))
+mem_used=$(awk -v t="$mem_gb" -v p="$mem_pct" 'BEGIN { printf "%.1f", t * p / 100 }')
+have_ismc=0; command -v ismc >/dev/null 2>&1 && have_ismc=1
+cpu_temp=""; fans=""
+
+# Agents: subagent logs under this session that were written in the last minute.
+agents=0
+if [ -n "$tpath" ] && [ -d "${tpath%.jsonl}/subagents" ]; then
+  agents=$(find "${tpath%.jsonl}/subagents" -name 'agent-*.jsonl' -mtime -60s 2>/dev/null | wc -l | tr -d ' ')
+fi
+# Turns: each prompt you send gets its own promptId in the transcript. A long
+# session's transcript runs to tens of MB and a full scan costs ~0.2 s, so the
+# count is kept per session and only the bytes added since the last run are read.
+turns=0
+if [ -f "$tpath" ]; then
+  tc="$HOME/.claude/cache/turns-${sid}"
+  size=$(stat -f %z "$tpath" 2>/dev/null || echo 0)
+  off=0; cnt=0; last=""
+  [ -f "$tc" ] && read -r off cnt last < "$tc"
+  [ "${size:-0}" -lt "${off:-0}" ] 2>/dev/null && { off=0; cnt=0; last=""; }
+  if [ "$size" -gt "$off" ] 2>/dev/null; then
+    read -r add last <<EOF
+$(tail -c +$(( off + 1 )) "$tpath" | grep -o '"promptId":"[^"]*"' | awk -v prev="$last" '
+  $0 != prev && !seen[$0]++ { n++ } { l = $0 } END { print n + 0, (l == "" ? prev : l) }')
+EOF
+    cnt=$(( cnt + ${add:-0} ))
+    mkdir -p "${tc%/*}"; printf '%s %s %s\n' "$size" "$cnt" "$last" > "$tc"
+  fi
+  turns=$cnt
+fi
+# Sessions: Claude Code keeps ~/.claude/sessions/<pid>.json per running process.
+sessions=0
+for f in "$HOME"/.claude/sessions/[0-9]*.json; do
+  [ -e "$f" ] || continue
+  pid=${f##*/}; pid=${pid%.json}
+  kill -0 "$pid" 2>/dev/null && sessions=$(( sessions + 1 ))
+done
+
 has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 
 # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
@@ -267,6 +315,8 @@ bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" $(( ac_thr * BW / win )) $(( ac_
 row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "$BC"
 row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
 [ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
+# Row 4 is the machine, printed above the others.
+row_label 4 CPU; bar "$cpu_pct" 100 "$(sevc "$cpu_pct" 33 66)"; ap 4 "$BP" "$BC"
 
 # The first value on each row is padded so the words after them form one column.
 if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
@@ -275,8 +325,9 @@ else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
 val "$five_pct";  HP=$VP; HC=$VC
 val "$seven_pct"; SP=$VP; SC=$VC
 FP=""; [ "$has_fable" = 1 ] && { val "$fable_pct"; FP=$VP; FC=$VC; }
+val "$cpu_pct";   CP=$VP; CC=$VC
 FW=0
-for v in "$TP" "$HP" "$SP" "$FP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
+for v in "$TP" "$HP" "$SP" "$FP" "$CP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
 FW=$(( FW + 1 ))
 first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))"; }
 
@@ -297,6 +348,12 @@ else
   ap 2 "  └─── ${seven_r}" "  ${LAB}└───${R} ${VAL}${seven_r}${R}"
   LP[3]=""; LC[3]=""
 fi
+first 4 "$CP" "$CC"
+# Memory in use out of the total; the used figure takes the limit colors.
+if   [ "$mem_pct" -ge 80 ]; then MUC="${CRIT}${mem_used}${R}${BAD}ꜝ${R}"; MUP="${mem_used}ꜝ"
+elif [ "$mem_pct" -ge 50 ]; then MUC="${WARN}${mem_used}${R}"; MUP=$mem_used
+else MUC="${OK}${mem_used}${R}"; MUP=$mem_used; fi
+ap 4 "Mem ${MUP}/${mem_gb}G" "${LAB}Mem${R} ${MUC}${DET}/${mem_gb}G${R}"
 
 # --- Right rows: a mauve label, a bright part, then a slate teal detail ---
 # Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad.
@@ -362,6 +419,12 @@ if [ -n "$cache_pct" ]; then
   val "$cache_pct"
   GRP[0]="Cache ${VP}"; GRC[0]="${DET}Cache${R} ${VC}"
 fi
+if [ "$agents" -gt 0 ]; then
+  [ -n "${GRP[0]}" ] && { GRP[0]="${GRP[0]} · "; GRC[0]="${GRC[0]}${DOT} · ${R}"; }
+  GRP[0]="${GRP[0]}${agents} agents"; GRC[0]="${GRC[0]}${DET}${agents} agents${R}"
+fi
+[ -n "${GRP[0]}" ] && { GRP[0]="${GRP[0]} · "; GRC[0]="${GRC[0]}${DOT} · ${R}"; }
+GRP[0]="${GRP[0]}${sessions} sessions"; GRC[0]="${GRC[0]}${DET}${sessions} sessions${R}"
 if [ "$in_git" = 1 ]; then
   RL1=Git
   BRP[1]="$branch"; BRC[1]="${VAL}${branch}${R}"
@@ -382,18 +445,30 @@ if [ -n "$sname" ]; then
 else
   BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
 fi
-RLAB=(Model "$RL1" K8s Session)
+GRP[3]="${GRP[3]} · turn ${turns}"; GRC[3]="${GRC[3]}${DOT} · ${R}${DET}turn ${turns}${R}"
+# The machine row's right side: CPU temperature, then the fans as its detail.
+if [ "$have_ismc" = 0 ]; then
+  BRP[4]="iSMC not available"; BRC[4]="${DET}iSMC not available${R}"; GRP[4]=""; GRC[4]=""
+else
+  if   [ -z "$cpu_temp" ]; then BRP[4]="-"; BRC[4]="${DET}-${R}"
+  elif [ "$cpu_temp" -ge 85 ]; then BRP[4]="${cpu_temp}°ꜝ"; BRC[4]="${CRIT}${cpu_temp}°${R}${BAD}ꜝ${R}"
+  elif [ "$cpu_temp" -ge 70 ]; then BRP[4]="${cpu_temp}°"; BRC[4]="${WARN}${cpu_temp}°${R}"
+  else BRP[4]="${cpu_temp}°"; BRC[4]="${OK}${cpu_temp}°${R}"; fi
+  GRP[4]="${fans:-fans -}"; GRC[4]="${DET}${fans:-fans -}${R}"
+fi
+RLAB=(Model "$RL1" K8s Session Temp)
 
 # The details start in one column: pad each bright part to the widest one that
 # has a detail after it.
 MW=0
-for i in 0 1 2 3; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
+for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
 L=0
-for i in 0 1 2 3; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
+for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
 
-for i in 0 1 2 3; do
-  [ "$i" -gt 0 ] && printf '\n'
+n=0
+for i in 4 0 1 2 3; do
+  [ "$n" -gt 0 ] && printf '\n'; n=$(( n + 1 ))
   printf '%s%s' "${LC[$i]}" "$(spaces $(( L - ${#LP[$i]} )))"
   printf '%s' "${DIV} │ ${R}${LAB}$(printf '%-8s' "${RLAB[$i]}")${R}${BRC[$i]}"
   if [ -n "${GRP[$i]}" ]; then
