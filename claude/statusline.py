@@ -6,11 +6,11 @@ top, then a bar for context and each usage limit on the left, and what the
 session is working with on the right. The layout sizes itself to the terminal.
 Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▕ ▅▅▅▅▅▅▅▄▄▄▃▃▃▁▁▁▁▁  16%   ▁▁▁▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 51% · GPU: 9%  · Temp:   50°    │ Net:   ↓306 KB/s ↑ 16 KB/s
-  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19% · Cache:▕ 100% ▏ │ Model: Opus 5.5/High
-  5h:    ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  19%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 3h55m       · Cost:   $3.63  │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
-  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 94%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱ ▏   ├──── 2d20h       · Turn:   231    │ K8s:   admin@stable  default
-  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d20h                        │ ID:    1feba53f      claude-00
+  CPU:   ▕ ▃▃▃▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ Mem: 32% · GPU: 0%  · Temp:   45°    │ Net:   ↓5.7 KB/s ↑4.5 KB/s
+  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ AC:  39% · Win: 19%                  │ Model: Opus 5.5/High
+  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m       · Cache:▕ 100% ▏ │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
+  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h       · Cost:   $3.63  │ K8s:   admin@stable  default
+  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h       · Turn:   220    │ ID:    1feba53f      claude-00
 
 The Ctx bar spans the model's whole window. AC is the share of the point where
 auto-compact fires, Win the share of the whole window. With auto-compact on,
@@ -262,8 +262,9 @@ def build_left(st, bw, with_third=True):
         rows[2] = rows[2] + P("  ") + S(DOT, "└────") + P(" ") + S(VAL, st.seven_r)
         rows[3] = T()
 
-    # A third column runs down beside them: Temp, Cache, then the session's cost
-    # and turns beside the resets. Each is present only when it has a value.
+    # A third column runs down beside them: Temp on the machine row, then Cache,
+    # Cost and Turn beside the resets, leaving the Ctx row's slot empty. Each is
+    # present only when it has a value.
     third = {}
     if st.have_ismc:
         if st.cpu_temp is None:
@@ -271,9 +272,9 @@ def build_left(st, bw, with_third=True):
         else:
             third[4] = ("Temp", graded_cell(st.cpu_temp, 70, 85, "%d°" % st.cpu_temp))
     if st.cache_pct is not None:
-        third[0] = ("Cache", val(st.cache_pct))
-    third[1] = ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))
-    third[2] = ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))
+        third[1] = ("Cache", val(st.cache_pct))
+    third[2] = ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))
+    third[3] = ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))
     if not with_third:
         third = {}
 
@@ -293,7 +294,9 @@ def build_left(st, bw, with_third=True):
     vw3 = max([len(v[1]) for _, v in third.values()] or [0])
     bx3 = any(v[3] for _, v in third.values())
     for i, (lab, v) in third.items():
-        rows[i] = (rows[i] + P(sp(start - len(rows[i]))) + S(DOT, " · ") + S(LAB, lab) + S(DOT, ":")
+        # A row with nothing before the column (no Fable bar) gets no dot.
+        dot = S(DOT, " · ") if len(rows[i]) else P("   ")
+        rows[i] = (rows[i] + P(sp(start - len(rows[i]))) + dot + S(LAB, lab) + S(DOT, ":")
                    + P(sp(lw3 - len(lab)) + ("" if bx3 else " ")) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
     return rows
 
