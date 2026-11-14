@@ -1,0 +1,26 @@
+name: Test
+
+# pytest over tests/, on Python 3.9: macOS's own python3 is 3.9, and that is
+# what runs the status line on a Mac without Homebrew's. pytest 8.4 is the last
+# release that supports 3.9.
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.9-slim@sha256:2d97f6910b16bd338d3060f261f53f144965f755599aab1acda1e13cf1731b1b # 3.9-slim
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: pip install --no-cache-dir --disable-pip-version-check pytest==8.4.2
+      - run: python -m pytest -q tests

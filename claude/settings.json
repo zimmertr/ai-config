@@ -66,7 +66,7 @@
   "enableWorkflows": true,
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline.sh",
+    "command": "python3 ~/.claude/statusline.py",
     "padding": 0,
     "refreshInterval": 5
   },
