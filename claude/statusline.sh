@@ -236,9 +236,10 @@ val() {
 }
 
 # --- Bars ---
-# 25 segments of 4%. ▰ sits inside its cell, unlike a block, so segments stay
+# 28 segments, two per core of this 14-core Mac, so the CPU chart gives every
+# core an equal width. ▰ sits inside its cell, unlike a block, so segments stay
 # apart from each other and from the bar on the next row.
-BW=25
+BW=28
 # bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> BP/BC, in whole segments.
 bar() {
   local num=$1 den=$2 col=$3 mk=${4:--1} zs=${5:--1} i fill s
