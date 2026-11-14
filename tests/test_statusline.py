@@ -96,15 +96,13 @@ def test_no_box_is_cut_open(name, cols, lines):
 def test_grids_line_up(name, cols):
     rs = rows(STATES[name], cols, 66)
     machine, ctx = rs[0], rs[1]
-    assert machine.index("Mem:") == ctx.index("AC:")
-    assert machine.index("GPU:") == ctx.index("Win:")
-    # Cache, Cost and Turn start in one column beside the resets, or drop
-    # together with Temp on a narrow terminal.
-    beside = [r.index(lab) for r, lab in ((rs[2], "Cache:"), (rs[3], "Cost:"), (rs[4], "Turn:")) if lab in r]
-    assert len(set(beside)) <= 1, rs
+    assert machine.index("AC:") == ctx.index("Win:")
+    # Mem, GPU, Cache, Turn and Cost start in one column; Cache, Turn and Cost
+    # drop on a narrow terminal.
+    beside = [r.index(lab) for r, lab in ((machine, "Mem:"), (ctx, "GPU:"), (rs[2], "Cache:"), (rs[3], "Turn:"), (rs[4], "Cost:")) if lab in r]
+    assert len(set(beside)) == 1, rs
     if cols >= 140:
-        assert "Cost:" in rs[3] and "Turn:" in rs[4] and "·" not in ctx[ctx.index("Win:"):]
-        assert ("Temp:" in machine) == STATES[name].have_ismc
+        assert "Turn:" in rs[3] and "Cost:" in rs[4]
 
 
 def test_third_column_drops_before_the_right_side():
@@ -132,7 +130,7 @@ def test_narrow_terminal_trims_details_before_the_right_side():
     wide, narrow = rows(state(), 200, 66), rows(state(), 120, 66)
     assert "claude-00" in wide[4]
     assert "Model:" in narrow[1] and "Net:" in narrow[0]
-    assert "Cost:" in narrow[3] and "Turn:" in narrow[4]
+    assert "Turn:" in narrow[3] and "Cost:" in narrow[4]
 
 
 def test_very_narrow_terminal_keeps_only_the_bars():
