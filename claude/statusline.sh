@@ -587,8 +587,8 @@ for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${
 # its own padding. The right side keeps its natural width; the bars take what is
 # left, in whole characters per core (1 to 4), and the values column keeps at
 # most 3 spare. On a narrower terminal the bars win over the teal details: they
-# hold at two characters per core while the details shorten, then drop, then
-# the whole right side drops. Only past that do the bars go to one per core.
+# hold at two characters per core while the details shorten, then drop. Then
+# the bars go to one per core, and last the whole right side drops.
 cols=${COLUMNS:-145}; [ "$cols" -gt 0 ] 2>/dev/null || cols=145
 W=$(( cols - 5 ))
 BW=$ncpu; build_left
@@ -599,8 +599,8 @@ for i in 0 1 2 3 4; do
   [ -n "${GRP[$i]}" ] && b=$(( MW + 2 + ${#GRP[$i]} )); [ "$b" -gt "$CF" ] && CF=$b
 done
 CB=$(( CB + 9 )); CF=$(( CF + 9 ))
-# The left side with the bars at two characters per core, values unpadded.
-L2=$(( 2 * ncpu + 10 + Bmin ))
+# The left side with the bars at one and two characters per core, values unpadded.
+L1=$(( ncpu + 10 + Bmin )); L2=$(( 2 * ncpu + 10 + Bmin ))
 pmax=4
 if   [ $(( L2 + 3 + CF )) -le "$W" ]; then show=full; C=$CF
 elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
@@ -623,9 +623,10 @@ elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
     fi
   done
 elif [ $(( L2 + 3 + CB )) -le "$W" ]; then show=bright; pmax=2; C=$CB
-else show=left; pmax=2; C=0; fi
+elif [ $(( L1 + 3 + CB )) -le "$W" ]; then show=bright; pmax=1; C=$CB
+else show=left; pmax=1; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
-# Once the details start to give way, the bars stop at two per core, so a
+# Each step down caps the bars at the width they had in the step before, so a
 # narrower window never shows wider bars.
 per=$pmax
 while [ "$per" -gt 1 ] && [ $(( per * ncpu + 10 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
