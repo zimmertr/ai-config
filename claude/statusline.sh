@@ -626,11 +626,17 @@ elif [ $(( L2 + 3 + CB )) -le "$W" ]; then show=bright; pmax=2; C=$CB
 elif [ $(( L1 + 3 + CB )) -le "$W" ]; then show=bright; pmax=1; C=$CB
 else show=left; pmax=1; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
-# Each step down caps the bars at the width they had in the step before, so a
-# narrower window never shows wider bars.
 per=$pmax
 while [ "$per" -gt 1 ] && [ $(( per * ncpu + 10 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
-BW=$(( per * ncpu )); build_left
+BW=$(( per * ncpu ))
+# With the details gone there's nothing else to give spare columns to, so the
+# bars take them all, up to four per core. The CPU chart then gives some cores
+# an extra column, spread evenly, instead of every core the same width.
+if [ "$show" = bright ]; then
+  b=$(( avail - 10 - Bmin )); [ "$b" -gt $(( 4 * ncpu )) ] && b=$(( 4 * ncpu ))
+  [ "$b" -gt "$BW" ] && BW=$b
+fi
+build_left
 # The values column pads out to the divider by 3 spare columns at most; any
 # other leftover goes at the end of the line, where empty space doesn't show.
 A=$(( BW + 10 ))
