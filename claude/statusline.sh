@@ -20,8 +20,8 @@
 # cache's life has gone since the last message.
 #
 # One color per job: mauve labels a value, white is a value, slate teal is the
-# minor detail that ends a row, lavender draws the dots, colons, arrows and the
-# resets tree, icy blue draws
+# minor detail that ends a row, lavender draws the dots, colons, slashes, arrows
+# and the resets tree, icy blue draws
 # the dividers, and mint / gold / coral is a value with a limit: mint under 50%,
 # gold under 80%, and from 80% bold coral, boxed by coral edges with a line above
 # and below. Ctx's token count takes AC's color. The bars fill in quieter tones
@@ -214,7 +214,7 @@ LAB=$'\033[38;5;139m'   # mauve: labels
 DIV=$'\033[38;5;153m'   # icy pale blue: the dividers and the compaction mark
 VAL=$'\033[97m'         # white: values
 DET=$'\033[38;5;66m'    # slate teal: the minor detail that ends a row
-DOT=$'\033[38;5;103m'   # lavender: dots, colons, arrows and the resets tree
+DOT=$'\033[38;5;103m'   # lavender: dots, colons, slashes, arrows and the resets tree
 DIM=$'\033[38;5;243m'   # dim grey: the bar's edges
 OK=$'\033[38;5;151m'; WARN=$'\033[38;5;222m'; BAD=$'\033[38;5;210m'   # mint, gold, coral
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
@@ -558,7 +558,9 @@ effort_colored() {
     *) printf '%s%s%s' "$VAL" "$w" "$R" ;;
   esac
 }
-BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${BAR_WARN}/${R}$(effort_colored "$effort")"
+# slashed TEXT COLOR -> TEXT in COLOR with every / in lavender, like the dots.
+slashed() { printf '%s' "$2${1//\//${R}${DOT}/${R}$2}${R}"; }
+BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${DOT}/${R}$(effort_colored "$effort")"
 GRP[0]=""; GRC[0]=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
@@ -567,16 +569,16 @@ fi
 
 if [ "$in_git" = 1 ]; then
   RL1=Git
-  BRP[1]="$branch"; BRC[1]="${VAL}${branch}${R}"
+  BRP[1]="$branch"; BRC[1]=$(slashed "$branch" "$VAL")
   [ "${ahead:-0}"  -gt 0 ] && { BRP[1]="${BRP[1]} ↑${ahead}";  BRC[1]="${BRC[1]} ${OK}↑${ahead}${R}"; }
   [ "${behind:-0}" -gt 0 ] && { BRP[1]="${BRP[1]} ↓${behind}"; BRC[1]="${BRC[1]} ${BAD}↓${behind}${R}"; }
   if [ "${dirty:-0}" -gt 0 ]; then BRP[1]="${BRP[1]} ✚${dirty}"; BRC[1]="${BRC[1]} ${WARN}✚${dirty}${R}"
   else BRP[1]="${BRP[1]} ✓"; BRC[1]="${BRC[1]} ${OK}✓${R}"; fi
-  GRP[1]="$sdir"; GRC[1]="${DET}${sdir}${R}"
+  GRP[1]="$sdir"; GRC[1]=$(slashed "$sdir" "$DET")
 else
   # Outside a repo the folder is the row's only item, so it stays bright.
   RL1=Dir
-  BRP[1]="$sdir"; BRC[1]="${VAL}${sdir}${R}"; GRP[1]=""; GRC[1]=""
+  BRP[1]="$sdir"; BRC[1]=$(slashed "$sdir" "$VAL"); GRP[1]=""; GRC[1]=""
 fi
 BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R}"
 # The session's name goes last: it is the one part that can run long, so it is
@@ -659,7 +661,7 @@ elif [ $(( L2 + 3 + 9 + MW + 2 + 16 )) -le "$W" ]; then
       elif [ -n "$k" ] && [ "$room" -ge "${#k}" ]; then
         GRP[$i]=$k; GRC[$i]=${GKC[$i]}
       else
-        GRP[$i]="${GRP[$i]:0:$(( room - 1 ))}…"; GRC[$i]="${DET}${GRP[$i]}${R}"
+        GRP[$i]="${GRP[$i]:0:$(( room - 1 ))}…"; GRC[$i]=$(slashed "${GRP[$i]}" "$DET")
       fi
     fi
   done
