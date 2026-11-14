@@ -204,7 +204,9 @@ val() {
 sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$WARN"; else printf '%s' "$OK"; fi; }
 
 # --- Bars ---
-BW=18
+# Ten segments of 10%, each SEG_W cells wide. A full segment ends in ▉, whose
+# thin gap splits it from the next, so a full bar reads as ticks, not one block.
+SEGS=10; SEG_W=3; BW=$(( SEGS * SEG_W ))
 EIGHTHS=(' ' '▏' '▎' '▍' '▌' '▋' '▊' '▉' '█')
 # bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> BP/BC, filled in eighths of a cell.
 bar() {
@@ -214,7 +216,9 @@ bar() {
   BP="▕"; BC="${DIM}▕${R}"
   for (( i = 0; i < BW; i++ )); do
     lv=$(( total - i * 8 )); [ "$lv" -lt 0 ] && lv=0; [ "$lv" -gt 8 ] && lv=8
-    if   [ "$lv" -gt 0 ];  then s="${EIGHTHS[$lv]}"; BC="${BC}${col}${s}"
+    if   [ "$lv" -gt 0 ];  then
+      s="${EIGHTHS[$lv]}"; [ "$lv" -eq 8 ] && [ $(( (i + 1) % SEG_W )) -eq 0 ] && s='▉'
+      BC="${BC}${col}${s}"
     elif [ "$i" -eq "$mk" ]; then s='┃'; BC="${BC}${DIV}${s}"
     elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then s='░'; BC="${BC}${ZONE}${s}"
     else s='░'; BC="${BC}${EMPTY}${s}"; fi
