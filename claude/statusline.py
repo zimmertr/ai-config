@@ -594,28 +594,61 @@ def ac_threshold(win, model_id, env, settings):
     return t
 
 
-def merge_limits(old_text, five, seven):
+def merge_limits(old_text, five, seven, seen=None):
     """Each session's payload only refreshes its limits when that session gets an
     API reply, so an idle session would show stale numbers. The limits are
     account-wide, so every session pools what it has seen in one file and shows
-    the newest. A later reset time is a newer window, and within one window usage
-    only climbs. -> (merged JSON text, five, seven) or None when the file is
-    unreadable."""
-    def newer(a, b):
-        ar, br_ = a.get("reset") or 0, b.get("reset") or 0
-        if br_ > ar or (br_ == ar and (b.get("pct") or 0) > (a.get("pct") or 0)):
-            return b
-        return a
+    the newest. A later reset time is a newer window. Within one window the
+    newest is the reading that changed last: SEEN is what this session's payload
+    held on its last run, as (five, seven), or None on its first. A reading that
+    differs from it has just come from the API, so it replaces the pooled one
+    even when it is lower, which is what using a limit reset does. An unchanged
+    reading may be stale, so it never does. -> (merged JSON text, five, seven)
+    or None when the file is unreadable."""
+    def newest(pooled, mine, last):
+        if mine[1] > num(pooled.get("reset")) or (mine[1] and last is not None and mine != last):
+            return {"pct": mine[0], "reset": mine[1]}
+        return pooled
 
     try:
         old = json.loads(old_text)
-        f = newer(old.get("five") or {}, {"pct": five[0], "reset": five[1]})
-        s = newer(old.get("seven") or {}, {"pct": seven[0], "reset": seven[1]})
+        f = newest(old.get("five") or {}, five, seen and seen[0])
+        s = newest(old.get("seven") or {}, seven, seen and seen[1])
     except (ValueError, AttributeError, TypeError):
         return None
     merged = {"five": f, "seven": s}
     return (json.dumps(merged, separators=(",", ":"), ensure_ascii=False),
             (num(f.get("pct")), num(f.get("reset"))), (num(s.get("pct")), num(s.get("reset"))))
+
+
+def pool_limits(sid, five, seven):
+    """Runs merge_limits against the shared file and this session's last
+    reading, and writes back whichever changed. -> (five, seven) to show."""
+    lc = os.path.join(CACHE, "usage-limits.json")
+    sc = os.path.join(CACHE, "limits-" + sid)
+    try:
+        with open(lc) as f:
+            old = f.read()
+    except OSError:
+        old = ""
+    seen = None
+    try:
+        with open(sc) as f:
+            p = [num(x) for x in f.read().split()]
+        if len(p) == 4:
+            seen = ((p[0], p[1]), (p[2], p[3]))
+    except OSError:
+        pass
+    m = merge_limits(old or "{}", five, seven, seen)
+    if not m:
+        return five, seven
+    # The shared file goes first: if the run dies between the two writes, the
+    # reading still counts as changed on the next one.
+    if m[0] != (old or "{}"):
+        write_atomic(lc, m[0])
+    if (five, seven) != seen:
+        write_atomic(sc, "%d %d %d %d\n" % (five + seven))
+    return m[1], m[2]
 
 
 def count_turns(data, prev):
@@ -859,17 +892,7 @@ def collect(payload, env=os.environ):
 
     now = int(time.time())
     st.now = now
-    lc = os.path.join(CACHE, "usage-limits.json")
-    try:
-        with open(lc) as f:
-            old = f.read()
-    except OSError:
-        old = ""
-    m = merge_limits(old or "{}", five, seven)
-    if m:
-        text, five, seven = m
-        if text != (old or "{}"):
-            write_atomic(lc, text)
+    five, seven = pool_limits(sid, five, seven)
     # A window whose reset has passed starts again from zero.
     if 0 < five[1] <= now:
         five = (0, 0)

@@ -220,9 +220,40 @@ def test_merge_limits_keeps_the_newest():
     old = json.dumps({"five": {"pct": 30, "reset": 100}, "seven": {"pct": 60, "reset": 500}})
     text, five, seven = sl.merge_limits(old, (10, 200), (50, 500))
     assert five == (10, 200)   # a later reset is a newer window
-    assert seven == (60, 500)  # within one window usage only climbs
+    assert seven == (60, 500)  # a first reading in the same window may be stale
     assert json.loads(text) == {"five": {"pct": 10, "reset": 200}, "seven": {"pct": 60, "reset": 500}}
     assert " " not in text
+
+
+def test_merge_limits_takes_a_changed_reading_even_when_lower():
+    # Using a limit reset drops the usage and keeps the window's end.
+    old = json.dumps({"five": {"pct": 2, "reset": 100}, "seven": {"pct": 99, "reset": 500}})
+    _, five, seven = sl.merge_limits(old, (2, 100), (8, 500), seen=((2, 100), (99, 500)))
+    assert five == (2, 100) and seven == (8, 500)
+
+
+def test_merge_limits_ignores_an_unchanged_reading():
+    # An idle session still holds the 99% from before the reset.
+    old = json.dumps({"five": {"pct": 2, "reset": 100}, "seven": {"pct": 8, "reset": 500}})
+    _, _, seven = sl.merge_limits(old, (2, 100), (99, 500), seen=((2, 100), (99, 500)))
+    assert seven == (8, 500)
+
+
+def test_merge_limits_keeps_the_pooled_reading_when_the_payload_has_none():
+    old = json.dumps({"five": {"pct": 2, "reset": 100}, "seven": {"pct": 8, "reset": 500}})
+    _, five, seven = sl.merge_limits(old, (0, 0), (0, 0), seen=((2, 100), (8, 500)))
+    assert five == (2, 100) and seven == (8, 500)
+
+
+def test_pool_limits_remembers_what_each_session_saw(tmp_path, monkeypatch):
+    monkeypatch.setattr(sl, "CACHE", str(tmp_path / "cache"))
+    assert sl.pool_limits("idle", (2, 100), (99, 500)) == ((2, 100), (99, 500))
+    assert sl.pool_limits("busy", (2, 100), (99, 500)) == ((2, 100), (99, 500))
+    # The busy session hears from the API after a limit reset. The idle one
+    # redraws with what it had, and shows the busy one's number.
+    assert sl.pool_limits("busy", (3, 100), (8, 500)) == ((3, 100), (8, 500))
+    assert sl.pool_limits("idle", (2, 100), (99, 500)) == ((3, 100), (8, 500))
+    assert sl.pool_limits("busy", (3, 100), (8, 500)) == ((3, 100), (8, 500))
 
 
 def test_merge_limits_starts_from_nothing():
