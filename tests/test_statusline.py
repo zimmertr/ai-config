@@ -32,10 +32,10 @@ def state(**kw):
         ctx_tok=191_093, win=1_000_000, ac_pct=39, win_pct=19,
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
-        cpu_pct=10, mem_pct=32, gpu_pct=0, cores=[30, 20, 10, 5, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8], ncpu=14,
+        cpu_pct=10, cores=[30, 20, 10, 5, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8], ncpu=14,
         in_git=True, branch="main", ahead=0, behind=7, dirty=2, sdir="~/git/personal/bluebird",
         kube="admin@stable", ns="default", sid8="1feba53f", cost="3.63", turns=220, sname="claude-00",
-        rx_bps=5_700, tx_bps=4_500, have_ismc=True, cpu_temp=45, cache_pct=100,
+        five_pace=111, seven_pace=164, fable_pace=167,
     )
     for k, v in kw.items():
         setattr(st, k, v)
@@ -46,101 +46,113 @@ def state(**kw):
 # branch and session name, outside a repo, and each optional part missing.
 STATES = {
     "typical": state(),
-    "all boxed": state(ac_pct=120, win_pct=95, five_pct=88, seven_pct=100, cpu_pct=99, mem_pct=91, gpu_pct=85,
-                       cost="140.00", turns=400, cpu_temp=90, cache_pct=100, cores=[100] * 14),
+    "all boxed": state(ac_pct=120, win_pct=95, five_pct=88, seven_pct=100, cpu_pct=99,
+                       cost="140.00", turns=400, five_pace=160, seven_pace=190, fable_pace=200, cores=[100] * 14),
     "long names": state(branch="feat/a-very-long-branch-nam…", sname="a-session-name-that-runs-long",
                         sdir="~/.claude/tmp/…/scratchpad", kube="arn:aws:eks:us-west-2:cluster/x"),
     "no git": state(in_git=False, sdir="/"),
     "no fable": state(fable_pct=None),
-    "no ismc": state(have_ismc=False, cpu_temp=None),
-    "no temp yet": state(cpu_temp=None),
-    "no cache": state(cache_pct=None),
+    "no pace yet": state(five_pace=None, seven_pace=None, fable_pace=None),
     "no cores": state(cores=[]),
-    "no namespace": state(kube="none", ns=""),
+    "no namespace": state(kube="", ns=""),
     "8 cores": state(ncpu=8, cores=[50, 40, 30, 20, 10, 0, 90, 80]),
     "xhigh": state(effort="Xhigh", lvl="xhigh"),
     "max": state(effort="Max", lvl="max"),
 }
 
-SIZES = [(c, l) for c in range(60, 221, 7) for l in (15, 66)]
+SIZES = list(range(60, 221, 7))
 
 
-def rows(st, cols, lines):
-    return [plain(r) for r in sl.render(st, cols, lines, NOW).split("\n")]
+def rows(st, cols):
+    return [plain(r) for r in sl.render(st, cols, NOW).split("\n")]
 
 
 # --- Layout ---
 @pytest.mark.parametrize("name", STATES)
-@pytest.mark.parametrize("cols,lines", SIZES)
-def test_every_line_fits(name, cols, lines):
-    for r in rows(STATES[name], cols, lines):
+@pytest.mark.parametrize("cols", SIZES)
+def test_every_line_fits(name, cols):
+    for r in rows(STATES[name], cols):
         assert len(r) <= cols - 5, r
 
 
 @pytest.mark.parametrize("name", STATES)
-@pytest.mark.parametrize("cols,lines", SIZES)
-def test_divider_in_one_column(name, cols, lines):
-    at = {r.find(" │ ") for r in rows(STATES[name], cols, lines)}
+@pytest.mark.parametrize("cols", SIZES)
+def test_divider_in_one_column(name, cols):
+    at = {r.find(" │ ") for r in rows(STATES[name], cols)}
     assert len(at) == 1
 
 
 @pytest.mark.parametrize("name", STATES)
-@pytest.mark.parametrize("cols,lines", SIZES)
-def test_no_box_is_cut_open(name, cols, lines):
-    for r in rows(STATES[name], cols, lines):
+@pytest.mark.parametrize("cols", SIZES)
+def test_no_box_is_cut_open(name, cols):
+    for r in rows(STATES[name], cols):
         assert r.count("▕") == r.count("▏"), r
 
 
 @pytest.mark.parametrize("name", STATES)
-@pytest.mark.parametrize("cols", [c for c, _ in SIZES])
+@pytest.mark.parametrize("cols", SIZES)
 def test_grids_line_up(name, cols):
-    rs = rows(STATES[name], cols, 66)
+    rs = rows(STATES[name], cols)
     machine, ctx = rs[0], rs[1]
     assert machine.index("AC:") == ctx.index("Win:")
-    # Mem, GPU, Cache, Turn and Cost start in one column; Cache, Turn and Cost
-    # drop on a narrow terminal.
-    beside = [r.index(lab) for r, lab in ((machine, "Mem:"), (ctx, "GPU:"), (rs[2], "Cache:"), (rs[3], "Turn:"), (rs[4], "Cost:")) if lab in r]
-    assert len(set(beside)) == 1, rs
+    # Cost and Turn start in one column, the 𝐏 tree's branches start there too,
+    # and their numbers line up; the paces drop on a narrow terminal.
+    heads = [(machine, machine.index("Cost:")), (ctx, ctx.index("Turn:"))]
+    if "𝐏" in rs[2]:
+        for r in rs[2:]:
+            g = [m.start() for m in re.finditer("[𝐏├└]", r)]
+            if "𝐏" in r or len(g) > 1:
+                heads.append((r, g[-1]))
+    assert len({h for _, h in heads}) == 1, rs
+    nums = {next(j for j in range(h + 4, len(r)) if r[j] in "0123456789$–") for r, h in heads}
+    assert len(nums) == 1, rs
     if cols >= 140:
-        assert "Turn:" in rs[3] and "Cost:" in rs[4]
+        assert "𝐏" in rs[2]
 
 
 def test_third_column_drops_before_the_right_side():
-    rs = rows(state(), 81, 66)
-    assert "Cache:" not in rs[2] and " │ Git:" in rs[2]
+    rs = rows(state(), 80)
+    assert "𝐏" not in rs[2] and " │ Dir:" in rs[2]
 
 
 @pytest.mark.parametrize("name", STATES)
 def test_bars_share_a_width(name):
-    # A bar's closing edge is the only ▏ drawn in its dim grey.
-    edge = sl.DIM + "▏"
+    # The divider after each bar is the first │ drawn in icy blue.
+    edge = sl.DIV + "│"
     # Without Fable its row has no bar.
-    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, 66, NOW).split("\n") if edge in r}
+    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, NOW).split("\n") if edge in r}
     assert len(ends) == 1
 
 
-def test_short_terminal_drops_the_machine_row():
-    assert len(rows(state(), 145, 66)) == 5
-    rs = rows(state(), 145, 19)
-    assert len(rs) == 4 and rs[0].startswith("Ctx:")
-    assert len(rows(state(), 145, 20)) == 5
+def test_always_five_rows():
+    """Model is on the top row, so a short terminal keeps every row."""
+    assert len(rows(state(), 145)) == 5
+
+
+def test_folder_has_its_own_row():
+    rs = rows(state(), 160)
+    labels = [r.split(" │ ")[-1].split(":")[0] for r in rs]
+    assert labels == ["Model", "ID", "Dir", "Git", "K8s"]
+    assert "Dir:   ~/git/personal/bluebird" in rs[2] and "bluebird" not in rs[3]
+    assert rows(state(in_git=False), 160)[3].endswith("Git:   –")
+    assert "K8s:   –" in rows(state(kube=""), 160)[4]
 
 
 def test_narrow_terminal_trims_details_before_the_right_side():
-    wide, narrow = rows(state(), 200, 66), rows(state(), 120, 66)
-    assert "claude-00" in wide[4]
-    assert "Model:" in narrow[1] and "Net:" in narrow[0]
-    assert "Turn:" in narrow[3] and "Cost:" in narrow[4]
+    wide, narrow = rows(state(), 200), rows(state(), 120)
+    assert "claude-00" in wide[1]
+    assert "Model:" in narrow[0] and "Dir:" in narrow[2]
+    assert "𝐏" in narrow[2] and "Cost:" in narrow[0] and "Turn:" in narrow[1]
 
 
 def test_very_narrow_terminal_keeps_only_the_bars():
-    rs = rows(state(ncpu=24, cores=[]), 50, 66)
-    assert all(" │ " not in r for r in rs)
+    rs = rows(state(ncpu=24, cores=[]), 50)
+    assert all("Model:" not in r and "Dir:" not in r for r in rs)
 
 
 def test_number_sits_in_the_middle_of_its_bar():
-    r = rows(state(), 160, 66)[2]  # 5h
-    bar = r[r.index("▕") + 2:r.index(" ▏")]
+    r = rows(state(), 160)[2]  # 5h
+    bar = r[7:r.index(" │ ")]
     i = bar.index("2%")
     assert abs(i - (len(bar) - i - 2)) <= 3
 
@@ -152,14 +164,6 @@ def test_effort_keeps_its_word():
 
 
 # --- Helpers ---
-@pytest.mark.parametrize("b,want", [
-    (0, "0 B/s"), (840, "840 B/s"), (999, "999 B/s"), (999.5, "1.0 KB/s"), (12_400, "12 KB/s"),
-    (9_940, "9.9 KB/s"), (9_950, "10 KB/s"), (1_234_567, "1.2 MB/s"), (5e12, "5000 GB/s"),
-])
-def test_rate(b, want):
-    assert sl.rate(b) == "%8s" % want
-
-
 @pytest.mark.parametrize("d,want", [
     (None, "-"), (-5, "now"), (59, "0m"), (61, "1m"), (3600, "1h0m"), (3 * 3600 + 7 * 60, "3h7m"),
     (172_799, "47h59m"), (172_800, "2d0h"), (3 * 86400 + 5 * 3600, "3d5h"),
@@ -200,6 +204,16 @@ def test_to_tokens(v, bare, want):
 ])
 def test_ac_threshold(win, mid, env, settings, want):
     assert sl.ac_threshold(win, mid, env, settings) == want
+
+
+@pytest.mark.parametrize("pct,left,want", [
+    (49, 10_040, 111),      # 49% used, 44% of the window gone
+    (10, 9_000, 20),        # half the window gone
+    (5, 18_000 - 600, None),  # 10 minutes in: too early to say
+    (0, 0, None),           # no reset known
+])
+def test_pace(pct, left, want):
+    assert sl.pace(pct, NOW + left if left else 0, 5 * 3600, NOW) == want
 
 
 def test_merge_limits_keeps_the_newest():

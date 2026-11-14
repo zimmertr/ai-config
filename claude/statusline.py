@@ -1,32 +1,34 @@
 #!/usr/bin/env python3
 """Claude Code status line.
 
-Reads the session-context JSON on stdin and prints five rows: the machine on
-top, then a bar for context and each usage limit on the left, and what the
-session is working with on the right. The layout sizes itself to the terminal.
-Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
+Reads the session-context JSON on stdin and prints five rows in three sections:
+a bar for the CPU, the context and each usage limit; the numbers that go with
+them; and the names of what the session works with. The layout sizes itself to
+the terminal. Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▕ ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▏ AC:  39%      · Mem:    32%    │ Net:   ↓5.7 KB/s ↑4.5 KB/s
-  Ctx:   ▕ ▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Win: 19%      · GPU:    0%     │ Model: Opus 5.5/High
-  5h:    ▕ ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ ▏ Resets: 4h46m · Cache:▕ 100% ▏ │ Git:   main ↓7 ✚2    ~/git/personal/bluebird
-  7d:    ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ ▏   ├──── 2d21h · Turn:   220    │ K8s:   admin@stable  default
-  Fable: ▕ ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ ▏   └──── 2d21h · Cost:   $3.63  │ ID:    1feba53f      claude-00
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     │ Model: Opus 5.5/High
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f      claude-00
+  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
+  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable  default
 
-The Ctx bar spans the model's whole window. AC is the share of the point where
-auto-compact fires, Win the share of the whole window. With auto-compact on,
-Win can never pass the AC point, so it only matters when compaction is off
-(DISABLE_AUTO_COMPACT=1). The Fable row is hidden until the Fable limit has been
-fetched. The Git row reads Dir outside a repo; ↑/↓ track the branch's own
-upstream, ✚ counts changed files. Cache is how much of the prompt cache's life
-has gone since the last message.
+The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
+window. AC is the share of the point where auto-compact fires, Win the share of
+the whole window. With auto-compact on, Win can never pass the AC point, so it
+only matters when compaction is off (DISABLE_AUTO_COMPACT=1). The Fable row
+stays empty until the Fable limit has been fetched. Each limit's row ends in two
+trees: ↻ when it resets, and 𝐏 its pace, where it lands at the reset if use
+keeps its rate so far (shown once 30 minutes of a 5h window, or 12 hours of a
+week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
+counts changed files; outside a repo, and without a K8s context, a row shows –.
 
 One color per job: mauve labels a value, white is a value, slate teal is the
-minor detail that ends a row, lavender draws the dots, colons, slashes, arrows
-and the resets tree, icy blue draws the dividers, and mint / gold / coral is a
-value with a limit: mint under 50%, gold under 80%, and from 80% bold coral,
-boxed by coral edges with a line above and below. Ctx's token count takes AC's
-color. The bars fill in quieter tones with the same steps: steel blue, soft
-violet, orchid.
+minor detail that ends a row, lavender draws the colons, slashes and trees, icy
+blue draws the dividers, and mint / gold / coral is a value with a limit: mint
+under 50%, gold under 80%, and from 80% bold coral, boxed by coral edges with a
+line above and below. Ctx's token count takes AC's color. The bars fill in
+quieter tones with the same steps: steel blue, soft violet, orchid. The Model
+row is bold, as the right side's lead.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -55,10 +57,10 @@ R = E + "[0m"
 LAB = E + "[38;5;139m"    # mauve: labels
 DIV = E + "[38;5;153m"    # icy pale blue: the dividers
 VAL = E + "[97m"          # white: values
+VALB = E + "[1;97m"       # bold white: the model, the right side's lead value
 DET = E + "[38;5;66m"     # slate teal: the minor detail that ends a row
-DOT = E + "[38;5;103m"    # lavender: dots, colons, arrows and the resets tree
+DOT = E + "[38;5;103m"    # lavender: colons and the trees
 SLASH = E + "[1;38;5;103m"  # bold lavender: the slashes in names and paths
-DIM = E + "[38;5;243m"    # dim grey: the bar's edges
 OK, WARN, BAD = E + "[38;5;151m", E + "[38;5;222m", E + "[38;5;210m"  # mint, gold, coral
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
 # shout over the numbers beside it: steel blue, soft violet, orchid.
@@ -115,8 +117,11 @@ def sp(n):
 
 
 def boxed(text):
-    # Each part restates BOX, since every reset clears it.
-    return S(BAD + BOX, "▕ ") + S(CRIT + BOX, text) + S(BAD + BOX, " ▏")
+    """TEXT in bold coral inside a box: coral edges, a line above and below.
+    The edges draw at the inner side of their cells, so the lines run only
+    between them and meet the edges instead of overhanging. Each part restates
+    BOX, since every reset clears it."""
+    return S(BAD, "▕") + S(CRIT + BOX, " " + text + " ") + S(BAD, "▏")
 
 
 def val(v, w=50, c=80):
@@ -127,17 +132,6 @@ def val(v, w=50, c=80):
     if v >= w:
         return S(WARN, t), t, WARN, False
     return S(OK, t), t, OK, False
-
-
-def graded(num, w, c, text, nobox=False):
-    """TEXT in the color NUM earns. nobox keeps a value past its limit plain
-    coral, for a value whose width must hold still because the details after it
-    line up."""
-    if num >= c:
-        return S(CRIT, text) if nobox else boxed(text)
-    if num >= w:
-        return S(WARN, text)
-    return S(OK, text)
 
 
 def slashed(text, color):
@@ -186,18 +180,18 @@ def finish_bar(cells, t, col, past):
     span = w + 4
     lp, rp = sp((w - len(t)) // 2), sp((w - len(t) + 1) // 2)
     if past:
-        slot = S(BAD + BOX, "▕ ") + S(CRIT + BOX, lp + t + rp) + S(BAD + BOX, " ▏")
+        slot = boxed(lp + t + rp)
     else:
         slot = P("  " + lp) + S(col, t) + P(rp + "  ")
     st = max(0, (bw - span) // 2)
-    # A space inside each edge keeps the bar off its frame.
-    out = S(DIM, "▕") + P(" ")
+    out = T()
     for i, (ch, fg) in enumerate(cells):
         if i < st or i >= st + span:
             out = out + S(fg, ch)
         elif i == st:
             out = out + slot
-    return out + P(" ") + S(DIM, "▏") + P(" ")
+    # Then an icy blue divider, as between the values and the right side.
+    return out + P(" ") + S(DIV, "│") + P(" ")
 
 
 def row_label(name):
@@ -209,7 +203,7 @@ def cell(t, col, past, width, col_boxed, last=False):
     other gets blank cells where the box's edges go, so the numbers line up."""
     pad = "" if last else sp(width - len(t))
     if past:
-        return S(BAD + BOX, "▕ ") + S(CRIT + BOX, t + pad) + S(BAD + BOX, " ▏")
+        return boxed(t + pad)
     if col_boxed:
         out = P("  ") + S(col, t) + P(pad)
         return out if last else out + P("  ")
@@ -226,7 +220,7 @@ def graded_cell(num, w, c, text):
 def build_left(st, bw, with_third=True):
     """The left rows: 0 Ctx, 1 5h, 2 7d, 3 Fable, and 4 the machine (printed
     above them). Each row's number sits in the middle of its bar. with_third
-    False leaves out Cache, Turn and Cost, for a narrow terminal."""
+    False leaves out the paces, for a narrow terminal."""
     rows = [T() for _ in range(5)]
     _, _, ack, acx = val(st.ac_pct)
     rows[0] = row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
@@ -240,42 +234,52 @@ def build_left(st, bw, with_third=True):
     cells = core_chart(st.cores, bw) if st.cores else bar(st.cpu_pct, 100, sevc(st.cpu_pct), bw)
     rows[4] = row_label("CPU") + finish_bar(cells, t, k, x)
 
-    # "Resets" is written once, on the 5h row; the weekly times hang off it
-    # tree-style, the times lined up under the 5h one ("Resets: " is 8 wide).
-    rows[1] = rows[1] + S(LAB, "Resets") + S(DOT, ":") + P(" ") + S(VAL, st.five_r)
-    if st.fable_pct is not None:
-        rows[2] = rows[2] + P("  ") + S(DOT, "├────") + P(" ") + S(VAL, st.seven_r)
-        rows[3] = rows[3] + P("  ") + S(DOT, "└────") + P(" ") + S(VAL, st.fable_r)
-    else:
-        rows[2] = rows[2] + P("  ") + S(DOT, "└────") + P(" ") + S(VAL, st.seven_r)
-        rows[3] = T()
-
     # AC and Win, the two shares of the context, stack as a column of their own.
     a, n = val(st.ac_pct), val(st.win_pct)
     w, bx = max(len(a[1]), len(n[1])), a[3] or n[3]
     for i, lab, v in ((4, "AC", a), (0, "Win", n)):
         rows[i] = rows[i] + S(LAB, lab) + S(DOT, ":") + P(sp(3 - len(lab)) + ("" if bx else " ")) + cell(v[1], v[2], v[3], w, bx)
 
-    # Mem, GPU, Cache, Turn and Cost form one column after them, starting where
-    # the longest row before it ends: the reset times, or on a narrow terminal
-    # (with_third False, Cache, Turn and Cost left out) AC and Win. Labels pad
-    # to the longest present, and a boxed value's edge stands in for the space
-    # after its label.
-    beside = {4: ("Mem", val(st.mem_pct)), 0: ("GPU", val(st.gpu_pct))}
+    # The reset times hang off ↻ tree-style, one on each limit's row. The
+    # branches reach the column AC and Win's numbers start in (one further
+    # when that column is boxed), so the times line up under them.
+    dash = "─" * (4 if bx else 3)
+    # ↻ stands in for the "Resets" label, so it is mauve like a label, and bold.
+    rows[1] = rows[1] + S(E + "[1;38;5;139m", "↻") + S(DOT, dash) + P(" ") + S(VAL, st.five_r)
+    if st.fable_pct is not None:
+        rows[2] = rows[2] + S(DOT, "├" + dash) + P(" ") + S(VAL, st.seven_r)
+        rows[3] = rows[3] + S(DOT, "└" + dash) + P(" ") + S(VAL, st.fable_r)
+    else:
+        rows[2] = rows[2] + S(DOT, "└" + dash) + P(" ") + S(VAL, st.seven_r)
+        # No Fable bar: the row keeps the divider, so it runs unbroken.
+        rows[3] = P(sp(7 + bw + 1)) + S(DIV, "│") + P(" ")
+
+    # Cost and Turn head the next column, and each limit's pace hangs off 𝐏
+    # below them tree-style, beside its reset time. The column starts where the
+    # longest row before it ends: the reset times, or on a narrow terminal
+    # (with_third False, the paces left out) AC and Win. Labels pad to the
+    # longer one, the branches reach the same column, and a boxed value's edge
+    # stands in for the space before it.
+    labeled = {4: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost)),
+               0: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))}
+    paces = {}
     if with_third:
-        beside[2] = ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))
-        beside[3] = ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))
-        if st.cache_pct is not None:
-            beside[1] = ("Cache", val(st.cache_pct))
-    start = max(len(rows[i]) for i in beside)
-    lw3 = max(len(lab) for lab, _ in beside.values())
-    vw3 = max(len(v[1]) for _, v in beside.values())
-    bx3 = any(v[3] for _, v in beside.values())
-    for i, (lab, v) in beside.items():
-        # A row with nothing before the column (no Fable bar) gets no dot.
-        dot = S(DOT, " · ") if len(rows[i]) else P("   ")
-        rows[i] = (rows[i] + P(sp(start - len(rows[i]))) + dot + S(LAB, lab) + S(DOT, ":")
-                   + P(sp(lw3 - len(lab)) + ("" if bx3 else " ")) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
+        limits = [(1, st.five_pace), (2, st.seven_pace)] + ([(3, st.fable_pace)] if st.fable_pct is not None else [])
+        for n, (i, p) in enumerate(limits):
+            glyph = S(E + "[1;38;5;139m", "𝐏") if n == 0 else S(DOT, "└" if n == len(limits) - 1 else "├")
+            paces[i] = (glyph, val(p) if p is not None else (None, "–", DET, False))
+    col = list(labeled.values()) + list(paces.values())
+    start = max(len(rows[i]) for i in list(labeled) + list(paces))
+    lw3 = max(len(lab) for lab, _ in labeled.values())
+    vw3 = max(len(v[1]) for _, v in col)
+    bx3 = any(v[3] for _, v in col)
+    gap = "" if bx3 else " "
+    for i, (lab, v) in labeled.items():
+        rows[i] = (rows[i] + P(sp(start - len(rows[i]) + 3)) + S(LAB, lab) + S(DOT, ":")
+                   + P(sp(lw3 - len(lab)) + gap) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
+    for i, (glyph, v) in paces.items():
+        rows[i] = (rows[i] + P(sp(start - len(rows[i]) + 3)) + glyph + S(DOT, "─" * lw3)
+                   + P(gap) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
     return rows
 
 
@@ -292,7 +296,7 @@ def short_dir(p):
     return "%s/%s/%s/…/%s" % (parts[0], parts[1], parts[2], parts[-1])
 
 
-def effort_colored(w, lvl, now):
+def effort_colored(w, lvl, now, bold=False):
     """Effort takes the colors of Claude Code's /effort picker. Its animations
     tick every 100 ms; a status line only redraws on events and the refresh
     timer, so xhigh's highlight steps a letter per redraw. Max's rainbow holds
@@ -300,7 +304,7 @@ def effort_colored(w, lvl, now):
     instead of flowing."""
     n = len(w)
     if lvl in EFFORT:
-        return S(EFFORT[lvl], w)
+        return S((E + "[1m" if bold else "") + EFFORT[lvl], w)
     if lvl == "xhigh":
         p = now % (n + 4) - 2
         out = T()
@@ -317,62 +321,42 @@ def effort_colored(w, lvl, now):
         for i, ch in enumerate(w):
             out = out + S(E + "[1m" + RAINBOW[i * 6 // (n - 1) if n > 1 else 0], ch)
         return out
-    return S(VAL, w)
-
-
-def rate(b):
-    """A short rate, right-aligned in 8 columns (840 B/s, 12 KB/s, 1.2 MB/s), so
-    the details after it don't shift as the numbers change."""
-    b, i, units = float(b), 0, ("B", "KB", "MB", "GB")
-    while b >= 999.5 and i < 3:
-        b /= 1000
-        i += 1
-    n = "%.1f" % b if b < 9.95 and i > 0 else "%d" % int(b + 0.5)
-    return "%8s" % ("%s %s/s" % (n, units[i]))
+    return S(VALB if bold else VAL, w)
 
 
 def build_right(st, now):
-    """The bright part and detail of each right row."""
-    br, gr = [T() for _ in range(5)], [T() for _ in range(5)]
-
-    br[0] = S(VAL, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now)
-
+    """The right rows, top to bottom: Model, ID, Dir, Git, K8s. -> bright parts,
+    details and labels by row, and the row whose bright part is the folder's
+    path (it may shorten). A row with nothing to show (outside a repo, no K8s
+    context) shows a teal dash."""
+    # The model is the right side's lead value, so its whole row is bold, its
+    # label included (in render); the other rows stay plain.
+    effort = S(VALB, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now, bold=True)
+    model = ("Model", effort, T())
+    ident = ("ID", S(VAL, st.sid8), S(DET, st.sname) if st.sname else T())
+    kube = ("K8s", S(VAL, st.kube) if st.kube else S(DET, "–"), S(DET, st.ns) if st.ns else T())
     if st.in_git:
-        rl1 = "Git"
-        br[1] = slashed(st.branch, VAL)
+        git = slashed(st.branch, VAL)
         if st.ahead > 0:
-            br[1] = br[1] + P(" ") + S(OK, "↑%d" % st.ahead)
+            git = git + P(" ") + S(OK, "↑%d" % st.ahead)
         if st.behind > 0:
-            br[1] = br[1] + P(" ") + S(BAD, "↓%d" % st.behind)
-        br[1] = br[1] + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
-        gr[1] = slashed(st.sdir, DET)
+            git = git + P(" ") + S(BAD, "↓%d" % st.behind)
+        git = git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
     else:
-        # Outside a repo the folder is the row's only item, so it stays bright.
-        rl1 = "Dir"
-        br[1] = slashed(st.sdir, VAL)
-
-    br[2] = S(VAL, st.kube)
-    if st.ns:
-        gr[2] = S(DET, st.ns)
-
-    br[3] = S(VAL, st.sid8)
-    if st.sname:
-        gr[3] = S(DET, st.sname)
-
-    # The machine row: the network, with lavender arrows and only the rates in
-    # their color.
-    br[4] = (S(DOT, "↓") + graded(st.rx_bps, 10**6, 10**7, rate(st.rx_bps), nobox=True) + P(" ")
-             + S(DOT, "↑") + graded(st.tx_bps, 10**6, 10**7, rate(st.tx_bps), nobox=True))
-    return br, gr, ["Model", rl1, "K8s", "ID", "Net"]
+        git = S(DET, "–")
+    folder = ("Dir", slashed(st.sdir, VAL), T())
+    rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git, T()), kube]
+    dir_row = 1
+    br, gr, rlab = [T() for _ in range(5)], [T() for _ in range(5)], [""] * 5
+    for i, (lab, b, g) in zip(rows, entries):
+        rlab[i], br[i], gr[i] = lab, b, g
+    return br, gr, rlab, dir_row
 
 
-
-def render(st, cols, lines, now):
-    br, gr, rlab = build_right(st, now)
-    # A short terminal (under 20 rows) leaves out the machine row, so the status
-    # line takes four rows instead of five. Everything below measures and prints
-    # only the rows in this list, in the order they print.
-    order = [0, 1, 2, 3] if lines and 0 < lines < 20 else [4, 0, 1, 2, 3]
+def render(st, cols, now):
+    # The rows in the order they print: the machine row on top.
+    order = [4, 0, 1, 2, 3]
+    br, gr, rlab, dir_row = build_right(st, now)
 
     # The details start in one column: pad each bright part to the widest one
     # that has a detail after it.
@@ -392,16 +376,17 @@ def render(st, cols, lines, now):
     # right side can't fit beside it, the layout is worked out again without it.
     for with_third in (True, False):
         left = build_left(st, ncpu, with_third)
-        # A left row is its label (7), the bar's edges with a space inside each and
-        # one after (5), and the bar; a right row starts with its label (7).
-        bmin = max([0] + [len(left[i]) - ncpu - 12 for i in order])
+        # A left row is its label (7), the bar, then the divider with a space on
+        # each side (3); a right row starts with its label (7).
+        bmin = max([0] + [len(left[i]) - ncpu - 10 for i in order])
         cb, cf = 0, 0
         for i in order:
-            cb = max(cb, len(br[i]))
+            # The folder can shorten from the front, so it asks for 16 at most.
+            cb = max(cb, min(len(br[i]), 16) if i == dir_row else len(br[i]))
             cf = max(cf, mw + 2 + len(gr[i]) if len(gr[i]) else len(br[i]))
         cb, cf = cb + 7, cf + 7
         # The left side with the bars at one and two characters per core.
-        l1, l2 = ncpu + 12 + bmin, 2 * ncpu + 12 + bmin
+        l1, l2 = ncpu + 10 + bmin, 2 * ncpu + 10 + bmin
         pmax, c = 4, 0
         if l2 + 3 + cf <= w_avail:
             show, c = "full", cf
@@ -421,17 +406,27 @@ def render(st, cols, lines, now):
             show = "left"
         if show != "left":
             break
+    # A folder longer than the right side's room keeps the whole folders at its
+    # end that fit (…/personal/bluebird), or the last one cut short.
+    if show != "left" and len(br[dir_row]) > c - 7:
+        room, tail = c - 7, br[dir_row].plain.split("/")[-1]
+        for seg in reversed(br[dir_row].plain.split("/")[1:-1]):
+            if len("…/" + seg + "/" + tail) > room:
+                break
+            tail = seg + "/" + tail
+        t = "…/" + tail
+        br[dir_row] = slashed(t if len(t) <= room else "…" + tail[-(room - 1):], VAL)
     avail = w_avail if show == "left" else w_avail - 3 - c
     per = pmax
-    while per > 1 and per * ncpu + 12 + bmin > avail:
+    while per > 1 and per * ncpu + 10 + bmin > avail:
         per -= 1
     # The bars then take every spare column, up to four per core, so no width
     # leaves a gap at the end of the line.
-    bw = max(per * ncpu, min(avail - 12 - bmin, pmax * ncpu))
+    bw = max(per * ncpu, min(avail - 10 - bmin, pmax * ncpu))
     left = build_left(st, bw, with_third)
     # The values column pads out to the divider by 3 spare columns at most; any
     # other leftover goes at the end of the line, where empty space doesn't show.
-    lw = 0 if show == "left" else min(avail, bw + 12 + bmin + 3)
+    lw = 0 if show == "left" else min(avail, bw + 10 + bmin + 3)
     lw = max([lw] + [len(left[i]) for i in order])
 
     out = []
@@ -440,7 +435,8 @@ def render(st, cols, lines, now):
             out.append(left[i].ansi())
             continue
         line = left[i].ansi() + sp(lw - len(left[i]))
-        line += DIV + " │ " + R + LAB + rlab[i] + R + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
+        bold = E + "[1m" if rlab[i] == "Model" else ""
+        line += DIV + " │ " + R + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
             line += sp(mw - len(br[i]) + 2) + gr[i].ansi()
         out.append(line)
@@ -529,6 +525,17 @@ def fmt_reset(ts, now):
     if d >= 3600:
         return "%dh%dm" % (d // 3600, d % 3600 // 60)
     return "%dm" % (d // 60)
+
+
+def pace(pct, reset, window, now, early=1800):
+    """Where a usage limit lands at its reset if use keeps its rate so far:
+    PCT used with the share of WINDOW (seconds) gone that RESET implies. None
+    without a reset, or before EARLY seconds of the window have gone, when a
+    projection is mostly noise."""
+    gone = window - (reset - now)
+    if reset <= 0 or gone < early:
+        return None
+    return int(pct * window / gone + 0.5)
 
 
 def to_tokens(v, bare=False):
@@ -682,15 +689,15 @@ def cpu_cores():
 
 
 def read_machine(now, ncpu):
-    """One reading of the machine is shared by every session for 10 s, so they
-    all show the same numbers. The first session past that takes the next one.
-    -> cpu, mem, cores, gpu, net in, net out."""
-    path = os.path.join(CACHE, "machine-v4")
+    """One reading of the CPU is shared by every session for 10 s, so they all
+    show the same numbers. The first session past that takes the next one.
+    -> overall percent, per-core percents."""
+    path = os.path.join(CACHE, "machine-v5")
     if age(path, now) < 10:
         try:
             with open(path) as f:
-                p = f.readline().rstrip("\n").split("\t") + [""] * 6
-            return (num(p[0]), num(p[1]), [int(x) for x in p[2].split()], num(p[3]), num(p[4]), num(p[5]))
+                p = f.readline().rstrip("\n").split("\t") + [""]
+            return num(p[0]), [int(x) for x in p[1].split()]
         except (OSError, ValueError):
             pass
     try:
@@ -703,64 +710,8 @@ def read_machine(now, ncpu):
         # Without the kernel counters: ps reports each process's recent share of one core.
         out = run(["ps", "-A", "-o", "%cpu="]) or ""
         cpu = min(100, int(sum(float(x) for x in out.split() if x) / ncpu + 0.5))
-    # The kernel's memorystatus level is the share of memory it counts as free.
-    mem = 100 - num(run(["sysctl", "-n", "kern.memorystatus_level"]), 100)
-    # The GPU's utilization comes from its IOAccelerator entry in the I/O
-    # Registry, readable without sudo.
-    m = re.search(r'"Device Utilization %"=([0-9]+)', run(["ioreg", "-r", "-d", "1", "-c", "IOAccelerator"]) or "")
-    gpu = int(m.group(1)) if m else 0
-    # Network: bytes in and out across the en* interfaces (Wi-Fi, Ethernet), as
-    # the rate since the previous reading. Loopback and VPN tunnels are left out,
-    # since their traffic also crosses a real interface and would be counted twice.
-    rx = tx = 0
-    for line in (run(["netstat", "-ibn"]) or "").splitlines():
-        f = line.split()
-        if len(f) >= 5 and re.fullmatch(r"en[0-9]+", f[0]) and f[2].startswith("<Link"):
-            rx, tx = rx + num(f[-5]), tx + num(f[-2])
-    netc = os.path.join(CACHE, "net-bytes")
-    rx_bps = tx_bps = 0
-    try:
-        with open(netc) as f:
-            pt, prx, ptx = (num(x) for x in f.read().split()[:3])
-        if now > pt:
-            rx_bps = int(float("%.0f" % (max(rx - prx, 0) / (now - pt))))
-            tx_bps = int(float("%.0f" % (max(tx - ptx, 0) / (now - pt))))
-    except (OSError, ValueError):
-        pass
-    write_atomic(netc, "%d %d %d\n" % (now, rx, tx))
-    write_atomic(path, "%d\t%d\t%s\t%d\t%d\t%d\n" % (cpu, mem, " ".join(map(str, cores)), gpu, rx_bps, tx_bps))
-    return cpu, mem, cores, gpu, rx_bps, tx_bps
-
-
-def read_sensors(now):
-    """CPU temperature from iSMC (brew tap dkorunic/tap && brew install ismc),
-    which reads the sensors without sudo. It takes about a second, so it runs in
-    the background every 10 s and leaves its reading in a cache. -> (have iSMC,
-    temperature or None)."""
-    if not shutil.which("ismc"):
-        return False, None
-    sensors, stamp = os.path.join(CACHE, "sensors.json"), os.path.join(CACHE, "sensors.stamp")
-    if age(stamp, now) >= 10:
-        touch(stamp)
-        spawn("--read-sensors")
-    if age(sensors, now) < 60:
-        try:
-            with open(sensors) as f:
-                t = json.load(f).get("temp")
-            if t not in (None, False, ""):
-                return True, jround(t)
-        except (OSError, ValueError, AttributeError):
-            pass
-    return True, None
-
-
-def refresh_sensors():
-    out = run(["ismc", "temp", "-o", "json"])
-    try:
-        t = jget(json.loads(out), "CPU Die Average", "quantity")
-    except (TypeError, ValueError):
-        t = None
-    write_atomic(os.path.join(CACHE, "sensors.json"), json.dumps({"temp": t}, separators=(",", ":")))
+    write_atomic(path, "%d\t%s\n" % (cpu, " ".join(map(str, cores))))
+    return cpu, cores
 
 
 def read_fable(now):
@@ -844,13 +795,6 @@ def collect(payload, env=os.environ):
     cost = jget(payload, "cost", "total_cost_usd", default=0)
     sid = str(jget(payload, "session_id", default="?"))
     st.win = num(jget(payload, "context_window", "context_window_size", default=0))
-    pc = payload.get("prompt_cache") if isinstance(payload, dict) else None
-    if not pc or not isinstance(pc, dict) or pc.get("caching_observed") is False:
-        cwarm = "none"
-    else:
-        cwarm = jq_text(pc.get("warm")) if pc.get("warm") is not None else "null"
-    cttl = jget(payload, "prompt_cache", "ttl", default="-")
-    cexp = num(jget(payload, "prompt_cache", "expires_at", default=0))
     mid = str(jget(payload, "model", "id", default=""))
     cwd = str(jget(payload, "workspace", "current_dir", default=None) or jget(payload, "cwd", default=""))
     tpath = str(jget(payload, "transcript_path", default=""))
@@ -892,7 +836,7 @@ def collect(payload, env=os.environ):
 
     # K8s context and namespace (the namespace needs a second query, only when a
     # context is set).
-    st.kube, st.ns = "none", ""
+    st.kube, st.ns = "", ""
     if shutil.which("kubectl"):
         c = (run(["kubectl", "config", "current-context"]) or "").rstrip("\n")
         if c:
@@ -933,13 +877,15 @@ def collect(payload, env=os.environ):
         seven = (0, 0)
     st.five_pct, st.seven_pct = five[0], seven[0]
     st.five_r, st.seven_r = fmt_reset(five[1], now), fmt_reset(seven[1], now)
+    st.five_pace = pace(five[0], five[1], 5 * 3600, now)
+    st.seven_pace = pace(seven[0], seven[1], 7 * 86400, now, early=12 * 3600)
 
     st.fable_pct, fable_reset = read_fable(now)
     st.fable_r = fmt_reset(fable_reset, now)
+    st.fable_pace = pace(st.fable_pct, fable_reset, 7 * 86400, now, early=12 * 3600) if st.fable_pct is not None else None
 
     st.ncpu = os.cpu_count() or 1
-    st.cpu_pct, st.mem_pct, st.cores, st.gpu_pct, st.rx_bps, st.tx_bps = read_machine(now, st.ncpu)
-    st.have_ismc, st.cpu_temp = read_sensors(now)
+    st.cpu_pct, st.cores = read_machine(now, st.ncpu)
     st.turns = read_turns(tpath, sid)
 
     st.sdir = short_dir(st.dir)
@@ -948,24 +894,10 @@ def collect(payload, env=os.environ):
         st.branch = st.branch[:19] + "…"
     st.sid8 = sid[:8]
 
-    # The prompt cache shows how much of its life (5m or 1h) has gone: it fills
-    # toward trouble like every other percentage, and at 100% the next message
-    # pays to rebuild the whole context. Hidden until a response has reported caching.
-    st.cache_pct = None
-    if cwarm == "false":
-        st.cache_pct = 100
-    elif cwarm == "true" and cexp > 0:
-        ttl = 300 if cttl == "5m" else 3600
-        n = (ttl - (cexp - now)) * 100 + ttl // 2
-        q = abs(n) // ttl * (1 if n >= 0 else -1)
-        st.cache_pct = max(0, min(100, q))
     return st
 
 
 def main():
-    if sys.argv[1:] == ["--read-sensors"]:
-        refresh_sensors()
-        return
     if sys.argv[1:] == ["--fetch-fable"]:
         refresh_fable()
         return
@@ -977,7 +909,7 @@ def main():
         if not isinstance(payload, dict):
             payload = {}
         st = collect(payload)
-        out = render(st, num(os.environ.get("COLUMNS"), 145), num(os.environ.get("LINES"), 0), st.now)
+        out = render(st, num(os.environ.get("COLUMNS"), 145), st.now)
     except Exception as e:  # a broken status line should still say why
         out = "statusline.py: %s: %s" % (type(e).__name__, e)
     sys.stdout.buffer.write(out.encode("utf-8"))
