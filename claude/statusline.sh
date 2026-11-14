@@ -596,13 +596,11 @@ fi
 rate() { awk -v b="$1" 'BEGIN { split("B KB MB GB", u); i = 1; while (b >= 999.5 && i < 4) { b /= 1000; i++ }
   n = (b < 9.95 && i > 1) ? sprintf("%.1f", b) : sprintf("%d", b + 0.5)
   printf "%8s", n " " u[i] "/s" }'; }
-# In and Out are labels like the rest, with only the rate taking its color.
-# Each rate is right-aligned in its 8 columns, so its unit always ends in the
-# same place.
+# The arrows stay white; only the rate takes its color. Each rate is right-
+# aligned in its 8 columns, so its unit always ends in the same place.
 graded "$rx_bps" 1000000 10000000 "$(rate "$rx_bps")" nobox; NIP=$GP_; NIC=$GC_
 graded "$tx_bps" 1000000 10000000 "$(rate "$tx_bps")" nobox; NOP=$GP_; NOC=$GC_
-BRP[4]="In: ${NIP} · Out: ${NOP}"
-BRC[4]="${LAB}In${R}${DOT}:${R} ${NIC}${DOT} · ${R}${LAB}Out${R}${DOT}:${R} ${NOC}"
+BRP[4]="↓${NIP} ↑${NOP}"; BRC[4]="${VAL}↓${R}${NIC} ${VAL}↑${R}${NOC}"
 if [ "$have_ismc" = 0 ]; then
   GRP[4]="iSMC not available"; GRC[4]="${DET}iSMC not available${R}"
 else
