@@ -4,10 +4,10 @@
 # is working with on the right. Wired via ~/.claude/settings.json as
 # `bash ~/.claude/statusline.sh`.
 #
-#   Ctx   ▕███▌░░░░┃░░░░░░░░░▏ │ 191k  AC 39% · Win 19% │ Model   Opus 5.5 · High · Cache 8% · $3.63
-#   5h    ▕██████▋░░░░░░░░░░░▏ │ 37%   Resets 1h49m     │ Git     main ↓7 ✚2     ~/git/personal/bluebird
-#   7d    ▕██████████████▋░░░▏ │  81%    ├─── 3d4h      │ K8s     admin@stable   default
-#   Fable ▕██████████████████▏ │  100%   └─── 3d4h      │ Session claude-80      1feba53f
+#   Ctx   ▕▰▰▰▰▰▱▱▱▱▱▱▱┃▱▱▱▱▱▱▱▱▱▱▱▱▏ 191k  AC 39% · Win 19% │ Model   Opus 5.5/High  Cache 8%
+#   5h    ▕▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▏ 37%   Resets 1h49m     │ Git     main ↓7 ✚2     ~/git/personal/bluebird
+#   7d    ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▏ 81%ꜝ    ├─── 3d4h      │ K8s     admin@stable   default
+#   Fable ▕▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▏ 100%ꜝ   └─── 3d4h      │ Session $3.63          1feba53f · claude-80
 #
 # The ctx bar spans the model's whole window. ┃ marks where auto-compact fires,
 # and the dusty rose cells before it are the last quarter of the way there. AC is
@@ -21,8 +21,9 @@
 # One color per job: mauve labels a value, white is a value, slate teal is the
 # minor detail that ends a row, lavender dots sit between items, icy blue draws
 # the dividers and the compaction mark, and mint / gold / coral is a value with a
-# limit: mint under 50%, gold under 80%, and a bold white-on-red block at 80% and
-# up (AC from 75%, the token count past 250K).
+# limit: mint under 50%, gold under 80%, and bold coral with a raised ꜝ at 80%
+# and up (AC from 75%, the token count past 250K). The bars step sooner, by thirds:
+# steel blue under 33%, soft violet under 66%, orchid from 66% (ctx by its AC).
 #
 # The session's short name (`claude-80`) is what other sessions message it by;
 # the 8-character ID prefix is what create-issue labels its issues with.
@@ -139,6 +140,33 @@ fmt_reset() {
   else                           printf '%dm'    "$(( d / 60 ))"
   fi
 }
+# --- Shared usage limits ---
+# Each session's payload only refreshes its limits when that session gets an API
+# reply, so an idle session would show stale numbers, or none at all before its
+# first reply. The limits are account-wide, so every session pools what it has
+# seen in one file and shows the newest. No timestamps are needed: a later reset
+# time is a newer window, and within one window usage only climbs.
+limits_cache="$HOME/.claude/cache/usage-limits.json"
+old=$(cat "$limits_cache" 2>/dev/null); [ -n "$old" ] || old='{}'
+if merged=$(printf '%s' "$old" | jq -c \
+    --argjson fp "$five_pct" --argjson fr "$five_reset" \
+    --argjson sp "$seven_pct" --argjson sr "$seven_reset" '
+  def newer(a; b): if (b.reset // 0) > (a.reset // 0) then b
+    elif (b.reset // 0) == (a.reset // 0) and (b.pct // 0) > (a.pct // 0) then b else a end;
+  { five:  newer(.five  // {}; {pct: $fp, reset: $fr}),
+    seven: newer(.seven // {}; {pct: $sp, reset: $sr}) }' 2>/dev/null); then
+  if [ "$merged" != "$old" ]; then
+    mkdir -p "${limits_cache%/*}"
+    printf '%s' "$merged" > "$limits_cache.$$" && mv -f "$limits_cache.$$" "$limits_cache"
+  fi
+  IFS=$'\t' read -r five_pct five_reset seven_pct seven_reset <<EOF
+$(printf '%s' "$merged" | jq -r '[.five.pct // 0, .five.reset // 0, .seven.pct // 0, .seven.reset // 0] | @tsv')
+EOF
+fi
+# A window whose reset has passed starts again from zero.
+[ "$five_reset"  -gt 0 ] && [ "$five_reset"  -le "$now" ] && { five_pct=0;  five_reset=0; }
+[ "$seven_reset" -gt 0 ] && [ "$seven_reset" -le "$now" ] && { seven_pct=0; seven_reset=0; }
+
 five_r=$(fmt_reset "$five_reset")
 seven_r=$(fmt_reset "$seven_reset")
 
@@ -185,7 +213,10 @@ DET=$'\033[38;5;66m'    # slate teal: the minor detail that ends a row
 DOT=$'\033[38;5;103m'   # lavender: the dots between items
 DIM=$'\033[38;5;243m'   # dim grey: the bar's edges
 OK=$'\033[38;5;151m'; WARN=$'\033[38;5;222m'; BAD=$'\033[38;5;210m'   # mint, gold, coral
-CRIT=$'\033[1;97;48;5;160m'   # bold white on red reads as an error, not a shade
+# The bars fill in quieter tones from the same palette, so a long bar doesn't
+# shout over the numbers beside it.
+BAR_OK=$'\033[38;5;110m'; BAR_WARN=$'\033[38;5;140m'; BAR_BAD=$'\033[38;5;175m'   # steel blue, soft violet, orchid
+CRIT=$'\033[1;38;5;210m'   # bold coral: a value past its limit, then a raised ꜝ in plain coral
 EMPTY=$'\033[38;5;237m'; ZONE=$'\033[38;5;95m'; R=$'\033[0m'
 
 # Each row is built twice: P* holds the plain text (for measuring) and C* the
@@ -194,62 +225,58 @@ LP=(); LC=(); RP=(); RC=()
 ap() { LP[$1]="${LP[$1]}$2"; LC[$1]="${LC[$1]}$3"; }
 spaces() { [ "$1" -gt 0 ] && printf '%*s' "$1" ''; }
 
-# val VALUE [WARN=50] [CRIT=80] -> VP/VC; VCRIT=1 when it renders as the red block.
+# val VALUE [WARN=50] [CRIT=80] -> VP/VC.
 val() {
   local w=${2:-50} c=${3:-80}
-  if   [ "$1" -ge "$c" ]; then VP=" $1% "; VC="${CRIT} $1% ${R}"; VCRIT=1
-  elif [ "$1" -ge "$w" ]; then VP="$1%";   VC="${WARN}$1%${R}";  VCRIT=0
-  else                         VP="$1%";   VC="${OK}$1%${R}";    VCRIT=0; fi
+  if   [ "$1" -ge "$c" ]; then VP="$1%ꜝ"; VC="${CRIT}$1%${R}${BAD}ꜝ${R}"
+  elif [ "$1" -ge "$w" ]; then VP="$1%";  VC="${WARN}$1%${R}"
+  else                         VP="$1%";  VC="${OK}$1%${R}"; fi
 }
-sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$WARN"; else printf '%s' "$OK"; fi; }
 
 # --- Bars ---
-BW=18
-EIGHTHS=(' ' '▏' '▎' '▍' '▌' '▋' '▊' '▉' '█')
-# bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> BP/BC, filled in eighths of a cell.
+# 25 segments of 4%. ▰ sits inside its cell, unlike a block, so segments stay
+# apart from each other and from the bar on the next row.
+BW=25
+# bar NUM DEN COLOR [MARK_COL] [ZONE_START] -> BP/BC, in whole segments.
 bar() {
-  local num=$1 den=$2 col=$3 mk=${4:--1} zs=${5:--1} i lv total s
+  local num=$1 den=$2 col=$3 mk=${4:--1} zs=${5:--1} i fill s
   [ "$den" -gt 0 ] || den=1
-  total=$(( (num * BW * 8 + den / 2) / den )); [ "$total" -gt $(( BW * 8 )) ] && total=$(( BW * 8 ))
+  fill=$(( (num * BW + den / 2) / den )); [ "$fill" -gt "$BW" ] && fill=$BW
+  # A sliver of use still shows one segment.
+  [ "$num" -gt 0 ] && [ "$fill" -eq 0 ] && fill=1
   BP="▕"; BC="${DIM}▕${R}"
   for (( i = 0; i < BW; i++ )); do
-    lv=$(( total - i * 8 )); [ "$lv" -lt 0 ] && lv=0; [ "$lv" -gt 8 ] && lv=8
-    if   [ "$lv" -gt 0 ];  then s="${EIGHTHS[$lv]}"; BC="${BC}${col}${s}"
+    if   [ "$i" -lt "$fill" ]; then s='▰'; BC="${BC}${col}${s}"
     elif [ "$i" -eq "$mk" ]; then s='┃'; BC="${BC}${DIV}${s}"
-    elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then s='░'; BC="${BC}${ZONE}${s}"
-    else s='░'; BC="${BC}${EMPTY}${s}"; fi
+    elif [ "$zs" -ge 0 ] && [ "$i" -ge "$zs" ] && [ "$i" -lt "$mk" ]; then s='▱'; BC="${BC}${ZONE}${s}"
+    else s='▱'; BC="${BC}${EMPTY}${s}"; fi
     BP="${BP}${s}"
   done
-  # Grey edges hold the bar; the divider after it is the same one that sits before
-  # the right-hand column.
-  BP="${BP}▏ │ "; BC="${BC}${R}${DIM}▏${R}${DIV} │ ${R}"
+  # Grey edges hold the bar, so it needs no divider before its value.
+  BP="${BP}▏ "; BC="${BC}${R}${DIM}▏${R} "
 }
+sevc() { if [ "$1" -ge "$3" ]; then printf '%s' "$BAR_BAD"; elif [ "$1" -ge "$2" ]; then printf '%s' "$BAR_WARN"; else printf '%s' "$BAR_OK"; fi; }
 row_label() { ap "$1" "$(printf '%-6s' "$2")" "${LAB}$(printf '%-6s' "$2")${R}"; }
 
 has_fable=0; [ -n "$fable_pct" ] && has_fable=1
 
 # Left rows: 0 ctx, 1 5h, 2 7d, 3 fable.
 row_label 0 Ctx
-bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 50 75)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
-row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 50 80)";   ap 1 "$BP" "$BC"
-row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 50 80)"; ap 2 "$BP" "$BC"
-[ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 50 80)"; ap 3 "$BP" "$BC"; }
+bar "$ctx_tok" "$win" "$(sevc "$ac_pct" 33 66)" $(( ac_thr * BW / win )) $(( ac_thr * 3 / 4 * BW / win )); ap 0 "$BP" "$BC"
+row_label 1 5h;  bar "$five_pct" 100 "$(sevc "$five_pct" 33 66)";   ap 1 "$BP" "$BC"
+row_label 2 7d;  bar "$seven_pct" 100 "$(sevc "$seven_pct" 33 66)"; ap 2 "$BP" "$BC"
+[ "$has_fable" = 1 ] && { row_label 3 Fable; bar "$fable_pct" 100 "$(sevc "$fable_pct" 33 66)"; ap 3 "$BP" "$BC"; }
 
 # The first value on each row is padded so the words after them form one column.
-# The token count and the 5h value are followed straight by a label, so they
-# always keep a space after them; the weekly rows start with the tree's indent,
-# so a red block there can sit flush.
 if [ "${ctx_tok:-0}" -gt 250000 ] 2>/dev/null; then
-  TP=" ${ctxk}k "; TC="${CRIT} ${ctxk}k ${R}"
+  TP="${ctxk}kꜝ"; TC="${CRIT}${ctxk}k${R}${BAD}ꜝ${R}"
 else TP="${ctxk}k"; TC="${VAL}${ctxk}k${R}"; fi
 val "$five_pct";  HP=$VP; HC=$VC
-val "$seven_pct"; SP=$VP; SC=$VC; SW=$(( ${#SP} + 1 - VCRIT ))
-FW=$(( ${#TP} + 1 )); [ $(( ${#HP} + 1 )) -gt "$FW" ] && FW=$(( ${#HP} + 1 ))
-[ "$SW" -gt "$FW" ] && FW=$SW
-if [ "$has_fable" = 1 ]; then
-  val "$fable_pct"; FP=$VP; FC=$VC; FBW=$(( ${#FP} + 1 - VCRIT ))
-  [ "$FBW" -gt "$FW" ] && FW=$FBW
-fi
+val "$seven_pct"; SP=$VP; SC=$VC
+FP=""; [ "$has_fable" = 1 ] && { val "$fable_pct"; FP=$VP; FC=$VC; }
+FW=0
+for v in "$TP" "$HP" "$SP" "$FP"; do [ ${#v} -gt "$FW" ] && FW=${#v}; done
+FW=$(( FW + 1 ))
 first() { ap "$1" "$2$(spaces $(( FW - ${#2} )))" "$3$(spaces $(( FW - ${#2} )))"; }
 
 val "$ac_pct" 50 75; ACP=$VP; ACC=$VC
@@ -296,14 +323,14 @@ elif [ "$cwarm" = true ] && [ "$cexp" -gt 0 ] 2>/dev/null; then
 fi
 
 BRP=(); BRC=(); GRP=(); GRC=()   # bright and detail parts per right row
-# The model row is one run of items, outside the detail column: it is the shortest
-# row, and lining its cost up with the others would only add a gap.
-BRP[0]="${model} · ${effort}"; BRC[0]="${VAL}${model}${R}${DOT} · ${R}${VAL}${effort}${R}"
+# The cache is the model row's detail: the label is teal like the other details,
+# but the number keeps its limit color so an expired cache still stands out.
+BRP[0]="${model}/${effort}"; BRC[0]="${VAL}${model}${R}${BAR_WARN}/${R}${VAL}${effort}${R}"
+GRP[0]=""; GRC[0]=""
 if [ -n "$cache_pct" ]; then
   val "$cache_pct"
-  BRP[0]="${BRP[0]} · Cache ${VP}"; BRC[0]="${BRC[0]}${DOT} · ${R}${VAL}Cache${R} ${VC}"
+  GRP[0]="Cache ${VP}"; GRC[0]="${DET}Cache${R} ${VC}"
 fi
-BRP[0]="${BRP[0]} · \$${sc}"; BRC[0]="${BRC[0]}${DOT} · ${R}${DET}\$${sc}${R}"
 if [ "$in_git" = 1 ]; then
   RL1=Git
   BRP[1]="$branch"; BRC[1]="${VAL}${branch}${R}"
@@ -319,9 +346,10 @@ else
 fi
 BRP[2]="$kube"; BRC[2]="${VAL}${kube}${R}"; GRP[2]="$ns"; GRC[2]="${DET}${ns}${R}"
 if [ -n "$sname" ]; then
-  BRP[3]="$sname"; BRC[3]="${VAL}${sname}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
+  BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"
+  GRP[3]="$sid8 · $sname"; GRC[3]="${DET}${sid8}${R}${DOT} · ${R}${DET}${sname}${R}"
 else
-  BRP[3]="$sid8"; BRC[3]="${VAL}${sid8}${R}"; GRP[3]=""; GRC[3]=""
+  BRP[3]="\$${sc}"; BRC[3]="${VAL}\$${sc}${R}"; GRP[3]="$sid8"; GRC[3]="${DET}${sid8}${R}"
 fi
 RLAB=(Model "$RL1" K8s Session)
 
