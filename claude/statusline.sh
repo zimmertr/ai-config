@@ -389,7 +389,7 @@ RLAB=(Model "$RL1" K8s Session)
 MW=0
 for i in 0 1 2 3; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${#BRP[$i]}; done
 
-# --- Hardware: a fourth column ---
+# --- Hardware: a fifth row ---
 # Only what macOS reports without sudo or extra tools. Temperature and fan speed
 # need powermetrics (root) or a third-party SMC reader, so the Heat row shows
 # macOS's thermal pressure instead: the state it throttles on.
@@ -416,17 +416,9 @@ case "${therm:-0}" in
   *) HVP[3]="Sleepingꜝ"; HVC[3]="${CRIT}Sleeping${R}${BAD}ꜝ${R}" ;;
 esac
 HDP[3]=""; HDC[3]=""
-HW=0; for i in 0 1 2 3; do [ ${#HVP[$i]} -gt "$HW" ] && HW=${#HVP[$i]}; done
 
 L=0
 for i in 0 1 2 3; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
-# Each right row's printed width, so the hardware column's divider lines up.
-RW=(); RMAX=0
-for i in 0 1 2 3; do
-  RW[$i]=$(( 8 + ${#BRP[$i]} ))
-  [ -n "${GRP[$i]}" ] && RW[$i]=$(( 8 + MW + 2 + ${#GRP[$i]} ))
-  [ "${RW[$i]}" -gt "$RMAX" ] && RMAX=${RW[$i]}
-done
 
 for i in 0 1 2 3; do
   [ "$i" -gt 0 ] && printf '\n'
@@ -435,6 +427,11 @@ for i in 0 1 2 3; do
   if [ -n "${GRP[$i]}" ]; then
     printf '%s%s' "$(spaces $(( MW - ${#BRP[$i]} + 2 )))" "${GRC[$i]}"
   fi
-  printf '%s' "$(spaces $(( RMAX - RW[$i] )))${DIV} │ ${R}${LAB}$(printf '%-5s' "${HWL[$i]}")${R}${HVC[$i]}"
-  if [ -n "${HDP[$i]}" ]; then printf '%s%s' "$(spaces $(( HW - ${#HVP[$i]} + 2 )))" "${HDC[$i]}"; fi
+done
+# The hardware row: label, value and detail for each, joined by the dots.
+printf '\n'
+for i in 0 1 2 3; do
+  [ "$i" -gt 0 ] && printf '%s' "${DOT} · ${R}"
+  printf '%s' "${LAB}${HWL[$i]}${R} ${HVC[$i]}"
+  if [ -n "${HDP[$i]}" ]; then printf ' %s' "${HDC[$i]}"; fi
 done
