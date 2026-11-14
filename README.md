@@ -11,7 +11,7 @@ My Claude Code setup: the global `CLAUDE.md` every session loads, my `settings.j
 
 ## Setup
 
-`~/.claude` points into this checkout, so a merge here is live once I pull:
+`~/.claude` points into this checkout, so a merge here is live once it's pulled. Claude pulls right after it merges one:
 
 ```sh
 git clone https://github.com/zimmertr/ai-config.git ~/git/personal/ai-config
