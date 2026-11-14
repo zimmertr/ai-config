@@ -334,11 +334,6 @@ EOF
   fi
 fi
 
-# Agents: subagent logs under this session that were written in the last minute.
-agents=0
-if [ -n "$tpath" ] && [ -d "${tpath%.jsonl}/subagents" ]; then
-  agents=$(find "${tpath%.jsonl}/subagents" -name 'agent-*.jsonl' -mtime -60s 2>/dev/null | wc -l | tr -d ' ')
-fi
 # Turns: each prompt you send gets its own promptId in the transcript. A long
 # session's transcript runs to tens of MB and a full scan costs ~0.2 s, so the
 # count is kept per session and only the bytes added since the last run are read.
@@ -485,10 +480,7 @@ if [ -n "$cache_pct" ]; then
   val "$cache_pct"
   GRP[0]="Cache ${VP}"; GRC[0]="${DET}Cache${R} ${VC}"
 fi
-if [ "$agents" -gt 0 ]; then
-  [ -n "${GRP[0]}" ] && { GRP[0]="${GRP[0]} · "; GRC[0]="${GRC[0]}${DOT} · ${R}"; }
-  GRP[0]="${GRP[0]}Agents ${agents}"; GRC[0]="${GRC[0]}${DET}Agents${R} ${VAL}${agents}${R}"
-fi
+
 if [ "$in_git" = 1 ]; then
   RL1=Git
   BRP[1]="$branch"; BRC[1]="${VAL}${branch}${R}"
