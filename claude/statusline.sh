@@ -537,8 +537,8 @@ for i in 0 1 2 3 4; do [ -n "${GRP[$i]}" ] && [ ${#BRP[$i]} -gt "$MW" ] && MW=${
 
 # --- Width ---
 # Claude Code passes the terminal's width in COLUMNS. The right side keeps its
-# natural width; the bars and the values beside them split what is left about
-# evenly, the bars in whole characters per core (1 to 4). A terminal too narrow
+# natural width; the bars take what is left, in whole characters per core (1 to
+# 4), and the values column keeps at most 12 spare. A terminal too narrow
 # for all of it drops the teal details first, then the whole right side.
 cols=${COLUMNS:-145}; [ "$cols" -gt 0 ] 2>/dev/null || cols=145
 W=$(( cols - 2 ))
@@ -554,15 +554,16 @@ if   [ $(( ncpu + 9 + Bmin + 3 + CF )) -le "$W" ]; then show=full;   C=$CF
 elif [ $(( ncpu + 9 + Bmin + 3 + CB )) -le "$W" ]; then show=bright; C=$CB
 else show=left; C=0; fi
 avail=$W; [ "$show" != left ] && avail=$(( W - 3 - C ))
-per=$(( (avail - 18 + ncpu) / (2 * ncpu) ))
-[ "$per" -gt 4 ] && per=4
+# Once something has been dropped the bars stay at their narrowest, so a
+# narrower window never shows wider bars.
+per=4; [ "$show" != full ] && per=1
 while [ "$per" -gt 1 ] && [ $(( per * ncpu + 9 + Bmin )) -gt "$avail" ]; do per=$(( per - 1 )); done
 [ "$per" -lt 1 ] && per=1
 BW=$(( per * ncpu )); build_left
-# The values column pads out to the divider, but no wider than the bars or the
-# right side, so a very wide terminal doesn't leave a gulf before the divider.
-A=$(( BW + 9 )); m=$Bmin; [ "$A" -gt "$m" ] && m=$A; [ "$C" -gt "$m" ] && m=$C
-L=$avail; [ $(( A + m )) -lt "$L" ] && L=$(( A + m ))
+# The values column pads out to the divider, up to 12 spare columns, so a wide
+# terminal doesn't leave a gulf before the divider.
+A=$(( BW + 9 ))
+L=$avail; [ $(( A + Bmin + 12 )) -lt "$L" ] && L=$(( A + Bmin + 12 ))
 for i in 0 1 2 3 4; do [ ${#LP[$i]} -gt "$L" ] && L=${#LP[$i]}; done
 
 n=0
