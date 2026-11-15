@@ -166,7 +166,7 @@ def test_effort_keeps_its_word():
 # --- Helpers ---
 @pytest.mark.parametrize("d,want", [
     (None, "-"), (-5, "now"), (59, "0m"), (61, "1m"), (3600, "1h0m"), (3 * 3600 + 7 * 60, "3h7m"),
-    (172_799, "47h59m"), (172_800, "2d0h"), (3 * 86400 + 5 * 3600, "3d5h"),
+    (86_399, "23h59m"), (86_400, "1d0h"), (35 * 3600 + 51 * 60, "1d11h"), (3 * 86400 + 5 * 3600, "3d5h"),
 ])
 def test_fmt_reset(d, want):
     assert sl.fmt_reset(0 if d is None else NOW + d, NOW) == want
