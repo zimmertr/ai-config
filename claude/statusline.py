@@ -520,7 +520,7 @@ def fmt_reset(ts, now):
     d = ts - now
     if d <= 0:
         return "now"
-    if d >= 172800:
+    if d >= 86400:
         return "%dd%dh" % (d // 86400, d % 86400 // 3600)
     if d >= 3600:
         return "%dh%dm" % (d // 3600, d % 3600 // 60)
