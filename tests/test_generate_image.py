@@ -156,6 +156,7 @@ def test_parser_defaults():
     assert args.seeds == [1]
     args = ig.parser().parse_args(["img2img", "z-image-turbo", "p", "-i", "a.png", "--seeds", "3,4"])
     assert args.strength == 0.6 and args.seeds == [3, 4] and args.image == ["a.png"]
+    assert ig.parser().parse_args(["roll", "a.png", "b.png"]).by == 0.5
 
 
 def test_only_the_four_image_models_are_allowed():

@@ -290,6 +290,16 @@ def cmd_scale(args):
     print("%s %dx%d" % (args.output, size[0], size[1]))
 
 
+def cmd_roll(args):
+    # Slides the picture sideways with wrap-around, so the join of a strip that must tile sits in
+    # the middle, where an edit can paint over it, and the edges are the old unbroken middle.
+    from PIL import Image, ImageChops
+    im = Image.open(args.input)
+    shift = round(im.width * args.by)
+    ImageChops.offset(im, shift, 0).save(args.output)
+    print("%s rolled %d px" % (args.output, shift))
+
+
 def cmd_palette(args):
     import numpy as np
     from PIL import Image
@@ -472,6 +482,10 @@ def parser():
     g.add_argument("--width", type=int)
     g.add_argument("--factor", type=float)
     s.add_argument("--resample", choices=("box", "nearest", "lanczos"), default="box")
+    s = sub.add_parser("roll", help="slide sideways with wrap-around, to move a tiling seam to the middle")
+    s.add_argument("input")
+    s.add_argument("output")
+    s.add_argument("--by", type=float, default=0.5, help="fraction of the width (default half)")
     s = sub.add_parser("palette")
     s.add_argument("input")
     s.add_argument("output")
@@ -500,7 +514,7 @@ def parser():
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    {"models": cmd_models, "gen": cmd_gen, "edit": cmd_edit, "img2img": cmd_img2img, "scale": cmd_scale,
+    {"models": cmd_models, "gen": cmd_gen, "edit": cmd_edit, "img2img": cmd_img2img, "scale": cmd_scale, "roll": cmd_roll,
      "palette": cmd_palette, "cutout": cmd_cutout, "sheet": cmd_sheet, "page": cmd_page}[args.cmd](args)
 
 

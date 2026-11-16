@@ -10,6 +10,7 @@ What worked and what didn't in testing, then recipes for common jobs. The exampl
 - **Say what's rare as rare.** "Blue icefalls" put ice towers everywhere; "icefalls appear only where a glacier drops over a steep step" put them in a few places.
 - **Whatever you name gets drawn everywhere.** "Rock broken into ledges, ribs and cracks" turned a whole cliff into brickwork, and "an icefall of blue blocks" put blue blocks over the whole glacier. Say how far each thing reaches: "a few ledges near the top", "only where it drops over the step".
 - **Every word is drawn literally.** "A square summit block" and "a flat-topped tower" became chimneys, "smooth slabs" became a blank face, and "water streaks" became icicles. Describe shapes as rough and broken rather than as solids, and say what a thing is not ("dark grey stains, not ice").
+- **Don't ask for distance or haze.** "Pale and hazy, across many miles of air" washed a mountain range out to almost white. Paint it crisp and make it look far afterwards, with a palette or an overlay.
 - **Avoid words with a strong stock image.** "Crater" gave meteor streaks on Z-Image and a huge caldera on Qwen; "summit dome" with "large crater" in the negative prompt worked.
 - **Watch framing words.** "World map", "landmark", "tile" and "three-quarter view" made a floating island cut out of the ground. "A landscape, the ground continues past every edge of the picture" kept it rooted.
 - **Ask for the whole subject when it mustn't be cropped:** "standing alone in the middle distance, the whole mountain visible, with sky on both sides and above it", plus "cropped" in the negative prompt. If it still runs off an edge, give it a share of the frame: "it fills only the middle half of the picture's width, and its ridges come down to low ground well inside the picture."
@@ -52,6 +53,15 @@ For pixel art with more detail than a pixel-art prompt gives:
 
 In testing, this gave fine pixels, the painting's composition and far more detail than either step alone. Asking at step 3 to "redraw this as pixel art with clean clusters and a limited palette" gave chunky pixels instead.
 
+### A strip that tiles sideways
+
+For a background that wraps round as it scrolls. Asking for matching ends doesn't work: "at both edges it dips to the same low saddle" dropped the range to the ground at both ends.
+
+1. `gen` a wide picture (`--size 1024x384`) with the subject running from edge to edge.
+2. `roll` it by half, so the join sits in the middle. The new edges are the old picture's unbroken middle, so they already meet.
+3. Qwen `edit` the rolled picture: "Fill the gap in the middle with more [subject], so it runs on unbroken from the left edge to the right edge. Keep everything else exactly as it is: the left quarter and the right quarter of the picture must not change at all." In testing, the edges kept their outline to within 3 pixels; only the colours shifted a little.
+4. Check the join by laying two copies side by side.
+
 ### Match the style of an existing picture
 
 Qwen `edit` with two pictures: `-i content.png -i style.png`, and "Repaint the first picture in exactly the style of the second picture: the same pixel size, colours and treatment. Keep the first picture's composition exactly." Results vary, so check that the style really carried over. Clean up both inputs first (flat backgrounds, no banding), because the edit copies their flaws.
@@ -71,5 +81,6 @@ Ideogram with a JSON caption. Give each piece of text its own `text` element and
 - **Palette:** `palette --palette file.json` maps every pixel onto a project's colours (a list of hex strings or `[r, g, b]` lists, or an object holding one under `colors`). Smooth gradients like skies band badly, so cut those away first.
 - **Only the material's colours:** `--groups snow,ice,rock` limits the match to named groups, when the palette file names them (`"groups": {"snow": [3, 4]}` or `"names": {"3": "snow[0]"}`). Matched to the whole palette, neighbouring pixels of one material land in unrelated groups. That looks noisy, and a palette with a second theme (night, dusk) turns them different colours. In testing, a mountain matched only to its snow, ice and rock groups used 32 colours instead of 179, looked like the project's own art, and stayed even in the second theme.
 - **Cut away what you won't keep before matching**, and list only the groups of what's left. Every other group you allow steals pixels: a cliff matched with the vegetation groups allowed put dark green in every rock shadow, and a pale rock face brighter than the top of its own group fell onto the snow, sky or yellow-leaf group, whichever was allowed.
+- **Split materials that share a brightness.** Sunlit rock and snow are both near white, so in one match the rock fell onto the snow colours and the whole range looked snowbound. Pick out one material by its colour in the source first (snow: bright, unsaturated, bluish), match each part to its own groups, and put them back together.
 - **Small sprites:** shrunk to 10 to 15 pixels, AI sprites came out no better than simple drawn ones; the detail that makes them worthwhile doesn't survive. Use the models for pictures roughly 32 pixels and up.
 - **Review again after clean-up.** Shrinking and palette mapping can reveal noise and mixed pixel sizes.
