@@ -2,5 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>zimmertr/yggdrasil//defaults/renovate"
+  ],
+  "packageRules": [
+    {
+      "description": "test.yml runs pytest on Python 3.9 because macOS's own python3 is 3.9, and that is what runs the status line on a Mac without Homebrew's. A newer image would pass code a stock Mac can't run, so only a new digest of 3.9-slim is proposed.",
+      "matchFileNames": [
+        ".github/workflows/test.yml"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "allowedVersions": "/^3\\.9-slim$/"
+    }
   ]
 }
