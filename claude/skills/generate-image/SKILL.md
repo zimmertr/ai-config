@@ -29,7 +29,7 @@ $R $J sheet sheet.png draft-s1.png draft-s2.png draft-s3.png --cols 3 --width 40
 
 - `@file` reads a prompt from a file in the job folder. Write long prompts to files; shell quoting mangles them.
 - Each picture is saved as `<out>-s<seed>.png` and logged to `log.jsonl` with its model, seed, size, prompt and negative prompt, so any pick can be made again.
-- Clean-up commands, all local: `scale` (to a width or by a factor), `palette` (onto a project's palette file or N colours), `cutout` (make a sky or flat background transparent), `sheet` (a labelled contact sheet; transparency shows as a checkerboard), `page` (the approval page). Run `$R $J <command> --help` for the options.
+- Clean-up commands, all local: `scale` (to a width or by a factor), `palette` (onto a project's palette file, or only some named groups of its colours, or N colours), `cutout` (make a sky or flat background transparent), `sheet` (a labelled contact sheet; transparency shows as a checkerboard), `page` (the approval page). Run `$R $J <command> --help` for the options.
 
 ## Choosing a model
 

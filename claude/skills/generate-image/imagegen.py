@@ -254,6 +254,17 @@ def parse_palette(data):
     return out
 
 
+def group_indices(data, groups):
+    """The palette entries in the named groups. A palette file names them either
+    as "groups": {"snow": [3, 4, 5]} or, per entry, as "names": {"3": "snow[0]"}."""
+    wanted = set(groups)
+    if isinstance(data, dict) and "groups" in data:
+        return sorted(i for g in wanted for i in data["groups"].get(g, []))
+    if isinstance(data, dict) and "names" in data:
+        return sorted(int(i) for i, n in data["names"].items() if n.split("[")[0] in wanted)
+    raise ValueError("the palette file names no groups")
+
+
 # Perceptual weights: green counts most, blue least.
 WEIGHTS = (0.3, 0.59, 0.11)
 
@@ -288,7 +299,14 @@ def cmd_palette(args):
         out = rgb.quantize(colors=args.colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB")
     else:
         with open(args.palette, encoding="utf-8") as f:
-            pal = np.array(parse_palette(json.load(f)), float)
+            data = json.load(f)
+        pal = np.array(parse_palette(data), float)
+        if args.groups:
+            # Only the colours of the picture's own material, so a palette with
+            # a second set of colours (a night theme, say) turns it over evenly.
+            pal = pal[group_indices(data, args.groups.split(","))]
+            if not len(pal):
+                sys.exit("no palette entries in groups " + args.groups)
         a = np.asarray(rgb, float).reshape(-1, 3)
         w = np.array(WEIGHTS)
         idx = np.empty(len(a), int)
@@ -460,6 +478,7 @@ def parser():
     g = s.add_mutually_exclusive_group(required=True)
     g.add_argument("--palette")
     g.add_argument("--colors", type=int)
+    s.add_argument("--groups", help="with --palette: use only these named groups of colours, comma-separated")
     s = sub.add_parser("cutout")
     s.add_argument("input")
     s.add_argument("output")

@@ -125,6 +125,13 @@ def test_parse_palette_shapes():
     assert ig.parse_palette({"day": [[9, 9, 9]]}) == [(9, 9, 9)]
 
 
+def test_group_indices_from_groups_or_names():
+    assert ig.group_indices({"groups": {"snow": [3, 4], "rock": [7]}}, ["snow", "rock"]) == [3, 4, 7]
+    assert ig.group_indices({"names": {"1": "snow[0]", "2": "grass[0]", "3": "snow[1]"}}, ["snow"]) == [1, 3]
+    with pytest.raises(ValueError):
+        ig.group_indices(["#000000"], ["snow"])
+
+
 def test_nearest_index_weights_green_most():
     palette = [(0, 0, 0), (255, 255, 255), (200, 0, 0)]
     assert ig.nearest_index((190, 10, 10), palette) == 2
