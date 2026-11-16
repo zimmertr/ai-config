@@ -29,8 +29,8 @@ slash and the repo's folder in the path, and mint / gold / coral is a value
 with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
 coral edges with a line above and below. Ctx's token count takes AC's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
-orchid. The Model row is bold, as the right side's lead, and its ✻ in icy blue
-sets it apart. The folder and the branch show in full, and shorten only when
+orchid. The Model row is bold, as the right side's lead, and its ✻ takes the
+effort's color from Claude Code's /effort picker. The folder and the branch show in full, and shorten only when
 their row runs out of room.
 
 The session's short name (`claude-80`) is what other sessions message it by;
@@ -77,6 +77,25 @@ SPARK = "▁▂▃▄▅▆▇█"
 # The part after a slash on the Model, ID and K8s rows has its own color, so a
 # row doesn't read as one white run.
 NAME = E + "[38;5;183m"   # lilac: the effort, the session name and the namespace
+
+
+def rgb(r, g, b):
+    return "%s[38;2;%d;%d;%dm" % (E, r, g, b)
+
+
+# The model's ✻ takes the colors of Claude Code's /effort picker. Max's rainbow
+# steps a color per redraw, as the picker's shimmers.
+EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249),
+          "xhigh": rgb(175, 135, 255)}
+RAINBOW = [rgb(235, 95, 87), rgb(245, 139, 87), rgb(250, 195, 95), rgb(145, 200, 130),
+           rgb(130, 170, 220), rgb(155, 130, 200), rgb(200, 130, 180)]
+
+
+def spark(lvl, now):
+    """The model's ✻ in the effort's color; icy blue for a level the picker doesn't have."""
+    if lvl == "max":
+        return S(E + "[1m" + RAINBOW[now % len(RAINBOW)], "✻")
+    return S(E + "[1m" + EFFORT[lvl] if lvl in EFFORT else SLASH, "✻")
 
 
 # --- Styled text ---
@@ -329,9 +348,9 @@ def build_right(st):
     a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
     # label included (in render), and a ✻ (the spark Claude Code shows while it
-    # works) leads it, a shape the bold alone can't give; the other rows stay
-    # plain.
-    effort = S(SLASH, "✻") + P(" ") + S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
+    # works) leads it in the effort's color, a shape the bold alone can't give;
+    # the other rows stay plain.
+    effort = spark(st.lvl, st.now) + P(" ") + S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
@@ -849,6 +868,7 @@ def collect(payload, env=os.environ):
         if isinstance(s, dict) and s.get("sessionId") == sid and s.get("name") not in (None, False):
             st.sname = str(s["name"])
             break
+    st.lvl = effort.lower()
     st.effort = effort[:1].upper() + effort[1:]
 
     # One git call gives the branch, ahead/behind and changed files. A plain
@@ -894,6 +914,7 @@ def collect(payload, env=os.environ):
     st.ac_pct = int(st.ctx_tok / ac_thr * 100 + 0.5) if ac_thr > 0 else 0
 
     now = int(time.time())
+    st.now = now
     five, seven = pool_limits(sid, five, seven)
     # A window whose reset has passed starts again from zero.
     if 0 < five[1] <= now:

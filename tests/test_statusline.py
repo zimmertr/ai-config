@@ -28,7 +28,7 @@ def plain(text):
 
 def state(**kw):
     st = SimpleNamespace(
-        model="Opus 5.5", effort="High",
+        model="Opus 5.5", effort="High", lvl="high", now=NOW,
         ctx_tok=191_093, win=1_000_000, ac_pct=39, win_pct=19,
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
@@ -172,6 +172,17 @@ def test_number_sits_in_the_middle_of_its_bar():
 ])
 def test_fmt_reset(d, want):
     assert sl.fmt_reset(0 if d is None else NOW + d, NOW) == want
+
+
+@pytest.mark.parametrize("lvl", ["low", "medium", "high", "xhigh"])
+def test_spark_takes_the_effort_color(lvl):
+    assert sl.spark(lvl, NOW).parts == [("✻", sl.E + "[1m" + sl.EFFORT[lvl])]
+
+
+def test_max_spark_steps_through_the_rainbow():
+    colors = {sl.spark("max", NOW + i).parts[0][1] for i in range(len(sl.RAINBOW))}
+    assert len(colors) == len(sl.RAINBOW)
+    assert sl.spark("other", NOW).parts == [("✻", sl.SLASH)]
 
 
 def test_long_names_shorten_only_without_room():
