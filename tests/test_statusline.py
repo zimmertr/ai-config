@@ -28,12 +28,12 @@ def plain(text):
 
 def state(**kw):
     st = SimpleNamespace(
-        model="Opus 5.5", effort="High", lvl="high",
+        model="Opus 5.5", effort="High",
         ctx_tok=191_093, win=1_000_000, ac_pct=39, win_pct=19,
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
         cpu_pct=10, cores=[30, 20, 10, 5, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8], ncpu=14,
-        in_git=True, branch="main", ahead=0, behind=7, dirty=2, sdir="~/git/personal/bluebird",
+        in_git=True, branch="main", ahead=0, behind=7, dirty=2, dir="~/git/personal/bluebird", repo="bluebird", repo_k=0,
         kube="admin@stable", ns="default", sid8="1feba53f", cost="3.63", turns=220, sname="claude-00",
         five_pace=111, seven_pace=164, fable_pace=167,
     )
@@ -48,23 +48,22 @@ STATES = {
     "typical": state(),
     "all boxed": state(ac_pct=120, win_pct=95, five_pct=88, seven_pct=100, cpu_pct=99,
                        cost="140.00", turns=400, five_pace=160, seven_pace=190, fable_pace=200, cores=[100] * 14),
-    "long names": state(branch="feat/a-very-long-branch-nam…", sname="a-session-name-that-runs-long",
-                        sdir="~/.claude/tmp/…/scratchpad", kube="arn:aws:eks:us-west-2:cluster/x"),
-    "no git": state(in_git=False, sdir="/"),
+    "long names": state(branch="feat/a-very-long-branch-name-that-keeps-going", sname="a-session-name-that-runs-long",
+                        dir="~/.claude/tmp/claude-501/-Users-tj--claude/1feba53f/scratchpad",
+                        kube="arn:aws:eks:us-west-2:cluster/x"),
+    "no git": state(in_git=False, dir="/"),
     "no fable": state(fable_pct=None),
     "no pace yet": state(five_pace=None, seven_pace=None, fable_pace=None),
     "no cores": state(cores=[]),
     "no namespace": state(kube="", ns=""),
     "8 cores": state(ncpu=8, cores=[50, 40, 30, 20, 10, 0, 90, 80]),
-    "xhigh": state(effort="Xhigh", lvl="xhigh"),
-    "max": state(effort="Max", lvl="max"),
 }
 
 SIZES = list(range(60, 221, 7))
 
 
 def rows(st, cols):
-    return [plain(r) for r in sl.render(st, cols, NOW).split("\n")]
+    return [plain(r) for r in sl.render(st, cols).split("\n")]
 
 
 # --- Layout ---
@@ -120,7 +119,7 @@ def test_bars_share_a_width(name):
     # The divider after each bar is the first │ drawn in icy blue.
     edge = sl.DIV + "│"
     # Without Fable its row has no bar.
-    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, NOW).split("\n") if edge in r}
+    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160).split("\n") if edge in r}
     assert len(ends) == 1
 
 
@@ -138,9 +137,17 @@ def test_folder_has_its_own_row():
     assert "K8s:   –" in rows(state(kube=""), 160)[4]
 
 
+def test_details_follow_a_slash():
+    rs = rows(state(), 200)
+    assert rs[1].endswith("ID:    1feba53f/claude-00")
+    assert rs[4].endswith("K8s:   admin@stable/default")
+
+
 def test_narrow_terminal_trims_details_before_the_right_side():
     wide, narrow = rows(state(), 200), rows(state(), 120)
     assert "claude-00" in wide[1]
+    for r in narrow:
+        assert not r.endswith("/") and not r.endswith("/…"), r
     assert "Model:" in narrow[0] and "Dir:" in narrow[2]
     assert "𝐏" in narrow[2] and "Cost:" in narrow[0] and "Turn:" in narrow[1]
 
@@ -157,12 +164,6 @@ def test_number_sits_in_the_middle_of_its_bar():
     assert abs(i - (len(bar) - i - 2)) <= 3
 
 
-def test_effort_keeps_its_word():
-    for lvl in ("low", "medium", "high", "xhigh", "max", "other"):
-        for now in range(10):
-            assert sl.effort_colored("Word", lvl, now).plain == "Word"
-
-
 # --- Helpers ---
 @pytest.mark.parametrize("d,want", [
     (None, "-"), (-5, "now"), (59, "0m"), (61, "1m"), (3600, "1h0m"), (3 * 3600 + 7 * 60, "3h7m"),
@@ -172,14 +173,37 @@ def test_fmt_reset(d, want):
     assert sl.fmt_reset(0 if d is None else NOW + d, NOW) == want
 
 
-@pytest.mark.parametrize("p,want", [
-    ("~/git/personal/bluebird", "~/git/personal/bluebird"),
-    ("~/.claude/tmp/claude-501/-Users-tj--claude/1feba53f/scratchpad", "~/.claude/tmp/…/scratchpad"),
-    ("/a-very-long-folder-name/another-one/", "/a-very-long-folder-name/another-one/"),
-    ("/one/two/three/four/five-and-something-long/", "/one/two/…/five-and-something-long"),
+def test_long_names_shorten_only_without_room():
+    st = STATES["long names"]
+    wide = rows(st, 260)
+    assert wide[2].endswith("Dir:   " + st.dir)
+    assert "Git:   " + st.branch + " ↓7" in wide[3]
+    narrow = rows(st, 110)
+    assert "Dir:   …" in narrow[2] and narrow[2].endswith("scratchpad")
+    assert "Git:   feat/" in narrow[3] and "… ↓7 ✚2" in narrow[3]
+
+
+@pytest.mark.parametrize("p,repo,k,want", [
+    ("~/git/personal/ai-config", "ai-config", 0, "ai-config"),
+    ("~/git/personal/ai-config/foobar", "ai-config", 1, "ai-config"),
+    ("…/ai-config/foobar", "ai-config", 1, "ai-config"),
+    ("…i-config", "ai-config", 0, "…i-config"),      # the repo's folder cut short
+    ("~/.claude/tmp/…/scratchpad", "x", 1, None),     # the repo's folder dropped
+    ("~/git/personal/ai-config", "", -1, None),       # outside a repo
 ])
-def test_short_dir(p, want):
-    assert sl.short_dir(p) == want
+def test_dir_text_colors_the_repo(p, repo, k, want):
+    t = sl.dir_text(p, repo, k)
+    assert t.plain == p
+    lilac = [s for s, style in t.parts if style == sl.NAME]
+    assert lilac == ([want] if want else [])
+
+
+def test_find_repo(tmp_path):
+    (tmp_path / "ai-config" / ".git").mkdir(parents=True)
+    (tmp_path / "ai-config" / "foobar").mkdir()
+    assert sl.find_repo(str(tmp_path / "ai-config")) == ("ai-config", 0)
+    assert sl.find_repo(str(tmp_path / "ai-config" / "foobar")) == ("ai-config", 1)
+    assert sl.find_repo(str(tmp_path)) == ("", -1)
 
 
 @pytest.mark.parametrize("v,bare,want", [

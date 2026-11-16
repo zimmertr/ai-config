@@ -7,10 +7,10 @@ them; and the names of what the session works with. The layout sizes itself to
 the terminal. Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
   CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     │ Model: Opus 5.5/High
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f      claude-00
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
   5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
   7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable  default
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. AC is the share of the point where auto-compact fires, Win the share of
@@ -23,12 +23,14 @@ week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
 counts changed files; outside a repo, and without a K8s context, a row shows –.
 
 One color per job: mauve labels a value, white is a value, slate teal is the
-minor detail that ends a row, lavender draws the colons, slashes and trees, icy
-blue draws the dividers, and mint / gold / coral is a value with a limit: mint
-under 50%, gold under 80%, and from 80% bold coral, boxed by coral edges with a
-line above and below. Ctx's token count takes AC's color. The bars fill in
-quieter tones with the same steps: steel blue, soft violet, orchid. The Model
-row is bold, as the right side's lead.
+dash where there is nothing to show, icy blue draws the colons, slashes, trees
+and dividers, lilac is the effort, session name and namespace after their
+slash and the repo's folder in the path, and mint / gold / coral is a value
+with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
+coral edges with a line above and below. Ctx's token count takes AC's color.
+The bars fill in quieter tones with the same steps: steel blue, soft violet,
+orchid. The Model row is bold, as the right side's lead. The folder and the
+branch show in full, and shorten only when their row runs out of room.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -55,12 +57,12 @@ CACHE = os.path.join(HOME, ".claude", "cache")
 E = "\033"
 R = E + "[0m"
 LAB = E + "[38;5;139m"    # mauve: labels
-DIV = E + "[38;5;153m"    # icy pale blue: the dividers
 VAL = E + "[97m"          # white: values
 VALB = E + "[1;97m"       # bold white: the model, the right side's lead value
-DET = E + "[38;5;66m"     # slate teal: the minor detail that ends a row
-DOT = E + "[38;5;103m"    # lavender: colons and the trees
-SLASH = E + "[1;38;5;103m"  # bold lavender: the slashes in names and paths
+DET = E + "[38;5;66m"     # slate teal: the dash where there is nothing to show
+DOT = E + "[38;5;153m"    # icy pale blue: colons, the trees and the dividers
+DIV = DOT
+SLASH = E + "[1;38;5;153m"  # bold icy pale blue: the slashes in names and paths
 OK, WARN, BAD = E + "[38;5;151m", E + "[38;5;222m", E + "[38;5;210m"  # mint, gold, coral
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
 # shout over the numbers beside it: steel blue, soft violet, orchid.
@@ -71,14 +73,9 @@ EMPTY = E + "[38;5;237m"
 SPARK = "▁▂▃▄▅▆▇█"
 
 
-def rgb(r, g, b):
-    return "%s[38;2;%d;%d;%dm" % (E, r, g, b)
-
-
-RAINBOW = [rgb(235, 95, 87), rgb(245, 139, 87), rgb(250, 195, 95), rgb(145, 200, 130),
-           rgb(130, 170, 220), rgb(155, 130, 200), rgb(200, 130, 180)]
-ULTRA = rgb(175, 135, 255)  # xhigh's base purple, the CLI's autoAccept
-EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249)}
+# The part after a slash on the Model, ID and K8s rows has its own color, so a
+# row doesn't read as one white run.
+NAME = E + "[38;5;183m"   # lilac: the effort, the session name and the namespace
 
 
 # --- Styled text ---
@@ -135,7 +132,7 @@ def val(v, w=50, c=80):
 
 
 def slashed(text, color):
-    """TEXT in COLOR with every / in bold lavender."""
+    """TEXT in COLOR with every / in bold icy blue."""
     segs = text.split("/")
     out = S(color, segs[0])
     for s in segs[1:]:
@@ -283,91 +280,88 @@ def build_left(st, bw, with_third=True):
     return rows
 
 
-# --- Right rows: a mauve label, a bright part, then a slate teal detail ---
-def short_dir(p):
-    """Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad."""
-    if len(p) <= 32:
-        return p
-    parts = p.split("/")
-    if parts and parts[-1] == "":
-        parts.pop()
-    if len(parts) <= 4:
-        return p
-    return "%s/%s/%s/…/%s" % (parts[0], parts[1], parts[2], parts[-1])
+# --- Right rows: a mauve label, a bright part, then a detail after a slash ---
+def dir_text(p, repo, k):
+    """The folder's path in white with the repo's own folder, K from the end, in
+    lilac. A shortened path may have cut or dropped that folder, so it is only
+    colored when what shows there is the repo's name or the end of it."""
+    segs = p.split("/")
+    j = len(segs) - 1 - k
+    out = T()
+    for i, s in enumerate(segs):
+        hit = repo and i == j and (s == repo or (s.startswith("…") and len(s) > 1 and repo.endswith(s[1:])))
+        out = out + (S(SLASH, "/") if i else T()) + S(NAME if hit else VAL, s)
+    return out
 
 
-def effort_colored(w, lvl, now, bold=False):
-    """Effort takes the colors of Claude Code's /effort picker. Its animations
-    tick every 100 ms; a status line only redraws on events and the refresh
-    timer, so xhigh's highlight steps a letter per redraw. Max's rainbow holds
-    still, spread end to end across the word, because stepping it popped
-    instead of flowing."""
-    n = len(w)
-    if lvl in EFFORT:
-        return S((E + "[1m" if bold else "") + EFFORT[lvl], w)
-    if lvl == "xhigh":
-        p = now % (n + 4) - 2
-        out = T()
-        for i, ch in enumerate(w):
-            if i == p:
-                out = out + S(E + "[1m" + rgb(208, 180, 255), ch)
-            elif abs(i - p) == 1:
-                out = out + S(E + "[1m" + ULTRA, ch)
-            else:
-                out = out + S(ULTRA, ch)
-        return out
-    if lvl == "max":
-        out = T()
-        for i, ch in enumerate(w):
-            out = out + S(E + "[1m" + RAINBOW[i * 6 // (n - 1) if n > 1 else 0], ch)
-        return out
-    return S(VALB if bold else VAL, w)
+def find_repo(path):
+    """The repo holding PATH -> its folder's name and how many folders below it
+    PATH is, or ("", -1). The nearest .git wins, as it does for git itself."""
+    k, p = 0, os.path.normpath(path)
+    while True:
+        if os.path.exists(os.path.join(p, ".git")):
+            return os.path.basename(p), k
+        up = os.path.dirname(p)
+        if up == p:
+            return "", -1
+        p, k = up, k + 1
 
 
-def build_right(st, now):
+def git_text(st, branch):
+    """The Git row: BRANCH, then ↑/↓ against its upstream and the changed files."""
+    if not st.in_git:
+        return S(DET, "–")
+    git = slashed(branch, VAL)
+    if st.ahead > 0:
+        git = git + P(" ") + S(OK, "↑%d" % st.ahead)
+    if st.behind > 0:
+        git = git + P(" ") + S(BAD, "↓%d" % st.behind)
+    return git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
+
+
+def build_right(st):
     """The right rows, top to bottom: Model, ID, Dir, Git, K8s. -> bright parts,
-    details and labels by row, and the row whose bright part is the folder's
-    path (it may shorten). A row with nothing to show (outside a repo, no K8s
-    context) shows a teal dash."""
+    details and labels by row, and the rows of the folder and the branch, the
+    two bright parts that shorten when the row runs out of room. A detail follows its bright part after a slash, and
+    on the ID and K8s rows it is the part that shortens and drops on a narrow
+    terminal. A row with nothing to show (outside a repo, no K8s context) shows
+    a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
     # label included (in render); the other rows stay plain.
-    effort = S(VALB, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now, bold=True)
+    effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
-    ident = ("ID", S(VAL, st.sid8), S(DET, st.sname) if st.sname else T())
-    kube = ("K8s", S(VAL, st.kube) if st.kube else S(DET, "–"), S(DET, st.ns) if st.ns else T())
-    if st.in_git:
-        git = slashed(st.branch, VAL)
-        if st.ahead > 0:
-            git = git + P(" ") + S(OK, "↑%d" % st.ahead)
-        if st.behind > 0:
-            git = git + P(" ") + S(BAD, "↓%d" % st.behind)
-        git = git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
-    else:
-        git = S(DET, "–")
-    folder = ("Dir", slashed(st.sdir, VAL), T())
-    rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git, T()), kube]
-    dir_row = 1
+    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
+    kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
+            S(SLASH, "/") + S(NAME, st.ns) if st.kube and st.ns else T())
+    folder = ("Dir", dir_text(st.dir, st.repo if st.in_git else "", st.repo_k), T())
+    rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git_text(st, st.branch), T()), kube]
+    dir_row, git_row = 1, 2
     br, gr, rlab = [T() for _ in range(5)], [T() for _ in range(5)], [""] * 5
     for i, (lab, b, g) in zip(rows, entries):
         rlab[i], br[i], gr[i] = lab, b, g
-    return br, gr, rlab, dir_row
+    return br, gr, rlab, dir_row, git_row
 
 
-def render(st, cols, now):
+def render(st, cols):
     # The rows in the order they print: the machine row on top.
     order = [4, 0, 1, 2, 3]
-    br, gr, rlab, dir_row = build_right(st, now)
+    br, gr, rlab, dir_row, git_row = build_right(st)
+    # The folder and the branch shorten only when their row runs out of room,
+    # down to 16 and 12 characters.
+    floor = {dir_row: min(len(br[dir_row]), 16)}
+    if st.in_git:
+        floor[git_row] = len(br[git_row]) - len(st.branch) + min(len(st.branch), 12)
 
-    # The details start in one column: pad each bright part to the widest one
-    # that has a detail after it.
+    # The widest bright part that has a detail after it.
     mw = max([len(br[i]) for i in order if len(gr[i])] or [0])
 
     # --- Width ---
     # Claude Code passes the terminal's width and keeps a few columns for its own
     # padding. The right side keeps its natural width; the bars take what is
     # left, up to four characters per core, and the values column keeps at most 3
-    # spare. On a narrower terminal the bars win over the teal details: they hold
-    # at two characters per core while the details shorten, then drop. Then the
+    # spare. On a narrower terminal the bars win over the text: they hold at two
+    # characters per core while the folder, the branch and the details shorten,
+    # and then the details drop. Then the
     # bars go to one per core, then the third column of values drops, and last
     # the whole right side.
     ncpu = st.ncpu
@@ -381,23 +375,23 @@ def render(st, cols, now):
         bmin = max([0] + [len(left[i]) - ncpu - 10 for i in order])
         cb, cf = 0, 0
         for i in order:
-            # The folder can shorten from the front, so it asks for 16 at most.
-            cb = max(cb, min(len(br[i]), 16) if i == dir_row else len(br[i]))
-            cf = max(cf, mw + 2 + len(gr[i]) if len(gr[i]) else len(br[i]))
+            cb = max(cb, floor.get(i, len(br[i])))
+            cf = max(cf, len(br[i]) + len(gr[i]))
         cb, cf = cb + 7, cf + 7
         # The left side with the bars at one and two characters per core.
         l1, l2 = ncpu + 10 + bmin, 2 * ncpu + 10 + bmin
         pmax, c = 4, 0
         if l2 + 3 + cf <= w_avail:
             show, c = "full", cf
-        elif l2 + 3 + 7 + mw + 2 + 16 <= w_avail:
-            # The details get whatever the right side has left; a long one ends in ….
+        elif l2 + 3 + max(cb, 7 + mw + 16) <= w_avail:
+            # The details get whatever their row has left; a long one ends in …,
+            # and one with no room past its slash drops.
             show, pmax = "full", 2
             c = w_avail - l2 - 3
-            room = c - 7 - mw - 2
             for i in order:
+                room = c - 7 - len(br[i])
                 if len(gr[i]) > room:
-                    gr[i] = slashed(gr[i].plain[:room - 1] + "…", DET)
+                    gr[i] = S(SLASH, "/") + slashed(gr[i].plain[1:room - 1] + "…", gr[i].parts[1][1]) if room >= 3 else T()
         elif l2 + 3 + cb <= w_avail:
             show, c = "bright", cb
         elif l1 + 3 + cb <= w_avail:
@@ -406,6 +400,10 @@ def render(st, cols, now):
             show = "left"
         if show != "left":
             break
+    # A branch longer than its row's room ends in ….
+    if show != "left" and st.in_git and len(br[git_row]) > c - 7:
+        room = c - 7 - (len(br[git_row]) - len(st.branch))
+        br[git_row] = git_text(st, st.branch[:room - 1] + "…")
     # A folder longer than the right side's room keeps the whole folders at its
     # end that fit (…/personal/bluebird), or the last one cut short.
     if show != "left" and len(br[dir_row]) > c - 7:
@@ -415,7 +413,8 @@ def render(st, cols, now):
                 break
             tail = seg + "/" + tail
         t = "…/" + tail
-        br[dir_row] = slashed(t if len(t) <= room else "…" + tail[-(room - 1):], VAL)
+        br[dir_row] = dir_text(t if len(t) <= room else "…" + tail[-(room - 1):],
+                               st.repo if st.in_git else "", st.repo_k)
     avail = w_avail if show == "left" else w_avail - 3 - c
     per = pmax
     while per > 1 and per * ncpu + 10 + bmin > avail:
@@ -438,7 +437,7 @@ def render(st, cols, now):
         bold = E + "[1m" if rlab[i] == "Model" else ""
         line += DIV + " │ " + R + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
-            line += sp(mw - len(br[i]) + 2) + gr[i].ansi()
+            line += gr[i].ansi()
         out.append(line)
     return "\n".join(out)
 
@@ -847,7 +846,6 @@ def collect(payload, env=os.environ):
         if isinstance(s, dict) and s.get("sessionId") == sid and s.get("name") not in (None, False):
             st.sname = str(s["name"])
             break
-    st.lvl = effort.lower()
     st.effort = effort[:1].upper() + effort[1:]
 
     # One git call gives the branch, ahead/behind and changed files. A plain
@@ -856,8 +854,10 @@ def collect(payload, env=os.environ):
     # in the same repo ("index.lock exists"), so it runs without optional locks.
     st.in_git, st.branch, st.ahead, st.behind, st.dirty = False, "", 0, 0, 0
     gs = run(["git", "-C", cwd, "--no-optional-locks", "status", "--porcelain=v2", "--branch"])
+    st.repo, st.repo_k = "", -1
     if gs is not None:
         st.in_git = True
+        st.repo, st.repo_k = find_repo(cwd)
         for line in gs.rstrip("\n").split("\n"):
             f = line.split()
             if line.startswith("# branch.head ") and len(f) > 2:
@@ -891,7 +891,6 @@ def collect(payload, env=os.environ):
     st.ac_pct = int(st.ctx_tok / ac_thr * 100 + 0.5) if ac_thr > 0 else 0
 
     now = int(time.time())
-    st.now = now
     five, seven = pool_limits(sid, five, seven)
     # A window whose reset has passed starts again from zero.
     if 0 < five[1] <= now:
@@ -911,10 +910,6 @@ def collect(payload, env=os.environ):
     st.cpu_pct, st.cores = read_machine(now, st.ncpu)
     st.turns = read_turns(tpath, sid)
 
-    st.sdir = short_dir(st.dir)
-    # Branch names stop at 20 characters so one long name can't push the grey column away.
-    if len(st.branch) > 20:
-        st.branch = st.branch[:19] + "…"
     st.sid8 = sid[:8]
 
     return st
@@ -932,7 +927,7 @@ def main():
         if not isinstance(payload, dict):
             payload = {}
         st = collect(payload)
-        out = render(st, num(os.environ.get("COLUMNS"), 145), st.now)
+        out = render(st, num(os.environ.get("COLUMNS"), 145))
     except Exception as e:  # a broken status line should still say why
         out = "statusline.py: %s: %s" % (type(e).__name__, e)
     sys.stdout.buffer.write(out.encode("utf-8"))
