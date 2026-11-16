@@ -33,7 +33,7 @@ def state(**kw):
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
         cpu_pct=10, cores=[30, 20, 10, 5, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8], ncpu=14,
-        in_git=True, branch="main", ahead=0, behind=7, dirty=2, sdir="~/git/personal/bluebird",
+        in_git=True, branch="main", ahead=0, behind=7, dirty=2, sdir="~/git/personal/bluebird", repo="bluebird", repo_k=0,
         kube="admin@stable", ns="default", sid8="1feba53f", cost="3.63", turns=220, sname="claude-00",
         five_pace=111, seven_pace=164, fable_pace=167,
     )
@@ -180,6 +180,29 @@ def test_fmt_reset(d, want):
 ])
 def test_short_dir(p, want):
     assert sl.short_dir(p) == want
+
+
+@pytest.mark.parametrize("p,repo,k,want", [
+    ("~/git/personal/ai-config", "ai-config", 0, "ai-config"),
+    ("~/git/personal/ai-config/foobar", "ai-config", 1, "ai-config"),
+    ("…/ai-config/foobar", "ai-config", 1, "ai-config"),
+    ("…i-config", "ai-config", 0, "…i-config"),      # the repo's folder cut short
+    ("~/.claude/tmp/…/scratchpad", "x", 1, None),     # the repo's folder dropped
+    ("~/git/personal/ai-config", "", -1, None),       # outside a repo
+])
+def test_dir_text_colors_the_repo(p, repo, k, want):
+    t = sl.dir_text(p, repo, k)
+    assert t.plain == p
+    lilac = [s for s, style in t.parts if style == sl.NAME]
+    assert lilac == ([want] if want else [])
+
+
+def test_find_repo(tmp_path):
+    (tmp_path / "ai-config" / ".git").mkdir(parents=True)
+    (tmp_path / "ai-config" / "foobar").mkdir()
+    assert sl.find_repo(str(tmp_path / "ai-config")) == ("ai-config", 0)
+    assert sl.find_repo(str(tmp_path / "ai-config" / "foobar")) == ("ai-config", 1)
+    assert sl.find_repo(str(tmp_path)) == ("", -1)
 
 
 @pytest.mark.parametrize("v,bare,want", [

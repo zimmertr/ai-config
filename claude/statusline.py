@@ -25,7 +25,7 @@ counts changed files; outside a repo, and without a K8s context, a row shows –
 One color per job: mauve labels a value, white is a value, slate teal is the
 dash where there is nothing to show, icy blue draws the colons, slashes, trees
 and dividers, lilac is the effort, session name and namespace after their
-slash, and mint / gold / coral is a value with a limit: mint under 50%, gold
+slash and the repo's folder in the path, and mint / gold / coral is a value with a limit: mint under 50%, gold
 under 80%, and from 80% bold coral, boxed by coral edges with a line above and
 below. Ctx's token count takes AC's color. The bars fill in quieter tones with
 the same steps: steel blue, soft violet, orchid. The Model row is bold, as the
@@ -280,6 +280,32 @@ def build_left(st, bw, with_third=True):
 
 
 # --- Right rows: a mauve label, a bright part, then a detail after a slash ---
+def dir_text(p, repo, k):
+    """The folder's path in white with the repo's own folder, K from the end, in
+    lilac. A shortened path may have cut or dropped that folder, so it is only
+    colored when what shows there is the repo's name or the end of it."""
+    segs = p.split("/")
+    j = len(segs) - 1 - k
+    out = T()
+    for i, s in enumerate(segs):
+        hit = repo and i == j and (s == repo or (s.startswith("…") and len(s) > 1 and repo.endswith(s[1:])))
+        out = out + (S(SLASH, "/") if i else T()) + S(NAME if hit else VAL, s)
+    return out
+
+
+def find_repo(path):
+    """The repo holding PATH -> its folder's name and how many folders below it
+    PATH is, or ("", -1). The nearest .git wins, as it does for git itself."""
+    k, p = 0, os.path.normpath(path)
+    while True:
+        if os.path.exists(os.path.join(p, ".git")):
+            return os.path.basename(p), k
+        up = os.path.dirname(p)
+        if up == p:
+            return "", -1
+        p, k = up, k + 1
+
+
 def short_dir(p):
     """Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad."""
     if len(p) <= 32:
@@ -315,7 +341,7 @@ def build_right(st):
         git = git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
     else:
         git = S(DET, "–")
-    folder = ("Dir", slashed(st.sdir, VAL), T())
+    folder = ("Dir", dir_text(st.sdir, st.repo if st.in_git else "", st.repo_k), T())
     rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git, T()), kube]
     dir_row = 1
     br, gr, rlab = [T() for _ in range(5)], [T() for _ in range(5)], [""] * 5
@@ -386,7 +412,8 @@ def render(st, cols):
                 break
             tail = seg + "/" + tail
         t = "…/" + tail
-        br[dir_row] = slashed(t if len(t) <= room else "…" + tail[-(room - 1):], VAL)
+        br[dir_row] = dir_text(t if len(t) <= room else "…" + tail[-(room - 1):],
+                               st.repo if st.in_git else "", st.repo_k)
     avail = w_avail if show == "left" else w_avail - 3 - c
     per = pmax
     while per > 1 and per * ncpu + 10 + bmin > avail:
@@ -826,8 +853,10 @@ def collect(payload, env=os.environ):
     # in the same repo ("index.lock exists"), so it runs without optional locks.
     st.in_git, st.branch, st.ahead, st.behind, st.dirty = False, "", 0, 0, 0
     gs = run(["git", "-C", cwd, "--no-optional-locks", "status", "--porcelain=v2", "--branch"])
+    st.repo, st.repo_k = "", -1
     if gs is not None:
         st.in_git = True
+        st.repo, st.repo_k = find_repo(cwd)
         for line in gs.rstrip("\n").split("\n"):
             f = line.split()
             if line.startswith("# branch.head ") and len(f) > 2:
