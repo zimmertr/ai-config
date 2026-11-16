@@ -350,14 +350,10 @@ def build_right(st):
     # label included (in render), and a ✻ (the spark Claude Code shows while it
     # works) leads it in the effort's color, a shape the bold alone can't give;
     # the other rows stay plain.
-    # DEMO: the ✻'s placement steps through four options, one per second.
-    mode = ("bullet", "column", "end", "divider")[st.now % 4]
-    effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
-    if mode == "end":
-        effort = effort + P(" ") + spark(st.lvl, st.now)
+    effort = spark(st.lvl, st.now) + P(" ") + S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
-    kube = ("K8s", (slashed(st.kube, VAL) if st.kube else S(DET, "–")),
+    kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
             S(SLASH, "/") + S(NAME, st.ns) if st.kube and st.ns else T())
     folder = ("Dir", dir_text(st.dir, st.repo if st.in_git else "", st.repo_k), T())
     rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git_text(st, st.branch), T()), kube]
@@ -378,8 +374,6 @@ def render(st, cols):
     if st.in_git:
         floor[git_row] = len(br[git_row]) - len(st.branch) + min(len(st.branch), 12)
 
-    mode = ("bullet", "column", "end", "divider")[st.now % 4]  # DEMO
-    rl = 9 if mode in ("bullet", "column") else 7  # DEMO: a right row's label width
     # The widest bright part that has a detail after it.
     mw = max([len(br[i]) for i in order if len(gr[i])] or [0])
 
@@ -405,19 +399,19 @@ def render(st, cols):
         for i in order:
             cb = max(cb, floor.get(i, len(br[i])))
             cf = max(cf, len(br[i]) + len(gr[i]))
-        cb, cf = cb + rl, cf + rl
+        cb, cf = cb + 7, cf + 7
         # The left side with the bars at one and two characters per core.
         l1, l2 = ncpu + 10 + bmin, 2 * ncpu + 10 + bmin
         pmax, c = 4, 0
         if l2 + 3 + cf <= w_avail:
             show, c = "full", cf
-        elif l2 + 3 + max(cb, rl + mw + 16) <= w_avail:
+        elif l2 + 3 + max(cb, 7 + mw + 16) <= w_avail:
             # The details get whatever their row has left; a long one ends in …,
             # and one with no room past its slash drops.
             show, pmax = "full", 2
             c = w_avail - l2 - 3
             for i in order:
-                room = c - rl - len(br[i])
+                room = c - 7 - len(br[i])
                 if len(gr[i]) > room:
                     gr[i] = S(SLASH, "/") + slashed(gr[i].plain[1:room - 1] + "…", gr[i].parts[1][1]) if room >= 3 else T()
         elif l2 + 3 + cb <= w_avail:
@@ -429,13 +423,13 @@ def render(st, cols):
         if show != "left":
             break
     # A branch longer than its row's room ends in ….
-    if show != "left" and st.in_git and len(br[git_row]) > c - rl:
-        room = c - rl - (len(br[git_row]) - len(st.branch))
+    if show != "left" and st.in_git and len(br[git_row]) > c - 7:
+        room = c - 7 - (len(br[git_row]) - len(st.branch))
         br[git_row] = git_text(st, st.branch[:room - 1] + "…")
     # A folder longer than the right side's room keeps the whole folders at its
     # end that fit (…/personal/bluebird), or the last one cut short.
-    if show != "left" and len(br[dir_row]) > c - rl:
-        room, tail = c - rl, br[dir_row].plain.split("/")[-1]
+    if show != "left" and len(br[dir_row]) > c - 7:
+        room, tail = c - 7, br[dir_row].plain.split("/")[-1]
         for seg in reversed(br[dir_row].plain.split("/")[1:-1]):
             if len("…/" + seg + "/" + tail) > room:
                 break
@@ -463,15 +457,9 @@ def render(st, cols):
             continue
         line = left[i].ansi() + sp(lw - len(left[i]))
         bold = E + "[1m" if rlab[i] == "Model" else ""
-        top, mark = rlab[i] == "Model", spark(st.lvl, st.now).ansi() + " "
-        div = DIV + " " + R + mark if mode == "divider" and top else DIV + " │ " + R
-        pre = (mark if top else "  ") if mode == "bullet" else ""
-        gap = (mark if top else "  ") if mode == "column" else ""
-        line += div + pre + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + gap + br[i].ansi()
+        line += DIV + " │ " + R + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
             line += gr[i].ansi()
-        if rlab[i] == "K8s":  # DEMO: name the placement on show
-            line += S(DET, "   ‹ %s ›" % mode).ansi()
         out.append(line)
     return "\n".join(out)
 
