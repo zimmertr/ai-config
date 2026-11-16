@@ -52,7 +52,7 @@ For pixel art with more detail than a pixel-art prompt gives:
 3. `edit` on Qwen with the "Repaint this … as a detailed, beautiful 16-bit pixel art illustration of …, keep the exact outline …" prompt above, describing the content.
 4. `scale` and `palette` the result down to the target size again.
 
-In testing, this gave fine pixels, the painting's composition and far more detail than either step alone. Asking at step 3 to "redraw this as pixel art with clean clusters and a limited palette" gave chunky pixels instead.
+In testing, this gave fine pixels, the painting's composition and far more detail than either step alone. Don't skip step 3 because the palette is small: a mountain range shrunk 2.2 times straight onto six colours came out speckled, and repainted first it came out clean. Only a picture made at close to its final size matched cleanly without it. Asking at step 3 to "redraw this as pixel art with clean clusters and a limited palette" gave chunky pixels instead.
 
 ### A strip that tiles sideways
 
