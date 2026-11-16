@@ -9,9 +9,10 @@ What worked and what didn't in testing, then recipes for common jobs. The exampl
 - **Describe irregularity outright.** Models default to tidy symmetry. "Glaciers flow between rock ridges" gave evenly spaced spokes; "glaciers of different widths joining and splitting around ridges of different lengths" didn't.
 - **Say what's rare as rare.** "Blue icefalls" put ice towers everywhere; "icefalls appear only where a glacier drops over a steep step" put them in a few places.
 - **Whatever you name gets drawn everywhere.** "Rock broken into ledges, ribs and cracks" turned a whole cliff into brickwork, and "an icefall of blue blocks" put blue blocks over the whole glacier. Say how far each thing reaches: "a few ledges near the top", "only where it drops over the step".
+- **Every word is drawn literally.** "A square summit block" and "a flat-topped tower" became chimneys, "smooth slabs" became a blank face, and "water streaks" became icicles. Describe shapes as rough and broken rather than as solids, and say what a thing is not ("dark grey stains, not ice").
 - **Avoid words with a strong stock image.** "Crater" gave meteor streaks on Z-Image and a huge caldera on Qwen; "summit dome" with "large crater" in the negative prompt worked.
 - **Watch framing words.** "World map", "landmark", "tile" and "three-quarter view" made a floating island cut out of the ground. "A landscape, the ground continues past every edge of the picture" kept it rooted.
-- **Ask for the whole subject when it mustn't be cropped:** "standing alone in the middle distance, the whole mountain visible, with sky on both sides and above it", plus "cropped" in the negative prompt.
+- **Ask for the whole subject when it mustn't be cropped:** "standing alone in the middle distance, the whole mountain visible, with sky on both sides and above it", plus "cropped" in the negative prompt. If it still runs off an edge, give it a share of the frame: "it fills only the middle half of the picture's width, and its ridges come down to low ground well inside the picture."
 - **Naming a real place or thing as inspiration works** ("inspired by Mount Rainier"). Don't ask for the look of a specific existing game, film or artist; describe the qualities you want instead.
 
 ## Negative prompts (Qwen only)
@@ -45,7 +46,7 @@ It does sharpen peaks, towers and other tops into points unless told not to. Nam
 For pixel art with more detail than a pixel-art prompt gives:
 
 1. `gen` on Qwen: ask for "a clean, crisp digital gouache illustration", with flat shapes, hard edges and few colours, and put "pixel art" in the negative prompt. This gets the best composition.
-2. `scale` it down to the target's real pixel size with `--resample box`, and `palette` it onto the project's palette if there is one. Then `scale` back up to about 1024 wide with `--resample nearest`.
+2. `scale` it down to about 400 wide with `--resample box` (or the target's real size, if that's bigger), and `palette` it onto the project's palette if there is one. Then `scale` back up to about 1024 wide with `--resample nearest`. The repaint draws pixels the size of its input's: an input shrunk to 210 wide came back with pixels twice the target's and flat, empty faces.
 3. `edit` on Qwen with the "Repaint this … as a detailed, beautiful 16-bit pixel art illustration of …, keep the exact outline …" prompt above, describing the content.
 4. `scale` and `palette` the result down to the target size again.
 
@@ -69,6 +70,6 @@ Ideogram with a JSON caption. Give each piece of text its own `text` element and
 - **Size:** `scale` with `--resample box` to shrink a painting, and `nearest` to enlarge pixel art without blurring it.
 - **Palette:** `palette --palette file.json` maps every pixel onto a project's colours (a list of hex strings or `[r, g, b]` lists, or an object holding one under `colors`). Smooth gradients like skies band badly, so cut those away first.
 - **Only the material's colours:** `--groups snow,ice,rock` limits the match to named groups, when the palette file names them (`"groups": {"snow": [3, 4]}` or `"names": {"3": "snow[0]"}`). Matched to the whole palette, neighbouring pixels of one material land in unrelated groups. That looks noisy, and a palette with a second theme (night, dusk) turns them different colours. In testing, a mountain matched only to its snow, ice and rock groups used 32 colours instead of 179, looked like the project's own art, and stayed even in the second theme.
-- **Cut away what you won't keep before matching.** Leave the groups of anything you cut out of the `--groups` list too: a cliff matched with the vegetation groups allowed put dark green in every rock shadow.
+- **Cut away what you won't keep before matching**, and list only the groups of what's left. Every other group you allow steals pixels: a cliff matched with the vegetation groups allowed put dark green in every rock shadow, and a pale rock face brighter than the top of its own group fell onto the snow, sky or yellow-leaf group, whichever was allowed.
 - **Small sprites:** shrunk to 10 to 15 pixels, AI sprites came out no better than simple drawn ones; the detail that makes them worthwhile doesn't survive. Use the models for pictures roughly 32 pixels and up.
 - **Review again after clean-up.** Shrinking and palette mapping can reveal noise and mixed pixel sizes.
