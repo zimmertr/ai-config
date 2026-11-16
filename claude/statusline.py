@@ -24,11 +24,12 @@ counts changed files; outside a repo, and without a K8s context, a row shows –
 
 One color per job: mauve labels a value, white is a value, slate teal is the
 dash where there is nothing to show, lavender draws the colons, slashes and
-trees, icy blue draws the dividers, and mint / gold / coral is a value with a
+trees, icy blue draws the dividers, soft cyan and sky blue are the session name
+and namespace after their slash, and mint / gold / coral is a value with a
 limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by coral
-edges with a line above and below. Ctx's token count takes AC's color. The bars fill in
-quieter tones with the same steps: steel blue, soft violet, orchid. The Model
-row is bold, as the right side's lead.
+edges with a line above and below. Ctx's token count takes AC's color. The bars
+fill in quieter tones with the same steps: steel blue, soft violet, orchid. The
+Model row is bold, as the right side's lead.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -79,6 +80,9 @@ RAINBOW = [rgb(235, 95, 87), rgb(245, 139, 87), rgb(250, 195, 95), rgb(145, 200,
            rgb(130, 170, 220), rgb(155, 130, 200), rgb(200, 130, 180)]
 ULTRA = rgb(175, 135, 255)  # xhigh's base purple, the CLI's autoAccept
 EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249)}
+# The part after a slash on the ID and K8s rows has its own color, as the
+# effort does, so a row doesn't read as one white run.
+SNAME, NS = rgb(110, 205, 200), rgb(120, 175, 245)  # soft cyan, sky blue
 
 
 # --- Styled text ---
@@ -335,9 +339,9 @@ def build_right(st, now):
     # label included (in render); the other rows stay plain.
     effort = S(VALB, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now, bold=True)
     model = ("Model", effort, T())
-    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, VAL) if st.sname else T())
+    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, SNAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
-            S(SLASH, "/") + S(VAL, st.ns) if st.kube and st.ns else T())
+            S(SLASH, "/") + S(NS, st.ns) if st.kube and st.ns else T())
     if st.in_git:
         git = slashed(st.branch, VAL)
         if st.ahead > 0:
@@ -400,7 +404,7 @@ def render(st, cols, now):
             for i in order:
                 room = c - 7 - len(br[i])
                 if len(gr[i]) > room:
-                    gr[i] = S(SLASH, "/") + slashed(gr[i].plain[1:room - 1] + "…", VAL) if room >= 3 else T()
+                    gr[i] = S(SLASH, "/") + slashed(gr[i].plain[1:room - 1] + "…", gr[i].parts[1][1]) if room >= 3 else T()
         elif l2 + 3 + cb <= w_avail:
             show, c = "bright", cb
         elif l1 + 3 + cb <= w_avail:
