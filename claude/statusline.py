@@ -23,13 +23,13 @@ week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
 counts changed files; outside a repo, and without a K8s context, a row shows –.
 
 One color per job: mauve labels a value, white is a value, slate teal is the
-dash where there is nothing to show, lavender draws the colons, slashes and
-trees, icy blue draws the dividers, soft cyan and sky blue are the session name
-and namespace after their slash, and mint / gold / coral is a value with a
-limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by coral
-edges with a line above and below. Ctx's token count takes AC's color. The bars
-fill in quieter tones with the same steps: steel blue, soft violet, orchid. The
-Model row is bold, as the right side's lead.
+dash where there is nothing to show, lavender draws the colons, slashes, trees
+and dividers, icy blue is the session name and namespace after their slash,
+and mint / gold / coral is a value with a limit: mint under 50%, gold under
+80%, and from 80% bold coral, boxed by coral edges with a line above and below.
+Ctx's token count takes AC's color. The bars fill in quieter tones with the same
+steps: steel blue, soft violet, orchid. The Model row is bold, as the right
+side's lead.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -56,11 +56,11 @@ CACHE = os.path.join(HOME, ".claude", "cache")
 E = "\033"
 R = E + "[0m"
 LAB = E + "[38;5;139m"    # mauve: labels
-DIV = E + "[38;5;153m"    # icy pale blue: the dividers
 VAL = E + "[97m"          # white: values
 VALB = E + "[1;97m"       # bold white: the model, the right side's lead value
 DET = E + "[38;5;66m"     # slate teal: the dash where there is nothing to show
-DOT = E + "[38;5;103m"    # lavender: colons and the trees
+DOT = E + "[38;5;103m"    # lavender: colons, the trees and the dividers
+DIV = DOT
 SLASH = E + "[1;38;5;103m"  # bold lavender: the slashes in names and paths
 OK, WARN, BAD = E + "[38;5;151m", E + "[38;5;222m", E + "[38;5;210m"  # mint, gold, coral
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
@@ -82,7 +82,7 @@ ULTRA = rgb(175, 135, 255)  # xhigh's base purple, the CLI's autoAccept
 EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249)}
 # The part after a slash on the ID and K8s rows has its own color, as the
 # effort does, so a row doesn't read as one white run.
-SNAME, NS = rgb(110, 205, 200), rgb(120, 175, 245)  # soft cyan, sky blue
+NAME = E + "[38;5;153m"   # icy pale blue: the session name and the namespace
 
 
 # --- Styled text ---
@@ -339,9 +339,9 @@ def build_right(st, now):
     # label included (in render); the other rows stay plain.
     effort = S(VALB, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now, bold=True)
     model = ("Model", effort, T())
-    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, SNAME) if st.sname else T())
+    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
-            S(SLASH, "/") + S(NS, st.ns) if st.kube and st.ns else T())
+            S(SLASH, "/") + S(NAME, st.ns) if st.kube and st.ns else T())
     if st.in_git:
         git = slashed(st.branch, VAL)
         if st.ahead > 0:
