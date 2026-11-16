@@ -24,7 +24,7 @@ counts changed files; outside a repo, and without a K8s context, a row shows –
 
 One color per job: mauve labels a value, white is a value, slate teal is the
 dash where there is nothing to show, icy blue draws the colons, slashes, trees
-and dividers, light lavender is the session name and namespace after their
+and dividers, lilac is the session name and namespace after their
 slash, and mint / gold / coral is a value with a limit: mint under 50%, gold
 under 80%, and from 80% bold coral, boxed by coral edges with a line above and
 below. Ctx's token count takes AC's color. The bars fill in quieter tones with
@@ -82,7 +82,7 @@ ULTRA = rgb(175, 135, 255)  # xhigh's base purple, the CLI's autoAccept
 EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249)}
 # The part after a slash on the ID and K8s rows has its own color, as the
 # effort does, so a row doesn't read as one white run.
-NAME = E + "[38;5;146m"   # light lavender: the session name and the namespace
+NAME = E + "[38;5;183m"   # lilac: the session name and the namespace
 
 
 # --- Styled text ---
