@@ -2,23 +2,24 @@
 """Claude Code status line.
 
 Reads the session-context JSON on stdin and prints five rows in three sections:
-a bar for the CPU, the context and each usage limit; the numbers that go with
-them; and the names of what the session works with. The layout sizes itself to
-the terminal, and a short terminal drops the limit rows from the bottom up
-(Fable, then 7d, then 5h), never CPU or Ctx. Wired via ~/.claude/settings.json
+a bar for the context, each usage limit and the CPU; the numbers that go with
+them; and the names of what the session works with. Each section stacks on its
+own, top down. The layout sizes itself to the terminal, and a short terminal
+drops the limits from the bottom up (Fable, then 7d, then 5h), and each section
+its last row with them. Ctx and CPU always stay. Wired via ~/.claude/settings.json
 as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     ✻ Model: Opus 5.5/High
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
-  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
-  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable/default
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ AC:  39%     Cost:  $3.63     ✻ Model: Opus 5.5/High
+  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
+  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. AC is the share of the point where auto-compact fires, Win the share of
 the whole window. With auto-compact on, Win can never pass the AC point, so it
-only matters when compaction is off (DISABLE_AUTO_COMPACT=1). The Fable row
-stays empty until the Fable limit has been fetched. Each limit's row ends in two
+only matters when compaction is off (DISABLE_AUTO_COMPACT=1). The Fable bar
+stays empty until the Fable limit has been fetched. Each limit has a row in two
 trees: ↻ when it resets, and 𝐏 its pace, where it lands at the reset if use
 keeps its rate so far (shown once 30 minutes of a 5h window, or 12 hours of a
 week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
@@ -240,25 +241,33 @@ def graded_cell(num, w, c, text):
 
 
 def build_left(st, bw, with_third=True, limits=3):
-    """The left rows: 0 Ctx, 1 5h, 2 7d, 3 Fable, and 4 the machine (printed
-    above them). Each row's number sits in the middle of its bar. with_third
-    False leaves out the paces, for a narrow terminal. LIMITS is how many of
-    the limit rows a short terminal has room for; the rest are left out, so the
-    trees end on the last one shown."""
+    """The left side, as rows indexed 4, 0, 1, 2, 3 in the order they print
+    (render's ORDER). The bars and the numbers are columns of their own, each
+    stacked top down. The bars: Ctx, 5h, 7d, Fable, and CPU always last. The
+    numbers: AC and Cost, Win and Turn, then a reset time and a pace for each
+    limit. Each bar's number sits in its middle. with_third False leaves out
+    the paces, for a narrow terminal. LIMITS is how many of the limits a short
+    terminal has room for; the rest leave both columns, so each one ends on
+    the last limit shown."""
     rows = [T() for _ in range(5)]
     _, _, ack, acx = val(st.ac_pct)
-    rows[0] = row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
-                                            "%dk" % (st.ctx_tok // 1000), ack, acx)
+    bars = [row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
+                                          "%dk" % (st.ctx_tok // 1000), ack, acx)]
     fable = st.fable_pct if limits >= 3 else None
-    for i, name, pct in ((1, "5h", st.five_pct), (2, "7d", st.seven_pct), (3, "Fable", fable))[:limits]:
+    for name, pct in (("5h", st.five_pct), ("7d", st.seven_pct), ("Fable", fable))[:limits]:
         if pct is None:
+            # No Fable bar: its place keeps the divider, so the column runs
+            # unbroken and CPU stays at the bottom.
+            bars.append(P(sp(7 + bw + 1)) + S(DIV, "│") + P(" "))
             continue
         _, t, k, x = val(pct)
         # The 5h number is bold, the limit most worth a glance.
-        rows[i] = row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=i == 1)
+        bars.append(row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=name == "5h"))
     _, t, k, x = val(st.cpu_pct)
     cells = core_chart(st.cores, bw) if st.cores else bar(st.cpu_pct, 100, sevc(st.cpu_pct), bw)
-    rows[4] = row_label("CPU") + finish_bar(cells, t, k, x)
+    bars.append(row_label("CPU") + finish_bar(cells, t, k, x))
+    for i, b in zip(ORDER, bars):
+        rows[i] = b
 
     # AC and Win, the two shares of the context, stack as a column of their own.
     a, n = val(st.ac_pct), val(st.win_pct)
@@ -279,9 +288,6 @@ def build_left(st, bw, with_third=True, limits=3):
         # ↻ stands in for the "Resets" label, so it is mauve like a label, and bold.
         glyph = S(E + "[1;38;5;139m", "↻") if n == 0 else S(DOT, "└" if n == len(resets) - 1 else "├")
         rows[i] = rows[i] + glyph + S(DOT, dash) + P(" ") + S(VAL, r)
-    if limits >= 3 and fable is None:
-        # No Fable bar: the row keeps the divider, so it runs unbroken.
-        rows[3] = P(sp(7 + bw + 1)) + S(DIV, "│") + P(" ")
 
     # Cost and Turn head the next column, and each limit's pace hangs off 𝐏
     # below them tree-style, beside its reset time. The column starts where the
@@ -378,6 +384,9 @@ def build_right(st):
 # conversation keeps its room: under 30 lines the Fable row goes, under 25 the
 # 7d row, under 20 the 5h row. The CPU and Ctx rows always stay.
 SHORT = (30, 25, 20)
+# The rows in the order they print. The AC row is 4, printed on top, for the
+# machine bar it sat beside when CPU was the top bar.
+ORDER = [4, 0, 1, 2, 3]
 
 
 def limit_rows(lines):
@@ -387,8 +396,7 @@ def limit_rows(lines):
 
 def render(st, cols, lines=0):
     limits = limit_rows(lines)
-    # The rows in the order they print: the machine row on top.
-    order = [4, 0, 1, 2, 3][:2 + limits]
+    order = ORDER[:2 + limits]
     br, gr, rlab, dir_row, git_row = build_right(st)
     # The folder and the branch shorten only when their row runs out of room,
     # down to 16 and 12 characters.

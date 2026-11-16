@@ -129,11 +129,23 @@ def test_five_rows_when_the_height_is_unknown():
 
 
 @pytest.mark.parametrize("lines,labels", [
-    (40, ["CPU", "Ctx", "5h", "7d", "Fable"]), (30, ["CPU", "Ctx", "5h", "7d", "Fable"]),
-    (29, ["CPU", "Ctx", "5h", "7d"]), (24, ["CPU", "Ctx", "5h"]), (19, ["CPU", "Ctx"]), (3, ["CPU", "Ctx"]),
+    (40, ["Ctx", "5h", "7d", "Fable", "CPU"]), (30, ["Ctx", "5h", "7d", "Fable", "CPU"]),
+    (29, ["Ctx", "5h", "7d", "CPU"]), (24, ["Ctx", "5h", "CPU"]), (19, ["Ctx", "CPU"]), (3, ["Ctx", "CPU"]),
 ])
-def test_short_terminal_drops_limit_rows_from_the_bottom(lines, labels):
-    assert [r.split(":")[0] for r in rows(state(), 160, lines)] == labels
+def test_short_terminal_drops_limits_but_keeps_cpu_last(lines, labels):
+    rs = rows(state(), 160, lines)
+    assert [r.split(":")[0] for r in rs] == labels
+    # The numbers and names lose their last rows too.
+    assert [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs] == ["Model", "ID", "Dir", "Git", "K8s"][:len(rs)]
+
+
+def test_bars_stack_with_cpu_last_and_the_numbers_stay():
+    rs = rows(state(), 200)
+    assert [r.split(":")[0] for r in rs] == ["Ctx", "5h", "7d", "Fable", "CPU"]
+    assert "AC:" in rs[0] and "Win:" in rs[1] and "↻" in rs[2] and "└─── 2d21h" in rs[4]
+    # Without Fable its place stays blank and CPU stays at the bottom.
+    rs = rows(state(fable_pct=None), 200)
+    assert rs[3].startswith(" " * 7) and rs[4].startswith("CPU:")
 
 
 @pytest.mark.parametrize("name", STATES)
@@ -154,7 +166,7 @@ def test_trees_end_on_the_last_row_shown():
 
 def test_five_hour_number_and_ac_are_bold():
     out = sl.render(state(), 200).split("\n")
-    assert sl.BOLD + sl.OK + "2%" in out[2]
+    assert sl.BOLD + sl.OK + "2%" in out[1]
     assert sl.BOLD + sl.LAB + "AC" in out[0] and sl.BOLD + sl.OK + "39%" in out[0]
     # The other limits and Win stay plain.
     assert sl.BOLD + sl.LAB + "Win" not in out[1]
@@ -191,7 +203,7 @@ def test_very_narrow_terminal_keeps_only_the_bars():
 
 
 def test_number_sits_in_the_middle_of_its_bar():
-    r = rows(state(), 160)[2]  # 5h
+    r = rows(state(), 160)[1]  # 5h
     bar = r[7:r.index(" │ ")]
     i = bar.index("2%")
     assert abs(i - (len(bar) - i - 2)) <= 3
