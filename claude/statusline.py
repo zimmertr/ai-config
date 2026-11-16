@@ -29,8 +29,7 @@ slash and the repo's folder in the path, and mint / gold / coral is a value with
 under 80%, and from 80% bold coral, boxed by coral edges with a line above and
 below. Ctx's token count takes AC's color. The bars fill in quieter tones with
 the same steps: steel blue, soft violet, orchid. The Model row is bold, as the
-right side's lead, with the model and effort underlined in the effort's color
-from Claude Code's /effort picker.
+right side's lead.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -73,12 +72,6 @@ EMPTY = E + "[38;5;237m"
 SPARK = "▁▂▃▄▅▆▇█"
 
 
-# The model and effort's underline takes the colors of Claude Code's /effort
-# picker; max's rainbow spreads across it end to end. Color 58 is the underline's
-# own, so the text keeps its colors.
-UNDER = {"low": (255, 193, 7), "medium": (78, 186, 101), "high": (177, 185, 249), "xhigh": (175, 135, 255)}
-RAINBOW = [(235, 95, 87), (245, 139, 87), (250, 195, 95), (145, 200, 130),
-           (130, 170, 220), (155, 130, 200), (200, 130, 180)]
 # The part after a slash on the Model, ID and K8s rows has its own color, so a
 # row doesn't read as one white run.
 NAME = E + "[38;5;183m"   # lilac: the effort, the session name and the namespace
@@ -325,22 +318,6 @@ def git_text(st, branch):
     return git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
 
 
-def underlined(parts, lvl):
-    """PARTS, (text, style) pairs, as one underlined run in the effort's color.
-    Each part restates the underline, since every reset clears it."""
-    ul = E + "[4m"
-    n, i, out = sum(len(t) for t, _ in parts), 0, T()
-    for text, style in parts:
-        if lvl == "max":
-            for ch in text:
-                out = out + S(style + ul + E + "[58;2;%d;%d;%dm" % RAINBOW[i * 6 // (n - 1) if n > 1 else 0], ch)
-                i += 1
-        else:
-            c = UNDER.get(lvl)
-            out = out + S(style + ul + (E + "[58;2;%d;%d;%dm" % c if c else ""), text)
-    return out
-
-
 def build_right(st):
     """The right rows, top to bottom: Model, ID, Dir, Git, K8s. -> bright parts,
     details and labels by row, and the rows of the folder and the branch, the
@@ -349,9 +326,8 @@ def build_right(st):
     terminal. A row with nothing to show (outside a repo, no K8s context) shows
     a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
-    # label included (in render), and the model and effort are underlined; the
-    # other rows stay plain.
-    effort = underlined([(st.model, VALB), ("/", SLASH), (st.effort, E + "[1m" + NAME)], st.lvl)
+    # label included (in render); the other rows stay plain.
+    effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
@@ -869,7 +845,6 @@ def collect(payload, env=os.environ):
         if isinstance(s, dict) and s.get("sessionId") == sid and s.get("name") not in (None, False):
             st.sname = str(s["name"])
             break
-    st.lvl = effort.lower()
     st.effort = effort[:1].upper() + effort[1:]
 
     # One git call gives the branch, ahead/behind and changed files. A plain

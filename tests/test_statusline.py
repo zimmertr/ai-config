@@ -28,7 +28,7 @@ def plain(text):
 
 def state(**kw):
     st = SimpleNamespace(
-        model="Opus 5.5", effort="High", lvl="high",
+        model="Opus 5.5", effort="High",
         ctx_tok=191_093, win=1_000_000, ac_pct=39, win_pct=19,
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
@@ -171,16 +171,6 @@ def test_number_sits_in_the_middle_of_its_bar():
 ])
 def test_fmt_reset(d, want):
     assert sl.fmt_reset(0 if d is None else NOW + d, NOW) == want
-
-
-@pytest.mark.parametrize("lvl,colors", [
-    ("low", 1), ("medium", 1), ("high", 1), ("xhigh", 1), ("max", 7), ("other", 0),
-])
-def test_underline_takes_the_effort_color(lvl, colors):
-    t = sl.underlined([("Opus 5.5", sl.VALB), ("/", sl.SLASH), ("High", sl.NAME)], lvl)
-    assert t.plain == "Opus 5.5/High"
-    assert all("[4m" in style for _, style in t.parts)
-    assert len({re.search(r"\[58;[\d;]+m", s).group() for _, s in t.parts if "[58;" in s}) == colors
 
 
 def test_long_names_shorten_only_without_room():
