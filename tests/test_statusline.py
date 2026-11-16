@@ -139,6 +139,7 @@ def test_folder_has_its_own_row():
 
 def test_details_follow_a_slash():
     rs = rows(state(), 200)
+    assert rs[0].endswith("Model: ✻ Opus 5.5/High")
     assert rs[1].endswith("ID:    1feba53f/claude-00")
     assert rs[4].endswith("K8s:   admin@stable/default")
 
