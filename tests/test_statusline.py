@@ -33,7 +33,7 @@ def state(**kw):
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
         cpu_pct=10, cores=[30, 20, 10, 5, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8], ncpu=14,
-        in_git=True, branch="main", ahead=0, behind=7, dirty=2, sdir="~/git/personal/bluebird", repo="bluebird", repo_k=0,
+        in_git=True, branch="main", ahead=0, behind=7, dirty=2, dir="~/git/personal/bluebird", repo="bluebird", repo_k=0,
         kube="admin@stable", ns="default", sid8="1feba53f", cost="3.63", turns=220, sname="claude-00",
         five_pace=111, seven_pace=164, fable_pace=167,
     )
@@ -48,9 +48,10 @@ STATES = {
     "typical": state(),
     "all boxed": state(ac_pct=120, win_pct=95, five_pct=88, seven_pct=100, cpu_pct=99,
                        cost="140.00", turns=400, five_pace=160, seven_pace=190, fable_pace=200, cores=[100] * 14),
-    "long names": state(branch="feat/a-very-long-branch-nam…", sname="a-session-name-that-runs-long",
-                        sdir="~/.claude/tmp/…/scratchpad", kube="arn:aws:eks:us-west-2:cluster/x"),
-    "no git": state(in_git=False, sdir="/"),
+    "long names": state(branch="feat/a-very-long-branch-name-that-keeps-going", sname="a-session-name-that-runs-long",
+                        dir="~/.claude/tmp/claude-501/-Users-tj--claude/1feba53f/scratchpad",
+                        kube="arn:aws:eks:us-west-2:cluster/x"),
+    "no git": state(in_git=False, dir="/"),
     "no fable": state(fable_pct=None),
     "no pace yet": state(five_pace=None, seven_pace=None, fable_pace=None),
     "no cores": state(cores=[]),
@@ -172,14 +173,14 @@ def test_fmt_reset(d, want):
     assert sl.fmt_reset(0 if d is None else NOW + d, NOW) == want
 
 
-@pytest.mark.parametrize("p,want", [
-    ("~/git/personal/bluebird", "~/git/personal/bluebird"),
-    ("~/.claude/tmp/claude-501/-Users-tj--claude/1feba53f/scratchpad", "~/.claude/tmp/…/scratchpad"),
-    ("/a-very-long-folder-name/another-one/", "/a-very-long-folder-name/another-one/"),
-    ("/one/two/three/four/five-and-something-long/", "/one/two/…/five-and-something-long"),
-])
-def test_short_dir(p, want):
-    assert sl.short_dir(p) == want
+def test_long_names_shorten_only_without_room():
+    st = STATES["long names"]
+    wide = rows(st, 260)
+    assert wide[2].endswith("Dir:   " + st.dir)
+    assert "Git:   " + st.branch + " ↓7" in wide[3]
+    narrow = rows(st, 110)
+    assert "Dir:   …" in narrow[2] and narrow[2].endswith("scratchpad")
+    assert "Git:   feat/" in narrow[3] and "… ↓7 ✚2" in narrow[3]
 
 
 @pytest.mark.parametrize("p,repo,k,want", [

@@ -306,22 +306,22 @@ def find_repo(path):
         p, k = up, k + 1
 
 
-def short_dir(p):
-    """Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad."""
-    if len(p) <= 32:
-        return p
-    parts = p.split("/")
-    if parts and parts[-1] == "":
-        parts.pop()
-    if len(parts) <= 4:
-        return p
-    return "%s/%s/%s/…/%s" % (parts[0], parts[1], parts[2], parts[-1])
+def git_text(st, branch):
+    """The Git row: BRANCH, then ↑/↓ against its upstream and the changed files."""
+    if not st.in_git:
+        return S(DET, "–")
+    git = slashed(branch, VAL)
+    if st.ahead > 0:
+        git = git + P(" ") + S(OK, "↑%d" % st.ahead)
+    if st.behind > 0:
+        git = git + P(" ") + S(BAD, "↓%d" % st.behind)
+    return git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
 
 
 def build_right(st):
     """The right rows, top to bottom: Model, ID, Dir, Git, K8s. -> bright parts,
-    details and labels by row, and the row whose bright part is the folder's
-    path (it may shorten). A detail follows its bright part after a slash, and
+    details and labels by row, and the rows of the folder and the branch, the
+    two bright parts that shorten when the row runs out of room. A detail follows its bright part after a slash, and
     on the ID and K8s rows it is the part that shortens and drops on a narrow
     terminal. A row with nothing to show (outside a repo, no K8s context) shows
     a teal dash."""
@@ -332,28 +332,24 @@ def build_right(st):
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
             S(SLASH, "/") + S(NAME, st.ns) if st.kube and st.ns else T())
-    if st.in_git:
-        git = slashed(st.branch, VAL)
-        if st.ahead > 0:
-            git = git + P(" ") + S(OK, "↑%d" % st.ahead)
-        if st.behind > 0:
-            git = git + P(" ") + S(BAD, "↓%d" % st.behind)
-        git = git + P(" ") + (S(WARN, "✚%d" % st.dirty) if st.dirty > 0 else S(OK, "✓"))
-    else:
-        git = S(DET, "–")
-    folder = ("Dir", dir_text(st.sdir, st.repo if st.in_git else "", st.repo_k), T())
-    rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git, T()), kube]
-    dir_row = 1
+    folder = ("Dir", dir_text(st.dir, st.repo if st.in_git else "", st.repo_k), T())
+    rows, entries = [4, 0, 1, 2, 3], [model, ident, folder, ("Git", git_text(st, st.branch), T()), kube]
+    dir_row, git_row = 1, 2
     br, gr, rlab = [T() for _ in range(5)], [T() for _ in range(5)], [""] * 5
     for i, (lab, b, g) in zip(rows, entries):
         rlab[i], br[i], gr[i] = lab, b, g
-    return br, gr, rlab, dir_row
+    return br, gr, rlab, dir_row, git_row
 
 
 def render(st, cols):
     # The rows in the order they print: the machine row on top.
     order = [4, 0, 1, 2, 3]
-    br, gr, rlab, dir_row = build_right(st)
+    br, gr, rlab, dir_row, git_row = build_right(st)
+    # The folder and the branch shorten only when their row runs out of room,
+    # down to 16 and 12 characters.
+    floor = {dir_row: min(len(br[dir_row]), 16)}
+    if st.in_git:
+        floor[git_row] = len(br[git_row]) - len(st.branch) + min(len(st.branch), 12)
 
     # The widest bright part that has a detail after it.
     mw = max([len(br[i]) for i in order if len(gr[i])] or [0])
@@ -362,8 +358,9 @@ def render(st, cols):
     # Claude Code passes the terminal's width and keeps a few columns for its own
     # padding. The right side keeps its natural width; the bars take what is
     # left, up to four characters per core, and the values column keeps at most 3
-    # spare. On a narrower terminal the bars win over the details: they hold
-    # at two characters per core while the details shorten, then drop. Then the
+    # spare. On a narrower terminal the bars win over the text: they hold at two
+    # characters per core while the folder, the branch and the details shorten,
+    # and then the details drop. Then the
     # bars go to one per core, then the third column of values drops, and last
     # the whole right side.
     ncpu = st.ncpu
@@ -377,8 +374,7 @@ def render(st, cols):
         bmin = max([0] + [len(left[i]) - ncpu - 10 for i in order])
         cb, cf = 0, 0
         for i in order:
-            # The folder can shorten from the front, so it asks for 16 at most.
-            cb = max(cb, min(len(br[i]), 16) if i == dir_row else len(br[i]))
+            cb = max(cb, floor.get(i, len(br[i])))
             cf = max(cf, len(br[i]) + len(gr[i]))
         cb, cf = cb + 7, cf + 7
         # The left side with the bars at one and two characters per core.
@@ -403,6 +399,10 @@ def render(st, cols):
             show = "left"
         if show != "left":
             break
+    # A branch longer than its row's room ends in ….
+    if show != "left" and st.in_git and len(br[git_row]) > c - 7:
+        room = c - 7 - (len(br[git_row]) - len(st.branch))
+        br[git_row] = git_text(st, st.branch[:room - 1] + "…")
     # A folder longer than the right side's room keeps the whole folders at its
     # end that fit (…/personal/bluebird), or the last one cut short.
     if show != "left" and len(br[dir_row]) > c - 7:
@@ -909,10 +909,6 @@ def collect(payload, env=os.environ):
     st.cpu_pct, st.cores = read_machine(now, st.ncpu)
     st.turns = read_turns(tpath, sid)
 
-    st.sdir = short_dir(st.dir)
-    # Branch names stop at 20 characters so one long name can't push the grey column away.
-    if len(st.branch) > 20:
-        st.branch = st.branch[:19] + "…"
     st.sid8 = sid[:8]
 
     return st
