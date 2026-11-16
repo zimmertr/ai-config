@@ -265,6 +265,38 @@ def group_indices(data, groups):
     raise ValueError("the palette file names no groups")
 
 
+PART_KEYS = ("light", "sat", "blue")
+
+
+def parse_part(spec):
+    """A --part option, "snow,ice:light>215,sat<40,blue>0": the groups, then the conditions a
+    pixel must all meet to go to them. light is the mean of red, green and blue, sat is the
+    largest minus the smallest, blue is blue minus red; each from 0 to 255."""
+    groups, _, conds = spec.partition(":")
+    out = []
+    for c in filter(None, conds.split(",")):
+        for op in ("<", ">"):
+            key, sep, val = c.partition(op)
+            if sep:
+                break
+        if not sep or key.strip() not in PART_KEYS:
+            raise ValueError("a condition is light, sat or blue, then < or >, then a number: " + c)
+        out.append((key.strip(), op, float(val)))
+    if not groups or not out:
+        raise ValueError("a part is GROUPS:CONDITIONS, for example snow:light>215,sat<40")
+    return groups.split(","), out
+
+
+def part_mask(a, conds):
+    """Which pixels of an (n, 3) float array meet every condition."""
+    import numpy as np
+    m = np.ones(len(a), bool)
+    for key, op, val in conds:
+        v = {"light": a.mean(1), "sat": a.max(1) - a.min(1), "blue": a[:, 2] - a[:, 0]}[key]
+        m &= (v > val) if op == ">" else (v < val)
+    return m
+
+
 # Perceptual weights: green counts most, blue least.
 WEIGHTS = (0.3, 0.59, 0.11)
 
@@ -310,21 +342,39 @@ def cmd_palette(args):
     else:
         with open(args.palette, encoding="utf-8") as f:
             data = json.load(f)
-        pal = np.array(parse_palette(data), float)
-        if args.groups:
+        full = np.array(parse_palette(data), float)
+
+        def entries(groups):
             # Only the colours of the picture's own material, so a palette with
             # a second set of colours (a night theme, say) turns it over evenly.
-            pal = pal[group_indices(data, args.groups.split(","))]
-            if not len(pal):
-                sys.exit("no palette entries in groups " + args.groups)
+            sel = group_indices(data, groups)
+            if not sel:
+                sys.exit("no palette entries in groups " + ",".join(groups))
+            return sel
+
         a = np.asarray(rgb, float).reshape(-1, 3)
+        # Each pixel's share of the palette: the first --part whose conditions it meets, else
+        # --groups. Two materials of one brightness (sunlit rock, snow) can't be told apart by
+        # nearest colour alone, so a part picks one out by what it looks like first.
+        todo = np.ones(len(a), bool)
+        shares = []
+        for spec in args.part or []:
+            groups, conds = parse_part(spec)
+            m = todo & part_mask(a, conds)
+            shares.append((entries(groups), m))
+            todo &= ~m
+        shares.append((entries(args.groups.split(",")) if args.groups else list(range(len(full))), todo))
         w = np.array(WEIGHTS)
-        idx = np.empty(len(a), int)
-        for i in range(0, len(a), 65536):  # in chunks, so a big picture fits in memory
-            d = (((a[i:i + 65536, None, :] - pal[None, :, :]) ** 2) * w).sum(2)
-            idx[i:i + 65536] = d.argmin(1)
-        out = Image.fromarray(pal[idx].reshape(rgb.height, rgb.width, 3).astype("uint8"))
-        print("colours used: %d of %d" % (len(np.unique(idx)), len(pal)))
+        idx = np.zeros(len(a), int)
+        for sel, m in shares:
+            pal, rows = full[sel], np.where(m)[0]
+            for i in range(0, len(rows), 65536):  # in chunks, so a big picture fits in memory
+                r = rows[i:i + 65536]
+                d = (((a[r, None, :] - pal[None, :, :]) ** 2) * w).sum(2)
+                idx[r] = np.array(sel)[d.argmin(1)]
+        out = Image.fromarray(full[idx].reshape(rgb.height, rgb.width, 3).astype("uint8"))
+        allowed = len(set(i for sel, _ in shares for i in sel))
+        print("colours used: %d of %d" % (len(np.unique(idx[np.asarray(im.getchannel("A")).reshape(-1) > 0])), allowed))
     out.putalpha(im.getchannel("A"))
     out.save(args.output)
 
@@ -493,6 +543,9 @@ def parser():
     g.add_argument("--palette")
     g.add_argument("--colors", type=int)
     s.add_argument("--groups", help="with --palette: use only these named groups of colours, comma-separated")
+    s.add_argument("--part", action="append", metavar="GROUPS:CONDITIONS",
+                   help="with --palette: send the pixels that meet every condition to these groups instead, "
+                        "for example snow:light>215,sat<40,blue>0 (light, sat, blue; repeatable, first match wins)")
     s = sub.add_parser("cutout")
     s.add_argument("input")
     s.add_argument("output")

@@ -161,3 +161,12 @@ def test_parser_defaults():
 
 def test_only_the_four_image_models_are_allowed():
     assert ig.IMAGE_MODELS == ("qwen-image-2.1", "z-image-turbo", "z-image-turbo-pixel-art", "ideogram-4")
+
+
+def test_parse_part():
+    assert ig.parse_part("farsnow:light>215,sat<40,blue>0") == (
+        ["farsnow"], [("light", ">", 215.0), ("sat", "<", 40.0), ("blue", ">", 0.0)])
+    assert ig.parse_part("snow,ice:light>200")[0] == ["snow", "ice"]
+    for bad in ("snow", "snow:", "snow:hue>3", ":light>2"):
+        with pytest.raises(ValueError):
+            ig.parse_part(bad)
