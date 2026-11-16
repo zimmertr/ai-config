@@ -2,7 +2,7 @@ name: Lint
 
 # yggdrasil's lint module: actionlint and zizmor's pedantic audits over the
 # workflows, and Semgrep's rule that a tagged Dockerfile FROM carries a digest
-# (this repo has no Dockerfile, so that job scans nothing).
+# (the generate-image skill's Dockerfile pins its base image that way).
 #
 # Branch protection requires `Lint / actionlint`, `Lint / zizmor` and
 # `Lint / semgrep` (this job's name, then the module's); renaming either
