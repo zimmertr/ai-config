@@ -32,9 +32,10 @@ slash and the repo's folder in the path, and mint / gold / coral is a value
 with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
 coral edges with a line above and below. Ctx's token count takes AC's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
-orchid. The Model row is bold, as the right side's lead, and so are the 5h
-number and AC, the two worth a glance on the left. A ✻ in the effort's color
-from Claude Code's /effort picker stands in for the Model row's divider. The
+orchid. The Model row is bold, as the right side's lead, and so are the Ctx
+and 5h bars' labels and numbers and AC, the ones worth a glance on the left. A
+✻ in the effort's color from Claude Code's /effort picker stands in for the
+Model row's divider. The
 folder and the branch show in full, and shorten only when their row runs out
 of room.
 
@@ -76,7 +77,7 @@ BAR_OK, BAR_WARN, BAR_BAD = E + "[38;5;110m", E + "[38;5;140m", E + "[38;5;175m"
 CRIT = E + "[1;38;5;210m"  # bold coral: a value past its limit
 BOX = E + "[4;53m"         # underline and overline: with coral edges, a box around it
 EMPTY = E + "[38;5;237m"
-BOLD = E + "[1m"          # the 5h number and AC, bold as the Model row is
+BOLD = E + "[1m"          # Ctx, 5h and AC, bold as the Model row is
 SPARK = "▁▂▃▄▅▆▇█"
 
 
@@ -217,8 +218,9 @@ def finish_bar(cells, t, col, past, bold=False):
     return out + P(" ") + S(DIV, "│") + P(" ")
 
 
-def row_label(name):
-    return S(LAB, name) + S(DOT, ":") + P(sp(6 - len(name)))
+def row_label(name, bold=False):
+    b = BOLD if bold else ""
+    return S(b + LAB, name) + S(b + DOT, ":") + P(sp(6 - len(name)))
 
 
 def cell(t, col, past, width, col_boxed, last=False):
@@ -251,8 +253,9 @@ def build_left(st, bw, with_third=True, limits=3):
     the last limit shown."""
     rows = [T() for _ in range(5)]
     _, _, ack, acx = val(st.ac_pct)
-    bars = [row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
-                                          "%dk" % (st.ctx_tok // 1000), ack, acx)]
+    # Ctx and 5h are bold, label and number, the bars most worth a glance.
+    bars = [row_label("Ctx", True) + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
+                                                "%dk" % (st.ctx_tok // 1000), ack, acx, bold=True)]
     fable = st.fable_pct if limits >= 3 else None
     for name, pct in (("5h", st.five_pct), ("7d", st.seven_pct), ("Fable", fable))[:limits]:
         if pct is None:
@@ -261,8 +264,8 @@ def build_left(st, bw, with_third=True, limits=3):
             bars.append(P(sp(7 + bw + 1)) + S(DIV, "│") + P(" "))
             continue
         _, t, k, x = val(pct)
-        # The 5h number is bold, the limit most worth a glance.
-        bars.append(row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=name == "5h"))
+        b = name == "5h"
+        bars.append(row_label(name, b) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=b))
     _, t, k, x = val(st.cpu_pct)
     cells = core_chart(st.cores, bw) if st.cores else bar(st.cpu_pct, 100, sevc(st.cpu_pct), bw)
     bars.append(row_label("CPU") + finish_bar(cells, t, k, x))

@@ -164,9 +164,11 @@ def test_trees_end_on_the_last_row_shown():
     assert "↻─── 4h46m" in rows(state(), 200, 24)[2]
 
 
-def test_five_hour_number_and_ac_are_bold():
+def test_ctx_five_hour_and_ac_are_bold():
     out = sl.render(state(), 200).split("\n")
-    assert sl.BOLD + sl.OK + "2%" in out[1]
+    assert out[0].startswith(sl.BOLD + sl.LAB + "Ctx") and sl.BOLD + sl.OK + "191k" in out[0]
+    assert out[1].startswith(sl.BOLD + sl.LAB + "5h") and sl.BOLD + sl.OK + "2%" in out[1]
+    assert not out[2].startswith(sl.BOLD)
     assert sl.BOLD + sl.LAB + "AC" in out[0] and sl.BOLD + sl.OK + "39%" in out[0]
     # The other limits and Win stay plain.
     assert sl.BOLD + sl.LAB + "Win" not in out[1]
