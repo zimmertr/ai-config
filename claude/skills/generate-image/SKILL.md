@@ -35,10 +35,10 @@ $R $J sheet sheet.png draft-s1.png draft-s2.png draft-s3.png --cols 3 --width 40
 
 | Model | Use it for | Avoid it for |
 |---|---|---|
-| `qwen-image-2.1` | Almost everything: paintings, pixel art, scenes, and repainting a picture you give it while keeping its layout. Follows long prompts and negative prompts. About 40 s from a prompt, 50 to 75 s for an edit | Quick throwaway drafts |
+| `qwen-image-2.1` | Almost everything: paintings, pixel art, scenes, lettering, and repainting a picture you give it while keeping its layout. Follows long prompts and negative prompts. About 40 s from a prompt, 50 to 75 s for an edit | Quick throwaway drafts |
 | `z-image-turbo` | Fast drafts, 5 to 15 s: try many compositions, then take the best to Qwen | Fine detail; anything that needs a negative prompt (it ignores them) |
 | `z-image-turbo-pixel-art` | A softer, more detailed pixel look than plain Z-Image | Crisp pixels; it smears into gradients |
-| `ideogram-4` | Lettering (signs, posters, labels), exact layouts with boxes, colour palettes | Pixel art (it paints illustrations instead); plain-sentence prompts |
+| `ideogram-4` | Lettering that must sit in an exact place, exact layouts with boxes, colour palettes | Pixel art (it paints illustrations instead); plain-sentence prompts |
 
 Strengths, weaknesses, settings and known bugs for each: [models.md](models.md). Ideogram needs a JSON caption, which you write yourself: [ideogram.md](ideogram.md).
 

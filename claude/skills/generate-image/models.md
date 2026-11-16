@@ -12,6 +12,7 @@ The workhorse. Qwen-Image 2.1 at Q8 with Qwen3-VL-8B as its text encoder, includ
 - **Negative prompts:** honoured (guidance 6). They change the result, but less than rewording the main prompt.
 - **Pixel art:** clean and convincing. Asked for pixel-art technique ("clusters", "limited palette", "crisp outline") it falls back to a stock style with chunky pixels about 8 model pixels wide. Asked to repaint a described subject as "a detailed 16-bit pixel art illustration", it keeps fine pixels (see the recipes in [prompting.md](prompting.md)).
 - **Paintings:** asked for "a clean, crisp digital gouache illustration" it gave the best compositions of any model in testing.
+- **Lettering:** good. Asked in plain words for a sign whose lines it quotes, it spelled every line right on every seed, up to four lines with unusual names, distances ("2.4 MI") and arrows. It places lines less exactly than Ideogram: one seed in three put a line somewhere else on the object. A repaint keeps lettering letter for letter when told to.
 - **Size:** 1536 × 960 took 105 s against 38 s at 1024 × 640 and gave no finer detail.
 
 ## z-image-turbo

@@ -10,6 +10,7 @@ What worked and what didn't in testing, then recipes for common jobs. The exampl
 - **Say what's rare as rare.** "Blue icefalls" put ice towers everywhere; "icefalls appear only where a glacier drops over a steep step" put them in a few places.
 - **Whatever you name gets drawn everywhere.** "Rock broken into ledges, ribs and cracks" turned a whole cliff into brickwork, and "an icefall of blue blocks" put blue blocks over the whole glacier. Say how far each thing reaches: "a few ledges near the top", "only where it drops over the step".
 - **Every word is drawn literally.** "A square summit block" and "a flat-topped tower" became chimneys, "smooth slabs" became a blank face, and "water streaks" became icicles. Describe shapes as rough and broken rather than as solids, and say what a thing is not ("dark grey stains, not ice").
+- **Don't ask for a blurred background** in a picture that will be matched to a palette. Ideogram's out-of-focus trees turned into flat blobs once matched. Ask for a crisp background, or a plain one you cut away.
 - **Don't ask for distance or haze.** "Pale and hazy, across many miles of air" washed a mountain range out to almost white. Paint it crisp and make it look far afterwards, with a palette or an overlay.
 - **Avoid words with a strong stock image.** "Crater" gave meteor streaks on Z-Image and a huge caldera on Qwen; "summit dome" with "large crater" in the negative prompt worked.
 - **Watch framing words.** "World map", "landmark", "tile" and "three-quarter view" made a floating island cut out of the ground. "A landscape, the ground continues past every edge of the picture" kept it rooted.
@@ -72,7 +73,9 @@ Z-Image `img2img` at 0.4 to 0.6 keeps the layout and changes the surface; 0.75 a
 
 ### Lettering
 
-Ideogram with a JSON caption. Give each piece of text its own `text` element and box, and put the exact wording in `text`. See [ideogram.md](ideogram.md).
+Qwen spells well from a plain prompt that quotes each line and says where it goes: "Above the opening, big routed cream capitals read \"TRAIL REGISTER\"." Use Ideogram, with a JSON caption and a box per line, when each line must sit in an exact place. See [ideogram.md](ideogram.md).
+
+Lettering survives a repaint when the prompt says "Keep the lettering exactly as it is, letter for letter:" and quotes it, and `misspelled, garbled text` is in the negative prompt. Check the spelling after every step. Shrunk to pixel art, letters about 7 pixels tall or more stayed clear; at 5 they turned lumpy.
 
 ## Clean-up
 

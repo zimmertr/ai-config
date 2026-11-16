@@ -40,4 +40,4 @@ ideogram-4 was trained only on JSON captions, so write one for every request and
 
 ## Lettering
 
-Give each line of text its own `text` element, with the exact wording in `text` and the look in `desc`. Ideogram spells it right and puts it in its box. It won't draw pixel art, so for a pixel-art sign either letter it on Ideogram and pixelate the result, or try Qwen and check the spelling letter by letter (Qwen's lettering hasn't been tested here).
+Give each line of text its own `text` element, with the exact wording in `text` and the look in `desc`. Ideogram spells it right and puts it in its box. Qwen spells as well (see [models.md](models.md)), so use Ideogram when each line must sit in an exact place. It won't draw pixel art, so for a pixel-art sign letter it here and take it through the paint-then-repaint recipe in [prompting.md](prompting.md), from step 2.
