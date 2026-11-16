@@ -62,8 +62,8 @@ STATES = {
 SIZES = list(range(60, 221, 7))
 
 
-def rows(st, cols):
-    return [plain(r) for r in sl.render(st, cols).split("\n")]
+def rows(st, cols, lines=0):
+    return [plain(r) for r in sl.render(st, cols, lines).split("\n")]
 
 
 # --- Layout ---
@@ -123,9 +123,41 @@ def test_bars_share_a_width(name):
     assert len(ends) == 1
 
 
-def test_always_five_rows():
-    """Model is on the top row, so a short terminal keeps every row."""
+def test_five_rows_when_the_height_is_unknown():
     assert len(rows(state(), 145)) == 5
+    assert len(rows(state(), 145, 0)) == 5
+
+
+@pytest.mark.parametrize("lines,labels", [
+    (40, ["CPU", "Ctx", "5h", "7d", "Fable"]), (30, ["CPU", "Ctx", "5h", "7d", "Fable"]),
+    (29, ["CPU", "Ctx", "5h", "7d"]), (24, ["CPU", "Ctx", "5h"]), (19, ["CPU", "Ctx"]), (3, ["CPU", "Ctx"]),
+])
+def test_short_terminal_drops_limit_rows_from_the_bottom(lines, labels):
+    assert [r.split(":")[0] for r in rows(state(), 160, lines)] == labels
+
+
+@pytest.mark.parametrize("name", STATES)
+@pytest.mark.parametrize("cols", SIZES)
+@pytest.mark.parametrize("lines", [24, 19])
+def test_short_terminal_keeps_the_rules(name, cols, lines):
+    rs = rows(STATES[name], cols, lines)
+    assert len({r.find(" │ ") for r in rs}) == 1
+    for r in rs:
+        assert len(r) <= cols - 5 and r.count("▕") == r.count("▏"), r
+
+
+def test_trees_end_on_the_last_row_shown():
+    rs = rows(state(), 200, 29)
+    assert "└─── 2d21h" in rs[3] and "├" not in rs[3]
+    assert "↻─── 4h46m" in rows(state(), 200, 24)[2]
+
+
+def test_five_hour_number_and_ac_are_bold():
+    out = sl.render(state(), 200).split("\n")
+    assert sl.BOLD + sl.OK + "2%" in out[2]
+    assert sl.BOLD + sl.LAB + "AC" in out[0] and sl.BOLD + sl.OK + "39%" in out[0]
+    # The other limits and Win stay plain.
+    assert sl.BOLD + sl.LAB + "Win" not in out[1]
 
 
 def test_folder_has_its_own_row():
