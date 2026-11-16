@@ -24,7 +24,7 @@ counts changed files; outside a repo, and without a K8s context, a row shows –
 
 One color per job: mauve labels a value, white is a value, slate teal is the
 dash where there is nothing to show, icy blue draws the colons, slashes, trees
-and dividers, lilac is the session name and namespace after their
+and dividers, lilac is the effort, session name and namespace after their
 slash, and mint / gold / coral is a value with a limit: mint under 50%, gold
 under 80%, and from 80% bold coral, boxed by coral edges with a line above and
 below. Ctx's token count takes AC's color. The bars fill in quieter tones with
@@ -72,17 +72,9 @@ EMPTY = E + "[38;5;237m"
 SPARK = "▁▂▃▄▅▆▇█"
 
 
-def rgb(r, g, b):
-    return "%s[38;2;%d;%d;%dm" % (E, r, g, b)
-
-
-RAINBOW = [rgb(235, 95, 87), rgb(245, 139, 87), rgb(250, 195, 95), rgb(145, 200, 130),
-           rgb(130, 170, 220), rgb(155, 130, 200), rgb(200, 130, 180)]
-ULTRA = rgb(175, 135, 255)  # xhigh's base purple, the CLI's autoAccept
-EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249)}
-# The part after a slash on the ID and K8s rows has its own color, as the
-# effort does, so a row doesn't read as one white run.
-NAME = E + "[38;5;183m"   # lilac: the session name and the namespace
+# The part after a slash on the Model, ID and K8s rows has its own color, so a
+# row doesn't read as one white run.
+NAME = E + "[38;5;183m"   # lilac: the effort, the session name and the namespace
 
 
 # --- Styled text ---
@@ -300,44 +292,16 @@ def short_dir(p):
     return "%s/%s/%s/…/%s" % (parts[0], parts[1], parts[2], parts[-1])
 
 
-def effort_colored(w, lvl, now, bold=False):
-    """Effort takes the colors of Claude Code's /effort picker. Its animations
-    tick every 100 ms; a status line only redraws on events and the refresh
-    timer, so xhigh's highlight steps a letter per redraw. Max's rainbow holds
-    still, spread end to end across the word, because stepping it popped
-    instead of flowing."""
-    n = len(w)
-    if lvl in EFFORT:
-        return S((E + "[1m" if bold else "") + EFFORT[lvl], w)
-    if lvl == "xhigh":
-        p = now % (n + 4) - 2
-        out = T()
-        for i, ch in enumerate(w):
-            if i == p:
-                out = out + S(E + "[1m" + rgb(208, 180, 255), ch)
-            elif abs(i - p) == 1:
-                out = out + S(E + "[1m" + ULTRA, ch)
-            else:
-                out = out + S(ULTRA, ch)
-        return out
-    if lvl == "max":
-        out = T()
-        for i, ch in enumerate(w):
-            out = out + S(E + "[1m" + RAINBOW[i * 6 // (n - 1) if n > 1 else 0], ch)
-        return out
-    return S(VALB if bold else VAL, w)
-
-
-def build_right(st, now):
+def build_right(st):
     """The right rows, top to bottom: Model, ID, Dir, Git, K8s. -> bright parts,
     details and labels by row, and the row whose bright part is the folder's
-    path (it may shorten). A detail follows its bright part after a slash, like
-    the model's effort, and is the part that shortens and drops on a narrow
+    path (it may shorten). A detail follows its bright part after a slash, and
+    on the ID and K8s rows it is the part that shortens and drops on a narrow
     terminal. A row with nothing to show (outside a repo, no K8s context) shows
     a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
     # label included (in render); the other rows stay plain.
-    effort = S(VALB, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now, bold=True)
+    effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
@@ -360,10 +324,10 @@ def build_right(st, now):
     return br, gr, rlab, dir_row
 
 
-def render(st, cols, now):
+def render(st, cols):
     # The rows in the order they print: the machine row on top.
     order = [4, 0, 1, 2, 3]
-    br, gr, rlab, dir_row = build_right(st, now)
+    br, gr, rlab, dir_row = build_right(st)
 
     # The widest bright part that has a detail after it.
     mw = max([len(br[i]) for i in order if len(gr[i])] or [0])
@@ -854,7 +818,6 @@ def collect(payload, env=os.environ):
         if isinstance(s, dict) and s.get("sessionId") == sid and s.get("name") not in (None, False):
             st.sname = str(s["name"])
             break
-    st.lvl = effort.lower()
     st.effort = effort[:1].upper() + effort[1:]
 
     # One git call gives the branch, ahead/behind and changed files. A plain
@@ -898,7 +861,6 @@ def collect(payload, env=os.environ):
     st.ac_pct = int(st.ctx_tok / ac_thr * 100 + 0.5) if ac_thr > 0 else 0
 
     now = int(time.time())
-    st.now = now
     five, seven = pool_limits(sid, five, seven)
     # A window whose reset has passed starts again from zero.
     if 0 < five[1] <= now:
@@ -939,7 +901,7 @@ def main():
         if not isinstance(payload, dict):
             payload = {}
         st = collect(payload)
-        out = render(st, num(os.environ.get("COLUMNS"), 145), st.now)
+        out = render(st, num(os.environ.get("COLUMNS"), 145))
     except Exception as e:  # a broken status line should still say why
         out = "statusline.py: %s: %s" % (type(e).__name__, e)
     sys.stdout.buffer.write(out.encode("utf-8"))

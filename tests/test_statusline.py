@@ -28,7 +28,7 @@ def plain(text):
 
 def state(**kw):
     st = SimpleNamespace(
-        model="Opus 5.5", effort="High", lvl="high",
+        model="Opus 5.5", effort="High",
         ctx_tok=191_093, win=1_000_000, ac_pct=39, win_pct=19,
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
@@ -56,15 +56,13 @@ STATES = {
     "no cores": state(cores=[]),
     "no namespace": state(kube="", ns=""),
     "8 cores": state(ncpu=8, cores=[50, 40, 30, 20, 10, 0, 90, 80]),
-    "xhigh": state(effort="Xhigh", lvl="xhigh"),
-    "max": state(effort="Max", lvl="max"),
 }
 
 SIZES = list(range(60, 221, 7))
 
 
 def rows(st, cols):
-    return [plain(r) for r in sl.render(st, cols, NOW).split("\n")]
+    return [plain(r) for r in sl.render(st, cols).split("\n")]
 
 
 # --- Layout ---
@@ -120,7 +118,7 @@ def test_bars_share_a_width(name):
     # The divider after each bar is the first │ drawn in icy blue.
     edge = sl.DIV + "│"
     # Without Fable its row has no bar.
-    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, NOW).split("\n") if edge in r}
+    ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160).split("\n") if edge in r}
     assert len(ends) == 1
 
 
@@ -163,12 +161,6 @@ def test_number_sits_in_the_middle_of_its_bar():
     bar = r[7:r.index(" │ ")]
     i = bar.index("2%")
     assert abs(i - (len(bar) - i - 2)) <= 3
-
-
-def test_effort_keeps_its_word():
-    for lvl in ("low", "medium", "high", "xhigh", "max", "other"):
-        for now in range(10):
-            assert sl.effort_colored("Word", lvl, now).plain == "Word"
 
 
 # --- Helpers ---
