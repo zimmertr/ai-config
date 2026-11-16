@@ -117,7 +117,7 @@ def test_third_column_drops_before_the_right_side():
 
 @pytest.mark.parametrize("name", STATES)
 def test_bars_share_a_width(name):
-    # The divider after each bar is the first │ drawn in lavender.
+    # The divider after each bar is the first │ drawn in icy blue.
     edge = sl.DIV + "│"
     # Without Fable its row has no bar.
     ends = {len(plain(r[:r.index(edge)])) for r in sl.render(STATES[name], 160, NOW).split("\n") if edge in r}

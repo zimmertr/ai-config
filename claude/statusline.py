@@ -23,8 +23,8 @@ week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
 counts changed files; outside a repo, and without a K8s context, a row shows –.
 
 One color per job: mauve labels a value, white is a value, slate teal is the
-dash where there is nothing to show, lavender draws the colons, slashes, trees
-and dividers, icy blue is the session name and namespace after their slash,
+dash where there is nothing to show, icy blue draws the colons, slashes, trees
+and dividers, lavender is the session name and namespace after their slash,
 and mint / gold / coral is a value with a limit: mint under 50%, gold under
 80%, and from 80% bold coral, boxed by coral edges with a line above and below.
 Ctx's token count takes AC's color. The bars fill in quieter tones with the same
@@ -59,9 +59,9 @@ LAB = E + "[38;5;139m"    # mauve: labels
 VAL = E + "[97m"          # white: values
 VALB = E + "[1;97m"       # bold white: the model, the right side's lead value
 DET = E + "[38;5;66m"     # slate teal: the dash where there is nothing to show
-DOT = E + "[38;5;103m"    # lavender: colons, the trees and the dividers
+DOT = E + "[38;5;153m"    # icy pale blue: colons, the trees and the dividers
 DIV = DOT
-SLASH = E + "[1;38;5;103m"  # bold lavender: the slashes in names and paths
+SLASH = E + "[1;38;5;153m"  # bold icy pale blue: the slashes in names and paths
 OK, WARN, BAD = E + "[38;5;151m", E + "[38;5;222m", E + "[38;5;210m"  # mint, gold, coral
 # The bars fill in quieter tones from the same palette, so a long bar doesn't
 # shout over the numbers beside it: steel blue, soft violet, orchid.
@@ -82,7 +82,7 @@ ULTRA = rgb(175, 135, 255)  # xhigh's base purple, the CLI's autoAccept
 EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249)}
 # The part after a slash on the ID and K8s rows has its own color, as the
 # effort does, so a row doesn't read as one white run.
-NAME = E + "[38;5;153m"   # icy pale blue: the session name and the namespace
+NAME = E + "[38;5;103m"   # lavender: the session name and the namespace
 
 
 # --- Styled text ---
@@ -139,7 +139,7 @@ def val(v, w=50, c=80):
 
 
 def slashed(text, color):
-    """TEXT in COLOR with every / in bold lavender."""
+    """TEXT in COLOR with every / in bold icy blue."""
     segs = text.split("/")
     out = S(color, segs[0])
     for s in segs[1:]:
