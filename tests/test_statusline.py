@@ -130,7 +130,7 @@ def test_always_five_rows():
 
 def test_folder_has_its_own_row():
     rs = rows(state(), 160)
-    labels = [r.split(" │ ")[-1].split(":")[0] for r in rs]
+    labels = [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs]
     assert labels == ["Model", "ID", "Dir", "Git", "K8s"]
     assert "Dir:   ~/git/personal/bluebird" in rs[2] and "bluebird" not in rs[3]
     assert rows(state(in_git=False), 160)[3].endswith("Git:   –")
@@ -139,7 +139,7 @@ def test_folder_has_its_own_row():
 
 def test_details_follow_a_slash():
     rs = rows(state(), 200)
-    assert rs[0].endswith("Model: ✻ Opus 5.5/High")
+    assert rs[0].endswith(" ✻ Model: Opus 5.5/High")
     assert rs[1].endswith("ID:    1feba53f/claude-00")
     assert rs[4].endswith("K8s:   admin@stable/default")
 

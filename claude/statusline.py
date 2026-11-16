@@ -6,7 +6,7 @@ a bar for the CPU, the context and each usage limit; the numbers that go with
 them; and the names of what the session works with. The layout sizes itself to
 the terminal. Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     │ Model: ✻ Opus 5.5/High
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     ✻ Model: Opus 5.5/High
   Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
   5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
   7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
@@ -29,9 +29,10 @@ slash and the repo's folder in the path, and mint / gold / coral is a value
 with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
 coral edges with a line above and below. Ctx's token count takes AC's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
-orchid. The Model row is bold, as the right side's lead, and its ✻ takes the
-effort's color from Claude Code's /effort picker. The folder and the branch show in full, and shorten only when
-their row runs out of room.
+orchid. The Model row is bold, as the right side's lead, and a ✻ in the
+effort's color from Claude Code's /effort picker stands in for its divider. The
+folder and the branch show in full, and shorten only when their row runs out
+of room.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -347,10 +348,8 @@ def build_right(st):
     terminal. A row with nothing to show (outside a repo, no K8s context) shows
     a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
-    # label included (in render), and a ✻ (the spark Claude Code shows while it
-    # works) leads it in the effort's color, a shape the bold alone can't give;
-    # the other rows stay plain.
-    effort = spark(st.lvl, st.now) + P(" ") + S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
+    # label included (in render); the other rows stay plain.
+    effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
@@ -457,7 +456,11 @@ def render(st, cols):
             continue
         line = left[i].ansi() + sp(lw - len(left[i]))
         bold = E + "[1m" if rlab[i] == "Model" else ""
-        line += DIV + " │ " + R + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
+        # On the Model row a ✻ (the spark Claude Code shows while it works)
+        # stands in for the divider, in the effort's color: a shape the bold
+        # alone can't give, in a column every row already keeps.
+        top = rlab[i] == "Model"
+        line += DIV + " " + R + (spark(st.lvl, st.now).ansi() if top else DIV + "│" + R) + " " + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
             line += gr[i].ansi()
         out.append(line)
