@@ -8,6 +8,7 @@ What worked and what didn't in testing, then recipes for common jobs. The exampl
 - **Say where things are.** "A lower rounded shoulder on the left and a dark rock tooth low on the right flank" was followed. Qwen keeps left and right straight.
 - **Describe irregularity outright.** Models default to tidy symmetry. "Glaciers flow between rock ridges" gave evenly spaced spokes; "glaciers of different widths joining and splitting around ridges of different lengths" didn't.
 - **Say what's rare as rare.** "Blue icefalls" put ice towers everywhere; "icefalls appear only where a glacier drops over a steep step" put them in a few places.
+- **Whatever you name gets drawn everywhere.** "Rock broken into ledges, ribs and cracks" turned a whole cliff into brickwork, and "an icefall of blue blocks" put blue blocks over the whole glacier. Say how far each thing reaches: "a few ledges near the top", "only where it drops over the step".
 - **Avoid words with a strong stock image.** "Crater" gave meteor streaks on Z-Image and a huge caldera on Qwen; "summit dome" with "large crater" in the negative prompt worked.
 - **Watch framing words.** "World map", "landmark", "tile" and "three-quarter view" made a floating island cut out of the ground. "A landscape, the ground continues past every edge of the picture" kept it rooted.
 - **Ask for the whole subject when it mustn't be cropped:** "standing alone in the middle distance, the whole mountain visible, with sky on both sides and above it", plus "cropped" in the negative prompt.
@@ -36,6 +37,8 @@ Qwen `edit`. Lead with the subject and an explicit instruction to keep the layou
 > Repaint this mountain as a detailed, beautiful 16-bit pixel art illustration of Mount Rainier. Keep the exact outline, position and size of the mountain and its rocky tooth on the right, and keep the foothills, forest and meadow where they are. [Then describe the content you want: snowfields, glaciers, crevasses, light.]
 
 The output keeps whatever the input's composition is, faults included. Fix layout problems in the input picture.
+
+It does sharpen peaks, towers and other tops into points unless told not to. Name the shapes to keep ("keep the exact silhouette of every summit: the blunt square tops, the leaning one. Do not sharpen any summit into a point.") and put `pointed peaks, needles, daggers` in the negative prompt.
 
 ### Paint first, then repaint as pixel art
 
@@ -66,5 +69,6 @@ Ideogram with a JSON caption. Give each piece of text its own `text` element and
 - **Size:** `scale` with `--resample box` to shrink a painting, and `nearest` to enlarge pixel art without blurring it.
 - **Palette:** `palette --palette file.json` maps every pixel onto a project's colours (a list of hex strings or `[r, g, b]` lists, or an object holding one under `colors`). Smooth gradients like skies band badly, so cut those away first.
 - **Only the material's colours:** `--groups snow,ice,rock` limits the match to named groups, when the palette file names them (`"groups": {"snow": [3, 4]}` or `"names": {"3": "snow[0]"}`). Matched to the whole palette, neighbouring pixels of one material land in unrelated groups. That looks noisy, and a palette with a second theme (night, dusk) turns them different colours. In testing, a mountain matched only to its snow, ice and rock groups used 32 colours instead of 179, looked like the project's own art, and stayed even in the second theme.
+- **Cut away what you won't keep before matching.** Leave the groups of anything you cut out of the `--groups` list too: a cliff matched with the vegetation groups allowed put dark green in every rock shadow.
 - **Small sprites:** shrunk to 10 to 15 pixels, AI sprites came out no better than simple drawn ones; the detail that makes them worthwhile doesn't survive. Use the models for pictures roughly 32 pixels and up.
 - **Review again after clean-up.** Shrinking and palette mapping can reveal noise and mixed pixel sizes.
