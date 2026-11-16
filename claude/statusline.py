@@ -29,7 +29,7 @@ slash and the repo's folder in the path, and mint / gold / coral is a value with
 under 80%, and from 80% bold coral, boxed by coral edges with a line above and
 below. Ctx's token count takes AC's color. The bars fill in quieter tones with
 the same steps: steel blue, soft violet, orchid. The Model row is bold, as the
-right side's lead.
+right side's lead, with the model and effort underlined.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -326,8 +326,11 @@ def build_right(st):
     terminal. A row with nothing to show (outside a repo, no K8s context) shows
     a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
-    # label included (in render); the other rows stay plain.
-    effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
+    # label included (in render), and the model and effort are underlined; the
+    # other rows stay plain. Each part restates the underline, since every reset
+    # clears it.
+    ul = E + "[4m"
+    effort = S(VALB + ul, st.model) + S(SLASH + ul, "/") + S(E + "[1m" + ul + NAME, st.effort)
     model = ("Model", effort, T())
     ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
