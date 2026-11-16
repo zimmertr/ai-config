@@ -28,7 +28,7 @@ def plain(text):
 
 def state(**kw):
     st = SimpleNamespace(
-        model="Opus 5.5", effort="High",
+        model="Opus 5.5", effort="High", lvl="high", now=NOW,
         ctx_tok=191_093, win=1_000_000, ac_pct=39, win_pct=19,
         five_pct=2, seven_pct=92, fable_pct=100,
         five_r="4h46m", seven_r="2d21h", fable_r="2d21h",
@@ -130,7 +130,7 @@ def test_always_five_rows():
 
 def test_folder_has_its_own_row():
     rs = rows(state(), 160)
-    labels = [r.split(" │ ")[-1].split(":")[0] for r in rs]
+    labels = [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs]
     assert labels == ["Model", "ID", "Dir", "Git", "K8s"]
     assert "Dir:   ~/git/personal/bluebird" in rs[2] and "bluebird" not in rs[3]
     assert rows(state(in_git=False), 160)[3].endswith("Git:   –")
@@ -139,6 +139,7 @@ def test_folder_has_its_own_row():
 
 def test_details_follow_a_slash():
     rs = rows(state(), 200)
+    assert rs[0].endswith(" ✻ Model: Opus 5.5/High")
     assert rs[1].endswith("ID:    1feba53f/claude-00")
     assert rs[4].endswith("K8s:   admin@stable/default")
 
@@ -171,6 +172,17 @@ def test_number_sits_in_the_middle_of_its_bar():
 ])
 def test_fmt_reset(d, want):
     assert sl.fmt_reset(0 if d is None else NOW + d, NOW) == want
+
+
+@pytest.mark.parametrize("lvl", ["low", "medium", "high", "xhigh"])
+def test_spark_takes_the_effort_color(lvl):
+    assert sl.spark(lvl, NOW).parts == [("✻", sl.E + "[1m" + sl.EFFORT[lvl])]
+
+
+def test_max_spark_steps_through_the_rainbow():
+    colors = {sl.spark("max", NOW + i).parts[0][1] for i in range(len(sl.RAINBOW))}
+    assert len(colors) == len(sl.RAINBOW)
+    assert sl.spark("other", NOW).parts == [("✻", sl.SLASH)]
 
 
 def test_long_names_shorten_only_without_room():

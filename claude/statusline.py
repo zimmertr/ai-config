@@ -6,7 +6,7 @@ a bar for the CPU, the context and each usage limit; the numbers that go with
 them; and the names of what the session works with. The layout sizes itself to
 the terminal. Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     │ Model: Opus 5.5/High
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     ✻ Model: Opus 5.5/High
   Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
   5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
   7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
@@ -29,8 +29,10 @@ slash and the repo's folder in the path, and mint / gold / coral is a value
 with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
 coral edges with a line above and below. Ctx's token count takes AC's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
-orchid. The Model row is bold, as the right side's lead. The folder and the
-branch show in full, and shorten only when their row runs out of room.
+orchid. The Model row is bold, as the right side's lead, and a ✻ in the
+effort's color from Claude Code's /effort picker stands in for its divider. The
+folder and the branch show in full, and shorten only when their row runs out
+of room.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
@@ -76,6 +78,25 @@ SPARK = "▁▂▃▄▅▆▇█"
 # The part after a slash on the Model, ID and K8s rows has its own color, so a
 # row doesn't read as one white run.
 NAME = E + "[38;5;183m"   # lilac: the effort, the session name and the namespace
+
+
+def rgb(r, g, b):
+    return "%s[38;2;%d;%d;%dm" % (E, r, g, b)
+
+
+# The model's ✻ takes the colors of Claude Code's /effort picker. Max's rainbow
+# steps a color per redraw, as the picker's shimmers.
+EFFORT = {"low": rgb(255, 193, 7), "medium": rgb(78, 186, 101), "high": rgb(177, 185, 249),
+          "xhigh": rgb(175, 135, 255)}
+RAINBOW = [rgb(235, 95, 87), rgb(245, 139, 87), rgb(250, 195, 95), rgb(145, 200, 130),
+           rgb(130, 170, 220), rgb(155, 130, 200), rgb(200, 130, 180)]
+
+
+def spark(lvl, now):
+    """The model's ✻ in the effort's color; icy blue for a level the picker doesn't have."""
+    if lvl == "max":
+        return S(E + "[1m" + RAINBOW[now % len(RAINBOW)], "✻")
+    return S(E + "[1m" + EFFORT[lvl] if lvl in EFFORT else SLASH, "✻")
 
 
 # --- Styled text ---
@@ -435,7 +456,11 @@ def render(st, cols):
             continue
         line = left[i].ansi() + sp(lw - len(left[i]))
         bold = E + "[1m" if rlab[i] == "Model" else ""
-        line += DIV + " │ " + R + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
+        # On the Model row a ✻ (the spark Claude Code shows while it works)
+        # stands in for the divider, in the effort's color: a shape the bold
+        # alone can't give, in a column every row already keeps.
+        top = rlab[i] == "Model"
+        line += DIV + " " + R + (spark(st.lvl, st.now).ansi() if top else DIV + "│" + R) + " " + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
             line += gr[i].ansi()
         out.append(line)
@@ -846,6 +871,7 @@ def collect(payload, env=os.environ):
         if isinstance(s, dict) and s.get("sessionId") == sid and s.get("name") not in (None, False):
             st.sname = str(s["name"])
             break
+    st.lvl = effort.lower()
     st.effort = effort[:1].upper() + effort[1:]
 
     # One git call gives the branch, ahead/behind and changed files. A plain
@@ -891,6 +917,7 @@ def collect(payload, env=os.environ):
     st.ac_pct = int(st.ctx_tok / ac_thr * 100 + 0.5) if ac_thr > 0 else 0
 
     now = int(time.time())
+    st.now = now
     five, seven = pool_limits(sid, five, seven)
     # A window whose reset has passed starts again from zero.
     if 0 < five[1] <= now:
