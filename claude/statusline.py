@@ -4,7 +4,9 @@
 Reads the session-context JSON on stdin and prints five rows in three sections:
 a bar for the CPU, the context and each usage limit; the numbers that go with
 them; and the names of what the session works with. The layout sizes itself to
-the terminal. Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
+the terminal, and a short terminal drops the limit rows from the bottom up
+(Fable, then 7d, then 5h), never CPU or Ctx. Wired via ~/.claude/settings.json
+as `python3 ~/.claude/statusline.py`.
 
   CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     ✻ Model: Opus 5.5/High
   Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
@@ -29,8 +31,9 @@ slash and the repo's folder in the path, and mint / gold / coral is a value
 with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
 coral edges with a line above and below. Ctx's token count takes AC's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
-orchid. The Model row is bold, as the right side's lead, and a ✻ in the
-effort's color from Claude Code's /effort picker stands in for its divider. The
+orchid. The Model row is bold, as the right side's lead, and so are the 5h
+number and AC, the two worth a glance on the left. A ✻ in the effort's color
+from Claude Code's /effort picker stands in for the Model row's divider. The
 folder and the branch show in full, and shorten only when their row runs out
 of room.
 
@@ -72,6 +75,7 @@ BAR_OK, BAR_WARN, BAR_BAD = E + "[38;5;110m", E + "[38;5;140m", E + "[38;5;175m"
 CRIT = E + "[1;38;5;210m"  # bold coral: a value past its limit
 BOX = E + "[4;53m"         # underline and overline: with coral edges, a box around it
 EMPTY = E + "[38;5;237m"
+BOLD = E + "[1m"          # the 5h number and AC, bold as the Model row is
 SPARK = "▁▂▃▄▅▆▇█"
 
 
@@ -189,7 +193,7 @@ def core_chart(cores, bw):
     return cells
 
 
-def finish_bar(cells, t, col, past):
+def finish_bar(cells, t, col, past, bold=False):
     """The cells with the number in the middle. Every bar cuts the same slot, a
     box's width, and centers the number in it (an odd space goes after), so 9%
     and 100% take the same room and a box is always the same size."""
@@ -200,7 +204,7 @@ def finish_bar(cells, t, col, past):
     if past:
         slot = boxed(lp + t + rp)
     else:
-        slot = P("  " + lp) + S(col, t) + P(rp + "  ")
+        slot = P("  " + lp) + S((BOLD if bold else "") + col, t) + P(rp + "  ")
     st = max(0, (bw - span) // 2)
     out = T()
     for i, (ch, fg) in enumerate(cells):
@@ -235,19 +239,23 @@ def graded_cell(num, w, c, text):
     return None, text, WARN if num >= w else OK, False
 
 
-def build_left(st, bw, with_third=True):
+def build_left(st, bw, with_third=True, limits=3):
     """The left rows: 0 Ctx, 1 5h, 2 7d, 3 Fable, and 4 the machine (printed
     above them). Each row's number sits in the middle of its bar. with_third
-    False leaves out the paces, for a narrow terminal."""
+    False leaves out the paces, for a narrow terminal. LIMITS is how many of
+    the limit rows a short terminal has room for; the rest are left out, so the
+    trees end on the last one shown."""
     rows = [T() for _ in range(5)]
     _, _, ack, acx = val(st.ac_pct)
     rows[0] = row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
                                             "%dk" % (st.ctx_tok // 1000), ack, acx)
-    for i, name, pct in ((1, "5h", st.five_pct), (2, "7d", st.seven_pct), (3, "Fable", st.fable_pct)):
+    fable = st.fable_pct if limits >= 3 else None
+    for i, name, pct in ((1, "5h", st.five_pct), (2, "7d", st.seven_pct), (3, "Fable", fable))[:limits]:
         if pct is None:
             continue
         _, t, k, x = val(pct)
-        rows[i] = row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x)
+        # The 5h number is bold, the limit most worth a glance.
+        rows[i] = row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=i == 1)
     _, t, k, x = val(st.cpu_pct)
     cells = core_chart(st.cores, bw) if st.cores else bar(st.cpu_pct, 100, sevc(st.cpu_pct), bw)
     rows[4] = row_label("CPU") + finish_bar(cells, t, k, x)
@@ -256,19 +264,22 @@ def build_left(st, bw, with_third=True):
     a, n = val(st.ac_pct), val(st.win_pct)
     w, bx = max(len(a[1]), len(n[1])), a[3] or n[3]
     for i, lab, v in ((4, "AC", a), (0, "Win", n)):
-        rows[i] = rows[i] + S(LAB, lab) + S(DOT, ":") + P(sp(3 - len(lab)) + ("" if bx else " ")) + cell(v[1], v[2], v[3], w, bx)
+        # AC is bold, its label too, as the Model row is.
+        b = BOLD if i == 4 else ""
+        rows[i] = (rows[i] + S(b + LAB, lab) + S(b + DOT, ":") + P(sp(3 - len(lab)) + ("" if bx else " "))
+                   + cell(v[1], b + v[2], v[3], w, bx))
 
     # The reset times hang off ↻ tree-style, one on each limit's row. The
     # branches reach the column AC and Win's numbers start in (one further
     # when that column is boxed), so the times line up under them.
     dash = "─" * (4 if bx else 3)
-    # ↻ stands in for the "Resets" label, so it is mauve like a label, and bold.
-    rows[1] = rows[1] + S(E + "[1;38;5;139m", "↻") + S(DOT, dash) + P(" ") + S(VAL, st.five_r)
-    if st.fable_pct is not None:
-        rows[2] = rows[2] + S(DOT, "├" + dash) + P(" ") + S(VAL, st.seven_r)
-        rows[3] = rows[3] + S(DOT, "└" + dash) + P(" ") + S(VAL, st.fable_r)
-    else:
-        rows[2] = rows[2] + S(DOT, "└" + dash) + P(" ") + S(VAL, st.seven_r)
+    resets = [(1, st.five_r), (2, st.seven_r)] + ([(3, st.fable_r)] if fable is not None else [])
+    resets = resets[:limits]
+    for n, (i, r) in enumerate(resets):
+        # ↻ stands in for the "Resets" label, so it is mauve like a label, and bold.
+        glyph = S(E + "[1;38;5;139m", "↻") if n == 0 else S(DOT, "└" if n == len(resets) - 1 else "├")
+        rows[i] = rows[i] + glyph + S(DOT, dash) + P(" ") + S(VAL, r)
+    if limits >= 3 and fable is None:
         # No Fable bar: the row keeps the divider, so it runs unbroken.
         rows[3] = P(sp(7 + bw + 1)) + S(DIV, "│") + P(" ")
 
@@ -282,9 +293,9 @@ def build_left(st, bw, with_third=True):
                0: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))}
     paces = {}
     if with_third:
-        limits = [(1, st.five_pace), (2, st.seven_pace)] + ([(3, st.fable_pace)] if st.fable_pct is not None else [])
-        for n, (i, p) in enumerate(limits):
-            glyph = S(E + "[1;38;5;139m", "𝐏") if n == 0 else S(DOT, "└" if n == len(limits) - 1 else "├")
+        shown = ([(1, st.five_pace), (2, st.seven_pace)] + ([(3, st.fable_pace)] if fable is not None else []))[:limits]
+        for n, (i, p) in enumerate(shown):
+            glyph = S(E + "[1;38;5;139m", "𝐏") if n == 0 else S(DOT, "└" if n == len(shown) - 1 else "├")
             paces[i] = (glyph, val(p) if p is not None else (None, "–", DET, False))
     col = list(labeled.values()) + list(paces.values())
     start = max(len(rows[i]) for i in list(labeled) + list(paces))
@@ -363,9 +374,21 @@ def build_right(st):
     return br, gr, rlab, dir_row, git_row
 
 
-def render(st, cols):
+# On a short terminal the status line gives up rows from the bottom, so the
+# conversation keeps its room: under 30 lines the Fable row goes, under 25 the
+# 7d row, under 20 the 5h row. The CPU and Ctx rows always stay.
+SHORT = (30, 25, 20)
+
+
+def limit_rows(lines):
+    """How many of the three limit rows fit a terminal LINES tall (0: unknown)."""
+    return 3 if lines <= 0 else 3 - sum(lines < t for t in SHORT)
+
+
+def render(st, cols, lines=0):
+    limits = limit_rows(lines)
     # The rows in the order they print: the machine row on top.
-    order = [4, 0, 1, 2, 3]
+    order = [4, 0, 1, 2, 3][:2 + limits]
     br, gr, rlab, dir_row, git_row = build_right(st)
     # The folder and the branch shorten only when their row runs out of room,
     # down to 16 and 12 characters.
@@ -390,7 +413,7 @@ def render(st, cols):
     # The third column of values goes before the right side does: when the
     # right side can't fit beside it, the layout is worked out again without it.
     for with_third in (True, False):
-        left = build_left(st, ncpu, with_third)
+        left = build_left(st, ncpu, with_third, limits)
         # A left row is its label (7), the bar, then the divider with a space on
         # each side (3); a right row starts with its label (7).
         bmin = max([0] + [len(left[i]) - ncpu - 10 for i in order])
@@ -443,7 +466,7 @@ def render(st, cols):
     # The bars then take every spare column, up to four per core, so no width
     # leaves a gap at the end of the line.
     bw = max(per * ncpu, min(avail - 10 - bmin, pmax * ncpu))
-    left = build_left(st, bw, with_third)
+    left = build_left(st, bw, with_third, limits)
     # The values column pads out to the divider by 3 spare columns at most; any
     # other leftover goes at the end of the line, where empty space doesn't show.
     lw = 0 if show == "left" else min(avail, bw + 10 + bmin + 3)
@@ -954,7 +977,7 @@ def main():
         if not isinstance(payload, dict):
             payload = {}
         st = collect(payload)
-        out = render(st, num(os.environ.get("COLUMNS"), 145))
+        out = render(st, num(os.environ.get("COLUMNS"), 145), num(os.environ.get("LINES"), 0))
     except Exception as e:  # a broken status line should still say why
         out = "statusline.py: %s: %s" % (type(e).__name__, e)
     sys.stdout.buffer.write(out.encode("utf-8"))
