@@ -138,9 +138,17 @@ def test_folder_has_its_own_row():
     assert "K8s:   –" in rows(state(kube=""), 160)[4]
 
 
+def test_details_follow_a_slash():
+    rs = rows(state(), 200)
+    assert rs[1].endswith("ID:    1feba53f/claude-00")
+    assert rs[4].endswith("K8s:   admin@stable/default")
+
+
 def test_narrow_terminal_trims_details_before_the_right_side():
     wide, narrow = rows(state(), 200), rows(state(), 120)
     assert "claude-00" in wide[1]
+    for r in narrow:
+        assert not r.endswith("/") and not r.endswith("/…"), r
     assert "Model:" in narrow[0] and "Dir:" in narrow[2]
     assert "𝐏" in narrow[2] and "Cost:" in narrow[0] and "Turn:" in narrow[1]
 

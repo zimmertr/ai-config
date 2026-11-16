@@ -7,10 +7,10 @@ them; and the names of what the session works with. The layout sizes itself to
 the terminal. Wired via ~/.claude/settings.json as `python3 ~/.claude/statusline.py`.
 
   CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ AC:  39%     Cost:  $3.63     │ Model: Opus 5.5/High
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f      claude-00
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
   5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
   7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable  default
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. AC is the share of the point where auto-compact fires, Win the share of
@@ -23,10 +23,10 @@ week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
 counts changed files; outside a repo, and without a K8s context, a row shows –.
 
 One color per job: mauve labels a value, white is a value, slate teal is the
-minor detail that ends a row, lavender draws the colons, slashes and trees, icy
-blue draws the dividers, and mint / gold / coral is a value with a limit: mint
-under 50%, gold under 80%, and from 80% bold coral, boxed by coral edges with a
-line above and below. Ctx's token count takes AC's color. The bars fill in
+dash where there is nothing to show, lavender draws the colons, slashes and
+trees, icy blue draws the dividers, and mint / gold / coral is a value with a
+limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by coral
+edges with a line above and below. Ctx's token count takes AC's color. The bars fill in
 quieter tones with the same steps: steel blue, soft violet, orchid. The Model
 row is bold, as the right side's lead.
 
@@ -58,7 +58,7 @@ LAB = E + "[38;5;139m"    # mauve: labels
 DIV = E + "[38;5;153m"    # icy pale blue: the dividers
 VAL = E + "[97m"          # white: values
 VALB = E + "[1;97m"       # bold white: the model, the right side's lead value
-DET = E + "[38;5;66m"     # slate teal: the minor detail that ends a row
+DET = E + "[38;5;66m"     # slate teal: the dash where there is nothing to show
 DOT = E + "[38;5;103m"    # lavender: colons and the trees
 SLASH = E + "[1;38;5;103m"  # bold lavender: the slashes in names and paths
 OK, WARN, BAD = E + "[38;5;151m", E + "[38;5;222m", E + "[38;5;210m"  # mint, gold, coral
@@ -283,7 +283,7 @@ def build_left(st, bw, with_third=True):
     return rows
 
 
-# --- Right rows: a mauve label, a bright part, then a slate teal detail ---
+# --- Right rows: a mauve label, a bright part, then a detail after a slash ---
 def short_dir(p):
     """Long paths keep the first two folders and the last one: ~/.claude/tmp/…/scratchpad."""
     if len(p) <= 32:
@@ -327,14 +327,17 @@ def effort_colored(w, lvl, now, bold=False):
 def build_right(st, now):
     """The right rows, top to bottom: Model, ID, Dir, Git, K8s. -> bright parts,
     details and labels by row, and the row whose bright part is the folder's
-    path (it may shorten). A row with nothing to show (outside a repo, no K8s
-    context) shows a teal dash."""
+    path (it may shorten). A detail follows its bright part after a slash, like
+    the model's effort, and is the part that shortens and drops on a narrow
+    terminal. A row with nothing to show (outside a repo, no K8s context) shows
+    a teal dash."""
     # The model is the right side's lead value, so its whole row is bold, its
     # label included (in render); the other rows stay plain.
     effort = S(VALB, st.model) + S(SLASH, "/") + effort_colored(st.effort, st.lvl, now, bold=True)
     model = ("Model", effort, T())
-    ident = ("ID", S(VAL, st.sid8), S(DET, st.sname) if st.sname else T())
-    kube = ("K8s", S(VAL, st.kube) if st.kube else S(DET, "–"), S(DET, st.ns) if st.ns else T())
+    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, VAL) if st.sname else T())
+    kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
+            S(SLASH, "/") + S(VAL, st.ns) if st.kube and st.ns else T())
     if st.in_git:
         git = slashed(st.branch, VAL)
         if st.ahead > 0:
@@ -358,15 +361,14 @@ def render(st, cols, now):
     order = [4, 0, 1, 2, 3]
     br, gr, rlab, dir_row = build_right(st, now)
 
-    # The details start in one column: pad each bright part to the widest one
-    # that has a detail after it.
+    # The widest bright part that has a detail after it.
     mw = max([len(br[i]) for i in order if len(gr[i])] or [0])
 
     # --- Width ---
     # Claude Code passes the terminal's width and keeps a few columns for its own
     # padding. The right side keeps its natural width; the bars take what is
     # left, up to four characters per core, and the values column keeps at most 3
-    # spare. On a narrower terminal the bars win over the teal details: they hold
+    # spare. On a narrower terminal the bars win over the details: they hold
     # at two characters per core while the details shorten, then drop. Then the
     # bars go to one per core, then the third column of values drops, and last
     # the whole right side.
@@ -383,21 +385,22 @@ def render(st, cols, now):
         for i in order:
             # The folder can shorten from the front, so it asks for 16 at most.
             cb = max(cb, min(len(br[i]), 16) if i == dir_row else len(br[i]))
-            cf = max(cf, mw + 2 + len(gr[i]) if len(gr[i]) else len(br[i]))
+            cf = max(cf, len(br[i]) + len(gr[i]))
         cb, cf = cb + 7, cf + 7
         # The left side with the bars at one and two characters per core.
         l1, l2 = ncpu + 10 + bmin, 2 * ncpu + 10 + bmin
         pmax, c = 4, 0
         if l2 + 3 + cf <= w_avail:
             show, c = "full", cf
-        elif l2 + 3 + 7 + mw + 2 + 16 <= w_avail:
-            # The details get whatever the right side has left; a long one ends in ….
+        elif l2 + 3 + max(cb, 7 + mw + 16) <= w_avail:
+            # The details get whatever their row has left; a long one ends in …,
+            # and one with no room past its slash drops.
             show, pmax = "full", 2
             c = w_avail - l2 - 3
-            room = c - 7 - mw - 2
             for i in order:
+                room = c - 7 - len(br[i])
                 if len(gr[i]) > room:
-                    gr[i] = slashed(gr[i].plain[:room - 1] + "…", DET)
+                    gr[i] = S(SLASH, "/") + slashed(gr[i].plain[1:room - 1] + "…", VAL) if room >= 3 else T()
         elif l2 + 3 + cb <= w_avail:
             show, c = "bright", cb
         elif l1 + 3 + cb <= w_avail:
@@ -438,7 +441,7 @@ def render(st, cols, now):
         bold = E + "[1m" if rlab[i] == "Model" else ""
         line += DIV + " │ " + R + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
-            line += sp(mw - len(br[i]) + 2) + gr[i].ansi()
+            line += gr[i].ansi()
         out.append(line)
     return "\n".join(out)
 
