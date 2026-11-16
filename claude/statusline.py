@@ -25,11 +25,12 @@ counts changed files; outside a repo, and without a K8s context, a row shows –
 One color per job: mauve labels a value, white is a value, slate teal is the
 dash where there is nothing to show, icy blue draws the colons, slashes, trees
 and dividers, lilac is the effort, session name and namespace after their
-slash and the repo's folder in the path, and mint / gold / coral is a value with a limit: mint under 50%, gold
-under 80%, and from 80% bold coral, boxed by coral edges with a line above and
-below. Ctx's token count takes AC's color. The bars fill in quieter tones with
-the same steps: steel blue, soft violet, orchid. The Model row is bold, as the
-right side's lead.
+slash and the repo's folder in the path, and mint / gold / coral is a value
+with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
+coral edges with a line above and below. Ctx's token count takes AC's color.
+The bars fill in quieter tones with the same steps: steel blue, soft violet,
+orchid. The Model row is bold, as the right side's lead. The folder and the
+branch show in full, and shorten only when their row runs out of room.
 
 The session's short name (`claude-80`) is what other sessions message it by;
 the 8-character ID prefix is what create-issue labels its issues with.
