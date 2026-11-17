@@ -159,8 +159,10 @@ def test_parser_defaults():
     assert ig.parser().parse_args(["roll", "a.png", "b.png"]).by == 0.5
 
 
-def test_only_the_four_image_models_are_allowed():
-    assert ig.IMAGE_MODELS == ("qwen-image-2.1", "z-image-turbo", "z-image-turbo-pixel-art", "ideogram-4")
+def test_only_the_five_image_models_are_allowed():
+    assert ig.IMAGE_MODELS == (
+        "qwen-image-2.1", "z-image-turbo", "z-image-turbo-pixel-art", "z-image-turbo-trailhead", "ideogram-4"
+    )
 
 
 def test_parse_part():

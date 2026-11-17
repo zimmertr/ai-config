@@ -31,7 +31,7 @@ import urllib.request
 
 # The image models in llama-swap's config.yaml. Others it serves are not for
 # this skill.
-IMAGE_MODELS = ("qwen-image-2.1", "z-image-turbo", "z-image-turbo-pixel-art", "ideogram-4")
+IMAGE_MODELS = ("qwen-image-2.1", "z-image-turbo", "z-image-turbo-pixel-art", "z-image-turbo-trailhead", "ideogram-4")
 LOG = "log.jsonl"
 BUSY_GPU_PERCENT = 20
 WAIT_SECONDS = 300

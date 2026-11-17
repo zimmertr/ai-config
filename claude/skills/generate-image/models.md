@@ -1,6 +1,6 @@
 # The image models
 
-All four run in `sd-server` behind llama-swap on the R9700 (32 GB). Their sampler settings (steps, guidance) are fixed at startup in Kubernetes-Manifests' `ai/llama-swap/configs/config.yaml`; a request can still pass `--steps`. Timings below are measured on that card, for one picture, with the model already loaded. The first request after a swap adds about 10 to 30 s to load it.
+All five run in `sd-server` behind llama-swap on the R9700 (32 GB). Their sampler settings (steps, guidance) are fixed at startup in Kubernetes-Manifests' `ai/llama-swap/configs/config.yaml`; a request can still pass `--steps`. Timings below are measured on that card, for one picture, with the model already loaded. The first request after a swap adds about 10 to 30 s to load it.
 
 ## qwen-image-2.1
 
@@ -32,6 +32,16 @@ Z-Image Turbo with the elusarca pixel-art LoRA applied to every request.
 - Needs "pixel art" in the prompt.
 - More detail than plain Z-Image, but softer: areas smear into gradients instead of clean pixels. Plain `z-image-turbo` won side by side for crisp pixel art.
 - Everything else as `z-image-turbo`, including ignoring negative prompts.
+
+## z-image-turbo-trailhead
+
+Z-Image Turbo with trailhead's style LoRA applied to every request. It was trained on the game's own pixel art (see [lora.md](lora.md)), so use it for trailhead and nothing else.
+
+- **Start the prompt with "pixel art, side view scene,"** then describe the subject. It draws scenes and landmarks in the game's look: fine pixels, golden larches, layered ridges, the game's softer palette.
+- **Leave out the trigger word "trlhd".** The LoRA is always on, so the word changes nothing but gets drawn as lettering on signs.
+- **Avoid "overhead map".** It comes back as a generic piece of the game's map instead of the subject.
+- **A row of summits** tends to come out at nearly even heights. Say how they differ, or fix it in a later step.
+- Everything else as `z-image-turbo`: 15 to 20 s, no negative prompts.
 
 ## ideogram-4
 

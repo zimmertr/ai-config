@@ -1,0 +1,56 @@
+# One LoRA training pod on the GPU node, with a scratch volume for PyTorch, ai-toolkit, the model
+# cache and the outputs. Deleting the namespace deletes the volume too (its class reclaims with Delete).
+# Only with TJ's okay for this specific run, and only once llama-swap is paused (see lora.md).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lora-training
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scratch
+  namespace: lora-training
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: proxmox-datapool-scratch
+  resources:
+    requests:
+      storage: 150Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: trainer
+  namespace: lora-training
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    tks.io/pool: gpu
+  tolerations:
+    - key: amd.com/gpu
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: trainer
+      # Slim on purpose: the GPU node has ~37 GB of disk, so PyTorch for ROCm goes into a venv on the
+      # scratch volume rather than into a 30 GB rocm/pytorch image.
+      image: python:3.12-bookworm@sha256:4209fae09a3e20afd863e528bfddc235da5fd5977983e1996cd54cc9a72e6267
+      command: ["sleep", "infinity"]
+      # No PYTORCH_HIP_ALLOC_CONF=expandable_segments:True: on the R9700 it causes illegal memory
+      # accesses when ai-toolkit merges its training adapter.
+      env:
+        - {name: HF_HOME, value: /work/hf}
+        - {name: HF_HUB_ENABLE_HF_TRANSFER, value: "1"}
+        - {name: PIP_CACHE_DIR, value: /work/pip-cache}
+      resources:
+        requests: {cpu: "8", memory: 64Gi}
+        limits: {amd.com/gpu: 1, memory: 160Gi}
+      volumeMounts:
+        - {name: scratch, mountPath: /work}
+        - {name: shm, mountPath: /dev/shm}
+  volumes:
+    - name: scratch
+      persistentVolumeClaim: {claimName: scratch}
+    - name: shm
+      emptyDir: {medium: Memory, sizeLimit: 16Gi}

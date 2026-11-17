@@ -5,7 +5,7 @@ description: Make pictures with the image models on TJ's own GPU (llama-swap on 
 
 # Generate image
 
-llama-swap serves four image models on TJ's R9700. You write the prompts, look at every result yourself, and keep improving the prompt until the picture does the job. Then you normally show TJ your pick.
+llama-swap serves five image models on TJ's R9700. You write the prompts, look at every result yourself, and keep improving the prompt until the picture does the job. Then you normally show TJ your pick.
 
 ## Before you start
 
@@ -38,6 +38,7 @@ $R $J sheet sheet.png draft-s1.png draft-s2.png draft-s3.png --cols 3 --width 40
 | `qwen-image-2.1` | Almost everything: paintings, pixel art, scenes, lettering, and repainting a picture you give it while keeping its layout. Follows long prompts and negative prompts. About 40 s from a prompt, 50 to 75 s for an edit | Quick throwaway drafts |
 | `z-image-turbo` | Fast drafts, 5 to 15 s: try many compositions, then take the best to Qwen | Fine detail; anything that needs a negative prompt (it ignores them) |
 | `z-image-turbo-pixel-art` | A softer, more detailed pixel look than plain Z-Image | Crisp pixels; it smears into gradients |
+| `z-image-turbo-trailhead` | trailhead's art: Z-Image with a LoRA trained on the game's own pictures | Other projects; overhead map views |
 | `ideogram-4` | Lettering that must sit in an exact place, exact layouts with boxes, colour palettes | Pixel art (it paints illustrations instead); plain-sentence prompts |
 
 Strengths, weaknesses, settings and known bugs for each: [models.md](models.md). Ideogram needs a JSON caption, which you write yourself: [ideogram.md](ideogram.md).
@@ -87,5 +88,5 @@ It shows your pick with your reason, two runners-up, and under each a folded "Ho
 
 - **Z-Image image-to-image** crashes sd-server on both OpenAI image routes. `img2img` already uses sd-server's WebUI-style route through `/upstream`, which works.
 - **A 502 or a dropped connection** means sd-server crashed. Look at the llama-swap pod's log (`kubectl -n llama-swap-system logs deploy/llama-swap -c llama-swap`). llama-swap starts it again on the next request.
-- **LoRAs can't be chosen per request.** `z-image-turbo-pixel-art` has its LoRA built in, and a request's `lora` field does nothing.
+- **LoRAs can't be chosen per request.** `z-image-turbo-pixel-art` and `z-image-turbo-trailhead` have their LoRAs built in, and a request's `lora` field does nothing. To train a LoRA of your own, see [lora.md](lora.md).
 - **Ideogram given a plain sentence** answers with a grey "Image blocked by safety filter" picture. Write its JSON caption.
