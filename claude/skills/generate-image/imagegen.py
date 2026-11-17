@@ -310,13 +310,24 @@ def nearest_index(rgb, palette):
     return best
 
 
+def scale_size(w, h, width=None, height=None, factor=None):
+    if bool(factor) == bool(width or height):
+        raise SystemExit("scale: give --factor, or --width and/or --height")
+    if width and height:
+        # Both given: stretch to exactly that size, for a picture painted at one shape that has
+        # to fill a slot of another.
+        return width, height
+    if width:
+        return width, round(h * width / w)
+    if height:
+        return round(w * height / h), height
+    return round(w * factor), round(h * factor)
+
+
 def cmd_scale(args):
     from PIL import Image
     im = Image.open(args.input)
-    if args.width:
-        size = (args.width, round(im.height * args.width / im.width))
-    else:
-        size = (round(im.width * args.factor), round(im.height * args.factor))
+    size = scale_size(im.width, im.height, args.width, args.height, args.factor)
     filt = {"box": Image.BOX, "nearest": Image.NEAREST, "lanczos": Image.LANCZOS}[args.resample]
     im.resize(size, filt).save(args.output)
     print("%s %dx%d" % (args.output, size[0], size[1]))
@@ -528,9 +539,9 @@ def parser():
     s = sub.add_parser("scale")
     s.add_argument("input")
     s.add_argument("output")
-    g = s.add_mutually_exclusive_group(required=True)
-    g.add_argument("--width", type=int)
-    g.add_argument("--factor", type=float)
+    s.add_argument("--width", type=int)
+    s.add_argument("--height", type=int, help="with --width, stretch to exactly that size")
+    s.add_argument("--factor", type=float)
     s.add_argument("--resample", choices=("box", "nearest", "lanczos"), default="box")
     s = sub.add_parser("roll", help="slide sideways with wrap-around, to move a tiling seam to the middle")
     s.add_argument("input")

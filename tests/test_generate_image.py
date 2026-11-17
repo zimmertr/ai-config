@@ -159,6 +159,17 @@ def test_parser_defaults():
     assert ig.parser().parse_args(["roll", "a.png", "b.png"]).by == 0.5
 
 
+def test_scale_size_keeps_the_shape_unless_given_both_sides():
+    assert ig.scale_size(1000, 500, width=400) == (400, 200)
+    assert ig.scale_size(1000, 500, height=100) == (200, 100)
+    assert ig.scale_size(1000, 500, factor=0.5) == (500, 250)
+    assert ig.scale_size(1000, 500, width=400, height=350) == (400, 350)
+    with pytest.raises(SystemExit):
+        ig.scale_size(1000, 500)
+    with pytest.raises(SystemExit):
+        ig.scale_size(1000, 500, width=400, factor=0.5)
+
+
 def test_only_the_five_image_models_are_allowed():
     assert ig.IMAGE_MODELS == (
         "qwen-image-2.1", "z-image-turbo", "z-image-turbo-pixel-art", "z-image-turbo-trailhead", "ideogram-4"
