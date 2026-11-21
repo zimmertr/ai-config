@@ -62,7 +62,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "enableWorkflows": true,
   "statusLine": {
     "type": "command",
@@ -116,6 +116,9 @@
       "effortLevel": "low"
     },
     "claude-fable-5-2": {
+      "effortLevel": "high"
+    },
+    "claude-sonnet-5-5": {
       "effortLevel": "high"
     }
   },
