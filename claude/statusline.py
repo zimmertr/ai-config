@@ -9,17 +9,17 @@ drops the limits from the bottom up (Fable, then 7d, then 5h), and each section
 its last row with them. Ctx and CPU always stay. Wired via ~/.claude/settings.json
 as `python3 ~/.claude/statusline.py`.
 
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ AC:  39%     Cost:  $3.63     ✻ Model: Opus 5.5/High
-  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Win: 19%     Turn:  220       │ ID:    1feba53f/claude-00
-  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ↻─── 4h46m   𝐏────▕ 111% ▏    │ Dir:   ~/git/personal/bluebird
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ ├─── 2d21h   ├────▕ 164% ▏    │ Git:   main ↓7 ✚2
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ └─── 2d21h   └────▕ 167% ▏    │ K8s:   admin@stable/default
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ AC:   39%     Win:   19%       ✻ Model: Opus 5.5/High
+  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻──── 4h46m   𝐏────▕ 111% ▏    │ ID:    1feba53f/claude-00
+  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├──── 2d21h   ├────▕ 164% ▏    │ Dir:   ~/git/personal/bluebird
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └──── 2d21h   └────▕ 167% ▏    │ Git:   main ↓7 ✚2
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Cost: $3.63   Turn:  220       │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. AC is the share of the point where auto-compact fires, Win the share of
 the whole window. With auto-compact on, Win can never pass the AC point, so it
 only matters when compaction is off (DISABLE_AUTO_COMPACT=1). The Fable bar
-stays empty until the Fable limit has been fetched. Each limit has a row in two
+stays empty until the Fable limit has been fetched. Each limit's row ends in two
 trees: ↻ when it resets, and 𝐏 its pace, where it lands at the reset if use
 keeps its rate so far (shown once 30 minutes of a 5h window, or 12 hours of a
 week, have gone). On the Git row ↑/↓ track the branch's own upstream and ✚
@@ -33,7 +33,7 @@ with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
 coral edges with a line above and below. Ctx's token count takes AC's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
 orchid. The top row holds what matters most, so all of it is bold: Ctx, AC,
-Cost and the model. The 5h number is bold too. A ✻ in the effort's color from
+Win and the model. The 5h number is bold too. A ✻ in the effort's color from
 Claude Code's /effort picker stands in for the Model row's divider. The folder
 and the branch show in full, and shorten only when their row runs out of room.
 
@@ -222,10 +222,11 @@ def row_label(name):
 
 def cell(t, col, past, width, col_boxed, last=False):
     """One value in a grid column. When either value in a column is boxed, the
-    other gets blank cells where the box's edges go, so the numbers line up."""
+    other gets blank cells where the box's edges go, so the numbers line up.
+    The padding goes after a box, so it fits its own number."""
     pad = "" if last else sp(width - len(t))
     if past:
-        return boxed(t + pad)
+        return boxed(t) + P(pad)
     if col_boxed:
         out = P("  ") + S(col, t) + P(pad)
         return out if last else out + P("  ")
@@ -239,83 +240,82 @@ def graded_cell(num, w, c, text):
     return None, text, WARN if num >= w else OK, False
 
 
+def number_column(lines, labeled, tree, gap_before, last=False):
+    """Adds a column of numbers to LINES: a labeled value at its top and bottom
+    (LABELED, by line: label, value) and a tree between them (TREE, by line:
+    glyph, value), each value as (styled, text, color, past_limit). The column
+    starts GAP_BEFORE past the longest line it touches. Labels pad to the
+    longest, the branches reach the column the numbers start in, and when any
+    value is boxed the rest get blank cells where its edges go, so the numbers
+    line up. LAST leaves off the padding after the values."""
+    entries = sorted(list(labeled.items()) + list(tree.items()))
+    start = max(len(lines[i]) for i, _ in entries)
+    lw = max(len(lab) for lab, _ in labeled.values())
+    vw = max(len(v[1]) for _, (_, v) in entries)
+    bx = any(v[3] for _, (_, v) in entries)
+    gap = "" if bx else " "
+    for i, (head, v) in entries:
+        if i in labeled:
+            head = S(LAB, head) + S(DOT, ":") + P(sp(lw - len(head)))
+        else:
+            head = head + S(DOT, "─" * lw)
+        lines[i] = (lines[i] + P(sp(start - len(lines[i]) + gap_before)) + head + P(gap)
+                    + cell(v[1], v[2], v[3], vw, bx, last))
+
+
 def build_left(st, bw, with_third=True, limits=3):
     """The left side, as rows indexed 4, 0, 1, 2, 3 in the order they print
-    (render's ORDER). The bars and the numbers are columns of their own, each
-    stacked top down. The bars: Ctx, 5h, 7d, Fable, and CPU always last. The
-    numbers: AC and Cost, Win and Turn, then a reset time and a pace for each
-    limit. Each bar's number sits in its middle. with_third False leaves out
-    the paces, for a narrow terminal. LIMITS is how many of the limits a short
-    terminal has room for; the rest leave both columns, so each one ends on
-    the last limit shown."""
-    rows = [T() for _ in range(5)]
+    (render's ORDER). The bars and the numbers are sections of their own. The
+    bars stack Ctx, 5h, 7d, Fable, then CPU last. Two columns of numbers sit
+    beside them: AC over each limit's reset time over Cost, and Win over each
+    limit's pace over Turn, so a limit's reset and pace share its bar's row.
+    Each bar's number sits in its middle. with_third False leaves out the
+    paces, for a narrow terminal. LIMITS is how many of the limits a short
+    terminal has room for; the rest leave every column."""
     _, _, ack, acx = val(st.ac_pct)
-    bars = [row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
-                                          "%dk" % (st.ctx_tok // 1000), ack, acx)]
+    lines = [row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
+                                           "%dk" % (st.ctx_tok // 1000), ack, acx)]
     fable = st.fable_pct if limits >= 3 else None
-    for name, pct in (("5h", st.five_pct), ("7d", st.seven_pct), ("Fable", fable))[:limits]:
+    limit_lines = []
+    for name, pct, r, p in (("5h", st.five_pct, st.five_r, st.five_pace),
+                            ("7d", st.seven_pct, st.seven_r, st.seven_pace),
+                            ("Fable", fable, st.fable_r, st.fable_pace))[:limits]:
         if pct is None:
             # No Fable bar: its place keeps the divider, so the column runs
             # unbroken and CPU stays at the bottom.
-            bars.append(P(sp(7 + bw + 1)) + S(DIV, "│") + P(" "))
+            lines.append(P(sp(7 + bw + 1)) + S(DIV, "│") + P(" "))
             continue
         _, t, k, x = val(pct)
         # The 5h number is bold too, the limit that runs out first.
-        bars.append(row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=name == "5h"))
+        lines.append(row_label(name) + finish_bar(bar(pct, 100, sevc(pct), bw), t, k, x, bold=name == "5h"))
+        limit_lines.append((len(lines) - 1, r, p))
     _, t, k, x = val(st.cpu_pct)
     cells = core_chart(st.cores, bw) if st.cores else bar(st.cpu_pct, 100, sevc(st.cpu_pct), bw)
-    bars.append(row_label("CPU") + finish_bar(cells, t, k, x))
-    for i, b in zip(ORDER, bars):
-        rows[i] = b
+    lines.append(row_label("CPU") + finish_bar(cells, t, k, x))
+    last = len(lines) - 1
 
-    # AC and Win, the two shares of the context, stack as a column of their own.
-    a, n = val(st.ac_pct), val(st.win_pct)
-    w, bx = max(len(a[1]), len(n[1])), a[3] or n[3]
-    for i, lab, v in ((4, "AC", a), (0, "Win", n)):
-        rows[i] = (rows[i] + S(LAB, lab) + S(DOT, ":") + P(sp(3 - len(lab)) + ("" if bx else " "))
-                   + cell(v[1], v[2], v[3], w, bx))
+    def trees(glyph, values):
+        """Branches off GLYPH, one per limit, ending in └ on the last one."""
+        n = len(limit_lines)
+        return {i: (S(E + "[1;38;5;139m", glyph) if j == 0 else S(DOT, "└" if j == n - 1 else "├"), v)
+                for j, ((i, _, _), v) in enumerate(zip(limit_lines, values))}
 
-    # The reset times hang off ↻ tree-style, one on each limit's row. The
-    # branches reach the column AC and Win's numbers start in (one further
-    # when that column is boxed), so the times line up under them.
-    dash = "─" * (4 if bx else 3)
-    resets = [(1, st.five_r), (2, st.seven_r)] + ([(3, st.fable_r)] if fable is not None else [])
-    resets = resets[:limits]
-    for n, (i, r) in enumerate(resets):
-        # ↻ stands in for the "Resets" label, so it is mauve like a label, and bold.
-        glyph = S(E + "[1;38;5;139m", "↻") if n == 0 else S(DOT, "└" if n == len(resets) - 1 else "├")
-        rows[i] = rows[i] + glyph + S(DOT, dash) + P(" ") + S(VAL, r)
-
-    # Cost and Turn head the next column, and each limit's pace hangs off 𝐏
-    # below them tree-style, beside its reset time. The column starts where the
-    # longest row before it ends: the reset times, or on a narrow terminal
-    # (with_third False, the paces left out) AC and Win. Labels pad to the
-    # longer one, the branches reach the same column, and a boxed value's edge
-    # stands in for the space before it.
-    labeled = {4: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost)),
-               0: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))}
-    paces = {}
-    if with_third:
-        shown = ([(1, st.five_pace), (2, st.seven_pace)] + ([(3, st.fable_pace)] if fable is not None else []))[:limits]
-        for n, (i, p) in enumerate(shown):
-            glyph = S(E + "[1;38;5;139m", "𝐏") if n == 0 else S(DOT, "└" if n == len(shown) - 1 else "├")
-            paces[i] = (glyph, val(p) if p is not None else (None, "–", DET, False))
-    col = list(labeled.values()) + list(paces.values())
-    start = max(len(rows[i]) for i in list(labeled) + list(paces))
-    lw3 = max(len(lab) for lab, _ in labeled.values())
-    vw3 = max(len(v[1]) for _, v in col)
-    bx3 = any(v[3] for _, v in col)
-    gap = "" if bx3 else " "
-    for i, (lab, v) in labeled.items():
-        rows[i] = (rows[i] + P(sp(start - len(rows[i]) + 3)) + S(LAB, lab) + S(DOT, ":")
-                   + P(sp(lw3 - len(lab)) + gap) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
-    for i, (glyph, v) in paces.items():
-        rows[i] = (rows[i] + P(sp(start - len(rows[i]) + 3)) + glyph + S(DOT, "─" * lw3)
-                   + P(gap) + cell(v[1], v[2], v[3], vw3, bx3, last=True))
+    # ↻ and 𝐏 stand in for the "Resets" and "Pace" labels, so they are mauve
+    # like a label, and bold.
+    number_column(lines, {0: ("AC", val(st.ac_pct)),
+                          last: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))},
+                  trees("↻", [(None, r, VAL, False) for _, r, _ in limit_lines]), 0)
+    # The paces, where each limit lands at its reset, drop on a narrow terminal.
+    paces = [val(p) if p is not None else (None, "–", DET, False) for _, _, p in limit_lines]
+    number_column(lines, {0: ("Win", val(st.win_pct)),
+                          last: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))},
+                  trees("𝐏", paces) if with_third else {}, 3, last=True)
     # The top row holds what matters most, so all of it is bold, as the Model
     # row beside it is: it stands out from the rows below.
-    top = ORDER[0]
-    rows[top] = T([(t, BOLD + s) for t, s in rows[top].parts])
+    lines[0] = T([(t, BOLD + s) for t, s in lines[0].parts])
+    rows = [T() for _ in range(5)]
+    for i, line in zip(ORDER, lines):
+        rows[i] = line
     return rows
 
 
