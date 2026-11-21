@@ -93,13 +93,17 @@ def test_no_box_is_cut_open(name, cols):
 def test_grids_line_up(name, cols):
     rs = rows(STATES[name], cols)
     top, bottom = rs[0], rs[-1]
-    # Two columns of numbers: AC over the reset times over Turn, and Win over
+    # Two columns of numbers: Compact over the reset times over Turn, and Window over
     # the paces over Cost. Each column's labels and branches start together,
     # and its numbers line up; the paces drop on a narrow terminal.
     trees = [[m.start() for m in re.finditer("[↻𝐏├└]", r)] for r in rs[1:-1]]
     trees = [(r, g) for r, g in zip(rs[1:-1], trees) if g]
     paces = "𝐏" in rs[1]
-    for col, (a, b) in enumerate((("AC:", "Turn:"), ("Win:", "Cost:"))):
+    for col, (a, b) in enumerate((("Compact:", "Turn:"), ("Window:", "Cost:"))):
+        # The narrowest terminal drops the second column.
+        if a not in top:
+            assert cols <= 60 and b not in bottom
+            continue
         heads = [(top, top.index(a)), (bottom, bottom.index(b))]
         if col == 0 or paces:
             heads += [(r, g[col]) for r, g in trees]
@@ -111,7 +115,7 @@ def test_grids_line_up(name, cols):
 
 
 def test_third_column_drops_before_the_right_side():
-    rs = rows(state(), 80)
+    rs = rows(state(), 85)
     assert "𝐏" not in rs[1] and " │ Dir:" in rs[2] and "Cost:" in rs[4]
 
 
@@ -144,7 +148,7 @@ def test_bars_stack_with_cpu_last_and_the_numbers_stay():
     rs = rows(state(), 200)
     assert [r.split(":")[0] for r in rs] == ["Ctx", "5h", "7d", "Fable", "CPU"]
     # Each limit's reset and pace share its bar's row.
-    assert "AC:" in rs[0] and "Win:" in rs[0] and "↻" in rs[1] and "└──── 2d21h" in rs[3]
+    assert "Compact:" in rs[0] and "Window:" in rs[0] and "↻" in rs[1] and re.search("└─+ 2d21h", rs[3])
     assert "Cost:" in rs[4] and "Turn:" in rs[4]
     # Without Fable its place stays blank and CPU stays at the bottom.
     rs = rows(state(fable_pct=None), 200)
@@ -163,14 +167,14 @@ def test_short_terminal_keeps_the_rules(name, cols, lines):
 
 def test_trees_end_on_the_last_row_shown():
     rs = rows(state(), 200, 29)
-    assert "└──── 2d21h" in rs[2] and "├" not in rs[2] and "Turn:" in rs[3]
-    assert "↻──── 4h46m" in rows(state(), 200, 24)[1]
+    assert re.search("└─+ 2d21h", rs[2]) and "├" not in rs[2] and "Turn:" in rs[3]
+    assert re.search("↻─+ 4h46m", rows(state(), 200, 24)[1])
 
 
 def test_top_row_and_five_hour_number_are_bold():
     top = sl.build_left(state(), 24)[sl.ORDER[0]]
     assert all(s.startswith(sl.BOLD) for _, s in top.parts)
-    assert "AC" in top.plain and "Win" in top.plain
+    assert "Compact" in top.plain and "Window" in top.plain
     out = sl.render(state(), 200).split("\n")
     assert sl.BOLD + sl.OK + "2%" in out[1]
     # The rest of the 5h row, and the rows below, stay plain.
@@ -200,7 +204,7 @@ def test_narrow_terminal_trims_details_before_the_right_side():
     for r in narrow:
         assert not r.endswith("/") and not r.endswith("/…"), r
     assert "Model:" in narrow[0] and "Dir:" in narrow[2]
-    assert "𝐏" in narrow[1] and "Win:" in narrow[0] and "Cost:" in narrow[4] and "Turn:" in narrow[4]
+    assert "𝐏" in narrow[1] and "Window:" in narrow[0] and "Cost:" in narrow[4] and "Turn:" in narrow[4]
 
 
 def test_very_narrow_terminal_keeps_only_the_bars():

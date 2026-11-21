@@ -9,16 +9,16 @@ drops the limits from the bottom up (Fable, then 7d, then 5h), and each section
 its last row with them. Ctx and CPU always stay. Wired via ~/.claude/settings.json
 as `python3 ~/.claude/statusline.py`.
 
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ AC:   39%     Win:   19%       ✻ Model: Opus 5.5/High
-  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻──── 4h46m   𝐏────▕ 111% ▏    │ ID:    1feba53f/claude-00
-  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├──── 2d21h   ├────▕ 164% ▏    │ Dir:   ~/git/personal/bluebird
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └──── 2d21h   └────▕ 167% ▏    │ Git:   main ↓7 ✚2
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn: 220     Cost:  $3.63     │ K8s:   admin@stable/default
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Compact: 39%     Window:  19%       ✻ Model: Opus 5.5/High
+  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─────── 4h46m   𝐏──────▕ 111% ▏    │ ID:    1feba53f/claude-00
+  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─────── 2d21h   ├──────▕ 164% ▏    │ Dir:   ~/git/personal/bluebird
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─────── 2d21h   └──────▕ 167% ▏    │ Git:   main ↓7 ✚2
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn:    220     Cost:    $3.63     │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
-window. AC is the share of the point where auto-compact fires, Win the share of
-the whole window. With auto-compact on, Win can never pass the AC point, so it
-only matters when compaction is off (DISABLE_AUTO_COMPACT=1). The Fable bar
+window. Compact is the share of the point where auto-compact fires, Window the
+share of the whole window. With auto-compact on, Window can never pass the
+Compact point, so it only matters when compaction is off (DISABLE_AUTO_COMPACT=1). The Fable bar
 stays empty until the Fable limit has been fetched. Each limit's row ends in two
 trees: ↻ when it resets, and 𝐏 its pace, where it lands at the reset if use
 keeps its rate so far (shown once 30 minutes of a 5h window, or 12 hours of a
@@ -30,10 +30,10 @@ dash where there is nothing to show, icy blue draws the colons, slashes, trees
 and dividers, lilac is the effort, session name and namespace after their
 slash and the repo's folder in the path, and mint / gold / coral is a value
 with a limit: mint under 50%, gold under 80%, and from 80% bold coral, boxed by
-coral edges with a line above and below. Ctx's token count takes AC's color.
+coral edges with a line above and below. Ctx's token count takes Compact's color.
 The bars fill in quieter tones with the same steps: steel blue, soft violet,
-orchid. The top row holds what matters most, so all of it is bold: Ctx, AC,
-Win and the model. The 5h number is bold too. A ✻ in the effort's color from
+orchid. The top row holds what matters most, so all of it is bold: Ctx,
+Compact, Window and the model. The 5h number is bold too. A ✻ in the effort's color from
 Claude Code's /effort picker stands in for the Model row's divider. The folder
 and the branch show in full, and shorten only when their row runs out of room.
 
@@ -263,14 +263,15 @@ def number_column(lines, labeled, tree, gap_before, last=False):
                     + cell(v[1], v[2], v[3], vw, bx, last))
 
 
-def build_left(st, bw, with_third=True, limits=3):
+def build_left(st, bw, with_third=True, limits=3, second=True):
     """The left side, as rows indexed 4, 0, 1, 2, 3 in the order they print
     (render's ORDER). The bars and the numbers are sections of their own. The
     bars stack Ctx, 5h, 7d, Fable, then CPU last. Two columns of numbers sit
-    beside them: AC over each limit's reset time over Turn, and Win over each
+    beside them: Compact over each limit's reset time over Turn, and Window over each
     limit's pace over Cost, so a limit's reset and pace share its bar's row.
     Each bar's number sits in its middle. with_third False leaves out the
-    paces, for a narrow terminal. LIMITS is how many of the limits a short
+    paces, for a narrow terminal, and second False the whole column they sit
+    in, for the narrowest. LIMITS is how many of the limits a short
     terminal has room for; the rest leave every column."""
     _, _, ack, acx = val(st.ac_pct)
     lines = [row_label("Ctx") + finish_bar(bar(st.ctx_tok, st.win, sevc(st.ac_pct), bw),
@@ -302,14 +303,15 @@ def build_left(st, bw, with_third=True, limits=3):
 
     # ↻ and 𝐏 stand in for the "Resets" and "Pace" labels, so they are mauve
     # like a label, and bold.
-    number_column(lines, {0: ("AC", val(st.ac_pct)),
+    number_column(lines, {0: ("Compact", val(st.ac_pct)),
                           last: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))},
                   trees("↻", [(None, r, VAL, False) for _, r, _ in limit_lines]), 0)
     # The paces, where each limit lands at its reset, drop on a narrow terminal.
     paces = [val(p) if p is not None else (None, "–", DET, False) for _, _, p in limit_lines]
-    number_column(lines, {0: ("Win", val(st.win_pct)),
-                          last: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))},
-                  trees("𝐏", paces) if with_third else {}, 3, last=True)
+    if second:
+        number_column(lines, {0: ("Window", val(st.win_pct)),
+                              last: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))},
+                      trees("𝐏", paces) if with_third else {}, 3, last=True)
     # The top row holds what matters most, so all of it is bold, as the Model
     # row beside it is: it stands out from the rows below.
     lines[0] = T([(t, BOLD + s) for t, s in lines[0].parts])
@@ -385,7 +387,7 @@ def build_right(st):
 # conversation keeps its room: under 30 lines the Fable row goes, under 25 the
 # 7d row, under 20 the 5h row. The CPU and Ctx rows always stay.
 SHORT = (30, 25, 20)
-# The rows in the order they print. The AC row is 4, printed on top, for the
+# The rows in the order they print. The Compact row is 4, printed on top, for the
 # machine bar it sat beside when CPU was the top bar.
 ORDER = [4, 0, 1, 2, 3]
 
@@ -481,6 +483,13 @@ def render(st, cols, lines=0):
         floor = max(10, min(ncpu, avail - 10 - bmin))
     bw = max(floor, min(avail - 10 - bmin, pmax * ncpu))
     left = build_left(st, bw, with_third, limits)
+    # Last of all, when even the bars at their narrowest leave no room, the
+    # column of Window and Cost goes too.
+    if show == "left" and max(len(left[i]) for i in order) > avail:
+        left = build_left(st, ncpu, False, limits, second=False)
+        bmin = max(len(left[i]) - ncpu - 10 for i in order)
+        bw = max(10, min(avail - 10 - bmin, pmax * ncpu))
+        left = build_left(st, bw, False, limits, second=False)
     # The values column pads out to the divider by 3 spare columns at most; any
     # other leftover goes at the end of the line, where empty space doesn't show.
     lw = 0 if show == "left" else min(avail, bw + 10 + bmin + 3)
