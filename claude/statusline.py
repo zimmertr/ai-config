@@ -9,11 +9,11 @@ drops the limits from the bottom up (Fable, then 7d, then 5h), and each section
 its last row with them. Ctx and CPU always stay. Wired via ~/.claude/settings.json
 as `python3 ~/.claude/statusline.py`.
 
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Compact: 39%     Window:  19%       ✻ Model:   Opus 5.5/High
-  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─────── 4h46m   𝐏──────▕ 111% ▏    │ Session: 1feba53f/claude-00
-  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─────── 2d21h   ├──────▕ 164% ▏    │ Dir:     ~/git/personal/bluebird
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─────── 2d21h   └──────▕ 167% ▏    │ Git:     main ↓7 ✚2
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn:    220     Cost:    $3.63     │ K8s:     admin@stable/default
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Compact: 39%     Window:  19%       ✻ Model: Opus 5.5/High
+  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─────── 4h46m   𝐏──────▕ 111% ▏    │ Name:  1feba53f/claude-00
+  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─────── 2d21h   ├──────▕ 164% ▏    │ Dir:   ~/git/personal/bluebird
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─────── 2d21h   └──────▕ 167% ▏    │ Git:   main ↓7 ✚2
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn:    220     Cost:    $3.63     │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. Compact is the share of the point where auto-compact fires, Window the
@@ -371,7 +371,7 @@ def build_right(st):
     # label included (in render); the other rows stay plain.
     effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
-    ident = ("Session", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
+    ident = ("Name", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
             S(SLASH, "/") + S(NAME, st.ns) if st.kube and st.ns else T())
     folder = ("Dir", dir_text(st.dir, st.repo if st.in_git else "", st.repo_k), T())
@@ -401,7 +401,7 @@ def render(st, cols, lines=0):
     limits = limit_rows(lines)
     order = ORDER[:2 + limits]
     br, gr, rlab, dir_row, git_row = build_right(st)
-    # A right row starts with its label, padded to the longest (Session) and
+    # A right row starts with its label, padded to the longest (Model) and
     # then a space.
     rw = max(len(lab) for lab in rlab) + 2
     # The folder and the branch shorten only when their row runs out of room,
