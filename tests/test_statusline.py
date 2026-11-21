@@ -92,26 +92,31 @@ def test_no_box_is_cut_open(name, cols):
 @pytest.mark.parametrize("cols", SIZES)
 def test_grids_line_up(name, cols):
     rs = rows(STATES[name], cols)
-    machine, ctx = rs[0], rs[1]
-    assert machine.index("AC:") == ctx.index("Win:")
-    # Cost and Turn start in one column, the 𝐏 tree's branches start there too,
-    # and their numbers line up; the paces drop on a narrow terminal.
-    heads = [(machine, machine.index("Cost:")), (ctx, ctx.index("Turn:"))]
-    if "𝐏" in rs[2]:
-        for r in rs[2:]:
-            g = [m.start() for m in re.finditer("[𝐏├└]", r)]
-            if "𝐏" in r or len(g) > 1:
-                heads.append((r, g[-1]))
-    assert len({h for _, h in heads}) == 1, rs
-    nums = {next(j for j in range(h + 4, len(r)) if r[j] in "0123456789$–") for r, h in heads}
-    assert len(nums) == 1, rs
+    top, bottom = rs[0], rs[-1]
+    # Two columns of numbers: Compact over the reset times over Turn, and Window over
+    # the paces over Cost. Each column's labels and branches start together,
+    # and its numbers line up; the paces drop on a narrow terminal.
+    trees = [[m.start() for m in re.finditer("[↻𝐏├└]", r)] for r in rs[1:-1]]
+    trees = [(r, g) for r, g in zip(rs[1:-1], trees) if g]
+    paces = "𝐏" in rs[1]
+    for col, (a, b) in enumerate((("Compact:", "Turn:"), ("Window:", "Cost:"))):
+        # The narrowest terminal drops the second column.
+        if a not in top:
+            assert cols <= 60 and b not in bottom
+            continue
+        heads = [(top, top.index(a)), (bottom, bottom.index(b))]
+        if col == 0 or paces:
+            heads += [(r, g[col]) for r, g in trees]
+        assert len({h for _, h in heads}) == 1, rs
+        nums = {next(j for j in range(h + 4, len(r)) if r[j] in "0123456789$–") for r, h in heads}
+        assert len(nums) == 1, rs
     if cols >= 140:
-        assert "𝐏" in rs[2]
+        assert paces
 
 
 def test_third_column_drops_before_the_right_side():
-    rs = rows(state(), 80)
-    assert "𝐏" not in rs[2] and " │ Dir:" in rs[2]
+    rs = rows(state(), 85)
+    assert "𝐏" not in rs[1] and " │ Dir:" in rs[2] and "Cost:" in rs[4]
 
 
 @pytest.mark.parametrize("name", STATES)
@@ -136,13 +141,15 @@ def test_short_terminal_drops_limits_but_keeps_cpu_last(lines, labels):
     rs = rows(state(), 160, lines)
     assert [r.split(":")[0] for r in rs] == labels
     # The numbers and names lose their last rows too.
-    assert [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs] == ["Model", "ID", "Dir", "Git", "K8s"][:len(rs)]
+    assert [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs] == ["Model", "Name", "Dir", "Git", "K8s"][:len(rs)]
 
 
 def test_bars_stack_with_cpu_last_and_the_numbers_stay():
     rs = rows(state(), 200)
     assert [r.split(":")[0] for r in rs] == ["Ctx", "5h", "7d", "Fable", "CPU"]
-    assert "AC:" in rs[0] and "Win:" in rs[1] and "↻" in rs[2] and "└─── 2d21h" in rs[4]
+    # Each limit's reset and pace share its bar's row.
+    assert "Compact:" in rs[0] and "Window:" in rs[0] and "↻" in rs[1] and re.search("└─+ 2d21h", rs[3])
+    assert "Cost:" in rs[4] and "Turn:" in rs[4]
     # Without Fable its place stays blank and CPU stays at the bottom.
     rs = rows(state(fable_pct=None), 200)
     assert rs[3].startswith(" " * 7) and rs[4].startswith("CPU:")
@@ -160,25 +167,25 @@ def test_short_terminal_keeps_the_rules(name, cols, lines):
 
 def test_trees_end_on_the_last_row_shown():
     rs = rows(state(), 200, 29)
-    assert "└─── 2d21h" in rs[3] and "├" not in rs[3]
-    assert "↻─── 4h46m" in rows(state(), 200, 24)[2]
+    assert re.search("└─+ 2d21h", rs[2]) and "├" not in rs[2] and "Turn:" in rs[3]
+    assert re.search("↻─+ 4h46m", rows(state(), 200, 24)[1])
 
 
 def test_top_row_and_five_hour_number_are_bold():
     top = sl.build_left(state(), 24)[sl.ORDER[0]]
     assert all(s.startswith(sl.BOLD) for _, s in top.parts)
-    assert "Cost" in top.plain and "AC" in top.plain
+    assert "Compact" in top.plain and "Window" in top.plain
     out = sl.render(state(), 200).split("\n")
     assert sl.BOLD + sl.OK + "2%" in out[1]
     # The rest of the 5h row, and the rows below, stay plain.
     assert out[1].startswith(sl.LAB + "5h") and not out[2].startswith(sl.BOLD)
-    assert sl.BOLD + sl.LAB + "Win" not in out[1]
+    assert sl.BOLD + sl.LAB + "Cost" not in out[4]
 
 
 def test_folder_has_its_own_row():
     rs = rows(state(), 160)
     labels = [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs]
-    assert labels == ["Model", "ID", "Dir", "Git", "K8s"]
+    assert labels == ["Model", "Name", "Dir", "Git", "K8s"]
     assert "Dir:   ~/git/personal/bluebird" in rs[2] and "bluebird" not in rs[3]
     assert rows(state(in_git=False), 160)[3].endswith("Git:   –")
     assert "K8s:   –" in rows(state(kube=""), 160)[4]
@@ -187,7 +194,7 @@ def test_folder_has_its_own_row():
 def test_details_follow_a_slash():
     rs = rows(state(), 200)
     assert rs[0].endswith(" ✻ Model: Opus 5.5/High")
-    assert rs[1].endswith("ID:    1feba53f/claude-00")
+    assert rs[1].endswith("Name:  1feba53f/claude-00")
     assert rs[4].endswith("K8s:   admin@stable/default")
 
 
@@ -197,7 +204,7 @@ def test_narrow_terminal_trims_details_before_the_right_side():
     for r in narrow:
         assert not r.endswith("/") and not r.endswith("/…"), r
     assert "Model:" in narrow[0] and "Dir:" in narrow[2]
-    assert "𝐏" in narrow[2] and "Cost:" in narrow[0] and "Turn:" in narrow[1]
+    assert "𝐏" in narrow[1] and "Window:" in narrow[0] and "Cost:" in narrow[4] and "Turn:" in narrow[4]
 
 
 def test_very_narrow_terminal_keeps_only_the_bars():
