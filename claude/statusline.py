@@ -13,7 +13,7 @@ as `python3 ~/.claude/statusline.py`.
   5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻──── 4h46m   𝐏────▕ 111% ▏    │ ID:    1feba53f/claude-00
   7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├──── 2d21h   ├────▕ 164% ▏    │ Dir:   ~/git/personal/bluebird
   Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └──── 2d21h   └────▕ 167% ▏    │ Git:   main ↓7 ✚2
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Cost: $3.63   Turn:  220       │ K8s:   admin@stable/default
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn: 220     Cost:  $3.63     │ K8s:   admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. AC is the share of the point where auto-compact fires, Win the share of
@@ -267,8 +267,8 @@ def build_left(st, bw, with_third=True, limits=3):
     """The left side, as rows indexed 4, 0, 1, 2, 3 in the order they print
     (render's ORDER). The bars and the numbers are sections of their own. The
     bars stack Ctx, 5h, 7d, Fable, then CPU last. Two columns of numbers sit
-    beside them: AC over each limit's reset time over Cost, and Win over each
-    limit's pace over Turn, so a limit's reset and pace share its bar's row.
+    beside them: AC over each limit's reset time over Turn, and Win over each
+    limit's pace over Cost, so a limit's reset and pace share its bar's row.
     Each bar's number sits in its middle. with_third False leaves out the
     paces, for a narrow terminal. LIMITS is how many of the limits a short
     terminal has room for; the rest leave every column."""
@@ -303,12 +303,12 @@ def build_left(st, bw, with_third=True, limits=3):
     # ↻ and 𝐏 stand in for the "Resets" and "Pace" labels, so they are mauve
     # like a label, and bold.
     number_column(lines, {0: ("AC", val(st.ac_pct)),
-                          last: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))},
+                          last: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))},
                   trees("↻", [(None, r, VAL, False) for _, r, _ in limit_lines]), 0)
     # The paces, where each limit lands at its reset, drop on a narrow terminal.
     paces = [val(p) if p is not None else (None, "–", DET, False) for _, _, p in limit_lines]
     number_column(lines, {0: ("Win", val(st.win_pct)),
-                          last: ("Turn", graded_cell(st.turns, 150, 300, str(st.turns)))},
+                          last: ("Cost", graded_cell(int(st.cost.split(".")[0]), 50, 100, "$" + st.cost))},
                   trees("𝐏", paces) if with_third else {}, 3, last=True)
     # The top row holds what matters most, so all of it is bold, as the Model
     # row beside it is: it stands out from the rows below.
@@ -474,7 +474,12 @@ def render(st, cols, lines=0):
         per -= 1
     # The bars then take every spare column, up to four per core, so no width
     # leaves a gap at the end of the line.
-    bw = max(per * ncpu, min(avail - 10 - bmin, pmax * ncpu))
+    # With only the left side left and still no room, the bars go below one
+    # column per core, down to the 10 that still hold a boxed number.
+    floor = per * ncpu
+    if show == "left" and per == 1:
+        floor = max(10, min(ncpu, avail - 10 - bmin))
+    bw = max(floor, min(avail - 10 - bmin, pmax * ncpu))
     left = build_left(st, bw, with_third, limits)
     # The values column pads out to the divider by 3 spare columns at most; any
     # other leftover goes at the end of the line, where empty space doesn't show.

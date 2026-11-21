@@ -93,13 +93,13 @@ def test_no_box_is_cut_open(name, cols):
 def test_grids_line_up(name, cols):
     rs = rows(STATES[name], cols)
     top, bottom = rs[0], rs[-1]
-    # Two columns of numbers: AC over the reset times over Cost, and Win over
-    # the paces over Turn. Each column's labels and branches start together,
+    # Two columns of numbers: AC over the reset times over Turn, and Win over
+    # the paces over Cost. Each column's labels and branches start together,
     # and its numbers line up; the paces drop on a narrow terminal.
     trees = [[m.start() for m in re.finditer("[↻𝐏├└]", r)] for r in rs[1:-1]]
     trees = [(r, g) for r, g in zip(rs[1:-1], trees) if g]
     paces = "𝐏" in rs[1]
-    for col, (a, b) in enumerate((("AC:", "Cost:"), ("Win:", "Turn:"))):
+    for col, (a, b) in enumerate((("AC:", "Turn:"), ("Win:", "Cost:"))):
         heads = [(top, top.index(a)), (bottom, bottom.index(b))]
         if col == 0 or paces:
             heads += [(r, g[col]) for r, g in trees]
@@ -112,7 +112,7 @@ def test_grids_line_up(name, cols):
 
 def test_third_column_drops_before_the_right_side():
     rs = rows(state(), 80)
-    assert "𝐏" not in rs[1] and " │ Dir:" in rs[2] and "Turn:" in rs[4]
+    assert "𝐏" not in rs[1] and " │ Dir:" in rs[2] and "Cost:" in rs[4]
 
 
 @pytest.mark.parametrize("name", STATES)
@@ -163,7 +163,7 @@ def test_short_terminal_keeps_the_rules(name, cols, lines):
 
 def test_trees_end_on_the_last_row_shown():
     rs = rows(state(), 200, 29)
-    assert "└──── 2d21h" in rs[2] and "├" not in rs[2] and "Cost:" in rs[3]
+    assert "└──── 2d21h" in rs[2] and "├" not in rs[2] and "Turn:" in rs[3]
     assert "↻──── 4h46m" in rows(state(), 200, 24)[1]
 
 
