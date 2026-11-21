@@ -115,7 +115,7 @@ def test_grids_line_up(name, cols):
 
 
 def test_third_column_drops_before_the_right_side():
-    rs = rows(state(), 85)
+    rs = rows(state(), 87)
     assert "𝐏" not in rs[1] and " │ Dir:" in rs[2] and "Cost:" in rs[4]
 
 
@@ -141,7 +141,7 @@ def test_short_terminal_drops_limits_but_keeps_cpu_last(lines, labels):
     rs = rows(state(), 160, lines)
     assert [r.split(":")[0] for r in rs] == labels
     # The numbers and names lose their last rows too.
-    assert [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs] == ["Model", "ID", "Dir", "Git", "K8s"][:len(rs)]
+    assert [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs] == ["Model", "Session", "Dir", "Git", "K8s"][:len(rs)]
 
 
 def test_bars_stack_with_cpu_last_and_the_numbers_stay():
@@ -185,17 +185,17 @@ def test_top_row_and_five_hour_number_are_bold():
 def test_folder_has_its_own_row():
     rs = rows(state(), 160)
     labels = [re.split(" [│✻] ", r)[-1].split(":")[0] for r in rs]
-    assert labels == ["Model", "ID", "Dir", "Git", "K8s"]
-    assert "Dir:   ~/git/personal/bluebird" in rs[2] and "bluebird" not in rs[3]
-    assert rows(state(in_git=False), 160)[3].endswith("Git:   –")
-    assert "K8s:   –" in rows(state(kube=""), 160)[4]
+    assert labels == ["Model", "Session", "Dir", "Git", "K8s"]
+    assert "Dir:     ~/git/personal/bluebird" in rs[2] and "bluebird" not in rs[3]
+    assert rows(state(in_git=False), 160)[3].endswith("Git:     –")
+    assert "K8s:     –" in rows(state(kube=""), 160)[4]
 
 
 def test_details_follow_a_slash():
     rs = rows(state(), 200)
-    assert rs[0].endswith(" ✻ Model: Opus 5.5/High")
-    assert rs[1].endswith("ID:    1feba53f/claude-00")
-    assert rs[4].endswith("K8s:   admin@stable/default")
+    assert rs[0].endswith(" ✻ Model:   Opus 5.5/High")
+    assert rs[1].endswith("Session: 1feba53f/claude-00")
+    assert rs[4].endswith("K8s:     admin@stable/default")
 
 
 def test_narrow_terminal_trims_details_before_the_right_side():
@@ -242,11 +242,11 @@ def test_max_spark_steps_through_the_rainbow():
 def test_long_names_shorten_only_without_room():
     st = STATES["long names"]
     wide = rows(st, 260)
-    assert wide[2].endswith("Dir:   " + st.dir)
-    assert "Git:   " + st.branch + " ↓7" in wide[3]
+    assert wide[2].endswith("Dir:     " + st.dir)
+    assert "Git:     " + st.branch + " ↓7" in wide[3]
     narrow = rows(st, 110)
-    assert "Dir:   …" in narrow[2] and narrow[2].endswith("scratchpad")
-    assert "Git:   feat/" in narrow[3] and "… ↓7 ✚2" in narrow[3]
+    assert "Dir:     …" in narrow[2] and narrow[2].endswith("scratchpad")
+    assert "Git:     feat/" in narrow[3] and "… ↓7 ✚2" in narrow[3]
 
 
 @pytest.mark.parametrize("p,repo,k,want", [

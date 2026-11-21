@@ -9,11 +9,11 @@ drops the limits from the bottom up (Fable, then 7d, then 5h), and each section
 its last row with them. Ctx and CPU always stay. Wired via ~/.claude/settings.json
 as `python3 ~/.claude/statusline.py`.
 
-  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Compact: 39%     Window:  19%       ✻ Model: Opus 5.5/High
-  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─────── 4h46m   𝐏──────▕ 111% ▏    │ ID:    1feba53f/claude-00
-  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─────── 2d21h   ├──────▕ 164% ▏    │ Dir:   ~/git/personal/bluebird
-  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─────── 2d21h   └──────▕ 167% ▏    │ Git:   main ↓7 ✚2
-  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn:    220     Cost:    $3.63     │ K8s:   admin@stable/default
+  Ctx:   ▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱  191k  ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ Compact: 39%     Window:  19%       ✻ Model:   Opus 5.5/High
+  5h:    ▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱   2%   ▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱ │ ↻─────── 4h46m   𝐏──────▕ 111% ▏    │ Session: 1feba53f/claude-00
+  7d:    ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 92%  ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱▱ │ ├─────── 2d21h   ├──────▕ 164% ▏    │ Dir:     ~/git/personal/bluebird
+  Fable: ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▕ 100% ▏▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ │ └─────── 2d21h   └──────▕ 167% ▏    │ Git:     main ↓7 ✚2
+  CPU:   ▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  10%   ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ │ Turn:    220     Cost:    $3.63     │ K8s:     admin@stable/default
 
 The CPU bar is a chart, a column per core. The Ctx bar spans the model's whole
 window. Compact is the share of the point where auto-compact fires, Window the
@@ -371,7 +371,7 @@ def build_right(st):
     # label included (in render); the other rows stay plain.
     effort = S(VALB, st.model) + S(SLASH, "/") + S(E + "[1m" + NAME, st.effort)
     model = ("Model", effort, T())
-    ident = ("ID", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
+    ident = ("Session", S(VAL, st.sid8), S(SLASH, "/") + slashed(st.sname, NAME) if st.sname else T())
     kube = ("K8s", slashed(st.kube, VAL) if st.kube else S(DET, "–"),
             S(SLASH, "/") + S(NAME, st.ns) if st.kube and st.ns else T())
     folder = ("Dir", dir_text(st.dir, st.repo if st.in_git else "", st.repo_k), T())
@@ -401,6 +401,9 @@ def render(st, cols, lines=0):
     limits = limit_rows(lines)
     order = ORDER[:2 + limits]
     br, gr, rlab, dir_row, git_row = build_right(st)
+    # A right row starts with its label, padded to the longest (Session) and
+    # then a space.
+    rw = max(len(lab) for lab in rlab) + 2
     # The folder and the branch shorten only when their row runs out of room,
     # down to 16 and 12 characters.
     floor = {dir_row: min(len(br[dir_row]), 16)}
@@ -426,25 +429,25 @@ def render(st, cols, lines=0):
     for with_third in (True, False):
         left = build_left(st, ncpu, with_third, limits)
         # A left row is its label (7), the bar, then the divider with a space on
-        # each side (3); a right row starts with its label (7).
+        # each side (3); a right row starts with its label (rw).
         bmin = max([0] + [len(left[i]) - ncpu - 10 for i in order])
         cb, cf = 0, 0
         for i in order:
             cb = max(cb, floor.get(i, len(br[i])))
             cf = max(cf, len(br[i]) + len(gr[i]))
-        cb, cf = cb + 7, cf + 7
+        cb, cf = cb + rw, cf + rw
         # The left side with the bars at one and two characters per core.
         l1, l2 = ncpu + 10 + bmin, 2 * ncpu + 10 + bmin
         pmax, c = 4, 0
         if l2 + 3 + cf <= w_avail:
             show, c = "full", cf
-        elif l2 + 3 + max(cb, 7 + mw + 16) <= w_avail:
+        elif l2 + 3 + max(cb, rw + mw + 16) <= w_avail:
             # The details get whatever their row has left; a long one ends in …,
             # and one with no room past its slash drops.
             show, pmax = "full", 2
             c = w_avail - l2 - 3
             for i in order:
-                room = c - 7 - len(br[i])
+                room = c - rw - len(br[i])
                 if len(gr[i]) > room:
                     gr[i] = S(SLASH, "/") + slashed(gr[i].plain[1:room - 1] + "…", gr[i].parts[1][1]) if room >= 3 else T()
         elif l2 + 3 + cb <= w_avail:
@@ -456,13 +459,13 @@ def render(st, cols, lines=0):
         if show != "left":
             break
     # A branch longer than its row's room ends in ….
-    if show != "left" and st.in_git and len(br[git_row]) > c - 7:
-        room = c - 7 - (len(br[git_row]) - len(st.branch))
+    if show != "left" and st.in_git and len(br[git_row]) > c - rw:
+        room = c - rw - (len(br[git_row]) - len(st.branch))
         br[git_row] = git_text(st, st.branch[:room - 1] + "…")
     # A folder longer than the right side's room keeps the whole folders at its
     # end that fit (…/personal/bluebird), or the last one cut short.
-    if show != "left" and len(br[dir_row]) > c - 7:
-        room, tail = c - 7, br[dir_row].plain.split("/")[-1]
+    if show != "left" and len(br[dir_row]) > c - rw:
+        room, tail = c - rw, br[dir_row].plain.split("/")[-1]
         for seg in reversed(br[dir_row].plain.split("/")[1:-1]):
             if len("…/" + seg + "/" + tail) > room:
                 break
@@ -506,7 +509,7 @@ def render(st, cols, lines=0):
         # stands in for the divider, in the effort's color: a shape the bold
         # alone can't give, in a column every row already keeps.
         top = rlab[i] == "Model"
-        line += DIV + " " + R + (spark(st.lvl, st.now).ansi() if top else DIV + "│" + R) + " " + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(6 - len(rlab[i])) + br[i].ansi()
+        line += DIV + " " + R + (spark(st.lvl, st.now).ansi() if top else DIV + "│" + R) + " " + bold + LAB + rlab[i] + R + bold + DOT + ":" + R + sp(rw - 1 - len(rlab[i])) + br[i].ansi()
         if show == "full" and len(gr[i]):
             line += gr[i].ansi()
         out.append(line)
