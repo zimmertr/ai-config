@@ -4,6 +4,8 @@ set -eu
 cd /work
 apt-get update -qq && apt-get install -y -qq ffmpeg >/dev/null
 [ -d venv ] || python -m venv venv
+# The venv is made above, at run time, so shellcheck has nothing to follow.
+# shellcheck source=/dev/null
 . venv/bin/activate
 pip install -q --upgrade pip
 pip install -q torch==2.13.0+rocm7.2 torchvision==0.28.0+rocm7.2 torchaudio==2.11.0+rocm7.2 --index-url https://download.pytorch.org/whl/rocm7.2

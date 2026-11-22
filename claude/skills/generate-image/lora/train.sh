@@ -1,6 +1,8 @@
 #!/bin/sh
 # usage: train.sh NAME SET RANK LR STEPS EVERY [PROMPTS]   (runs in the foreground; start it with nohup)
 set -eu
+# setup.sh makes the venv inside the pod, so shellcheck has nothing to follow.
+# shellcheck source=/dev/null
 . /work/venv/bin/activate
 cd /work/ai-toolkit
 sh /work/run/config.sh "$@" > "/work/run/$1.yaml"

@@ -12,7 +12,8 @@ and its "An example caller" names the repo to copy the callers from.
    comment (`@<sha> # v1.0.1`), so Renovate moves it.
 2. **Grant each caller only what its module asks for**, with
    `permissions: {}` at the top of the workflow. The release caller grants
-   `contents: write` and `packages: write`, even with no image: GitHub
+   `contents: write`, `packages: write`, `attestations: write` and
+   `id-token: write`, even with no image: GitHub
    refuses to start a run whose caller grants less than a called job asks
    for, and the PR still looks green, because the release isn't a required
    check.
@@ -46,7 +47,8 @@ and its "An example caller" names the repo to copy the callers from.
 7. **The `release` module** runs on every push to main. In order: the
    version; each image built for its platforms, with SBOM and provenance
    attestations, pushed to `ghcr.io/<owner>/<image>` under the version only
-   (no `latest`) with the job's own `GITHUB_TOKEN`; a Trivy scan of each
+   (no `latest`) with the job's own `GITHUB_TOKEN`, and attested with
+   GitHub's signed build provenance (yggdrasil record 0066); a Trivy scan of each
    image on each platform; the git tag and an immutable GitHub release with
    notes from the PR titles, only once every scan passes; then one
    self-merging PR in each deploy repo, pinning the image by digest.
@@ -84,25 +86,29 @@ and its "An example caller" names the repo to copy the callers from.
 ## Pull request checks
 
 15. Every PR runs:
-    - the `lint` module: actionlint, zizmor's pedantic audits and Semgrep's
-      base-image digest rule. It replaces any workflow or Dockerfile check
-      the repo would otherwise write itself.
+    - the `lint` module: actionlint, zizmor's pedantic audits, Semgrep's
+      base-image digest rule, shellcheck over every script, and lychee and an
+      em dash check over the Markdown. It replaces any workflow, Dockerfile,
+      script or docs check the repo would otherwise write itself.
     - the `pr-title` module
+    - on a public repo, the `dependency-review` module, which fails a PR that
+      adds a dependency with a known High or Critical vulnerability
     - the tests, with the coverage report
     - a linter (for example ruff, ESLint) that also fails a broad `except`
       that swallows its error: it re-raises, logs its traceback, or carries
       a suppression with the reason beside it
     - a type checker for every typed language (`tsc --noEmit`, mypy)
-    - when the project ships an image: the `docker-build` module, which runs
-      hadolint, builds the image, scans it with Trivy, keeps a sticky scan
-      comment on the PR, and runs the repo's container-structure-test file
-      against it (its `structure-test` input, yggdrasil record 0060), never a
-      Bash smoke test. A check the tool can't hold, such as one against a
+    - when the project ships an image: the `docker-build` module, given the
+      release's `images` list, which runs hadolint, builds each image, scans
+      it with Trivy, keeps a sticky scan comment on the PR, and runs the
+      repo's container-structure-test file against it (the entry's
+      `structure-test` field, yggdrasil records 0060 and 0066), never a Bash
+      smoke test. A check the tool can't hold, such as one against a
       running server, goes to TJ first
-    - **conditional (web UI):** Lighthouse CI budgets and a browser smoke
-      test with axe
-16. **Conditional (previews):** a preview environment per PR, and a cache
-    cleanup workflow when caches pile up.
+    - **conditional (web UI):** Lighthouse CI budgets through the
+      `lighthouse` module, and a browser smoke test with axe
+16. **Conditional (previews):** a preview environment per PR, and the
+    `cache-cleanup` module when caches pile up.
     1. yggdrasil's `pr-preview` module builds each PR's image on
        `pull_request` as `<image>-pr:pr-<N>-<head sha>`, and labels the
        maintainer's own PRs `create pr container` (yggdrasil record 0059).

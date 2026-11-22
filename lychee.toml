@@ -1,0 +1,3 @@
+# The record template is copied into a new project, where its relative link to
+# CLAUDE.md resolves. Here it points at nothing.
+exclude_path = ["claude/skills/initialize-project/templates/0000-template.md"]
