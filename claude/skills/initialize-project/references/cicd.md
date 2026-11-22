@@ -29,16 +29,15 @@ and its "An example caller" names the repo to copy the callers from.
 
 5. **Conventional commits and SemVer from the first commit.** The repo
    merges by squash only, with the PR title as the commit title and the PR
-   body as its message. The release module's GitVersion reads the bump from
-   that title alone:
+   body as its message. The release module reads the bump from that title
+   alone:
    - major: any type below with `!` before the colon (`feat!:`, `fix(api)!:`)
    - minor: `feat:` or `feat(scope):`
    - patch: `fix`, `perf`, `refactor`, `chore`, `docs`, `style`, `test`, `ci`,
      `build`, each with an optional `(scope)`
 
    The body never counts, so a `BREAKING CHANGE:` footer is not a major. The
-   first release is v0.1.0. A repo needs no `GitVersion.yml`: the module's
-   default applies unless the repo keeps its own.
+   first release is v0.1.0.
 6. **The `pr-title` module** fails a title no pattern reads. Its check is
    required.
 
