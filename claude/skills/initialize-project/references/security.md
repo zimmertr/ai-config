@@ -57,7 +57,9 @@ apply puts it back.
     `image-scan` module, uploads SARIF to the Security tab and fails only on a
     fixable Critical or High.
 13. **CodeQL default setup** for every language in the repo, `actions`
-    included.
+    included. On a public repo, yggdrasil's `scorecard` module also runs
+    OpenSSF Scorecard weekly and on every push to main, with its findings in
+    the Security tab.
 14. **Secret scanning with push protection** is on.
 
 ## Dependencies
@@ -80,7 +82,9 @@ apply puts it back.
 18. GitHub releases are immutable. Images and charts go to GHCR, pushed
     with the job's own `GITHUB_TOKEN`: never to Docker Hub, and never with a
     stored registry secret. GHCR has no immutable tags, so every deploy pins
-    the image's digest beside its tag (yggdrasil's record 0052).
+    the image's digest beside its tag (yggdrasil's record 0052). On a public
+    repo, the release attests every image and chart it pushes, and
+    `gh attestation verify` checks one.
 
 ## Secrets
 

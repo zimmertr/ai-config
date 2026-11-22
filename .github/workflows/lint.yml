@@ -2,11 +2,13 @@ name: Lint
 
 # yggdrasil's lint module: actionlint and zizmor's pedantic audits over the
 # workflows, and Semgrep's rule that a tagged Dockerfile FROM carries a digest
-# (the generate-image skill's Dockerfile pins its base image that way).
+# (the generate-image skill's Dockerfile pins its base image that way),
+# shellcheck over the scripts, and the docs' links and em dashes. lychee.toml
+# leaves out the record template, whose link resolves only once it is copied.
 #
-# Branch protection requires `Lint / actionlint`, `Lint / zizmor` and
-# `Lint / semgrep` (this job's name, then the module's); renaming either
-# strands PRs on a check that never reports.
+# Branch protection requires `Lint / actionlint`, `/ zizmor`, `/ semgrep`,
+# `/ shellcheck` and `/ docs` (this job's name, then the module's); renaming
+# either strands PRs on a check that never reports.
 on:
   pull_request:
     branches:
@@ -17,6 +19,6 @@ permissions: {}
 jobs:
   lint:
     name: Lint
-    uses: zimmertr/yggdrasil/.github/workflows/lint.yml@5898c8d74d3229b53f96084d2d438c52cadff392 # v2.1.6
+    uses: zimmertr/yggdrasil/.github/workflows/lint.yml@e229a6868b9d1bf4a596e0a8844452770a543a6c # v3.0.0
     permissions:
       contents: read
