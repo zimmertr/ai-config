@@ -38,8 +38,9 @@
    112 px, and at 32 px and 16 px on light and dark backgrounds, with any
    mark the UI lays over it (such as a status dot on the favicon) in
    place, and let the maintainer pick. Every option still reads at 16 px,
-   and no two of its parts touch or overlap. That one file is the single source: the README
-   shows it at the top (`<img src="..." alt="" width="96">`), a UI serves
+   and no two of its parts touch or overlap. That one file is the single
+   source: the README shows it at the top
+   (`<img src="..." alt="" width="96">`), a UI serves
    it as its favicon and header mark, and a Helm chart's `icon:` is its
    raw.githubusercontent.com URL. It lives where the app serves it, or in
    `docs/images/` when nothing does.
